@@ -24,11 +24,28 @@ export default function AssessmentPage() {
 
   const handleAnswerSelect = (index: number) => {
     setSelectedAnswer(index)
+    
+    // Auto-advance to next question after 500ms
+    setTimeout(() => {
+      handleNext()
+    }, 500)
   }
 
   const handleNext = () => {
-    // For now, just show alert
-    alert('Great choice! Full questionnaire with Marcus, Jake, Alex, Ryan & Ethan coming next...')
+    if (currentQuestion < 9) {
+      setCurrentQuestion(prev => prev + 1)
+      setSelectedAnswer(null)
+    } else {
+      // Last question - go to results
+      alert('Assessment complete! Redirecting to your personalized avatar results...')
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(prev => prev - 1)
+      setSelectedAnswer(null)
+    }
   }
 
   return (
@@ -43,10 +60,13 @@ export default function AssessmentPage() {
       {/* Progress Bar */}
       <div className="max-w-2xl mx-auto px-6 mb-8">
         <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-red-600 to-red-700 rounded-full w-[10%] transition-all duration-500"></div>
+          <div 
+            className="h-full bg-gradient-to-r from-red-600 to-red-700 rounded-full transition-all duration-500"
+            style={{ width: `${((currentQuestion + 1) / 10) * 100}%` }}
+          ></div>
         </div>
         <div className="text-center mt-3 text-sm opacity-70">
-          Challenge 1 of 10
+          Building your profile... Step {currentQuestion + 1} of 10
         </div>
       </div>
 
@@ -59,7 +79,7 @@ export default function AssessmentPage() {
           transition={{ duration: 0.6 }}
         >
           <div className="text-red-400 font-semibold text-sm uppercase tracking-wide mb-6">
-            Alpha Challenge 1 of 10
+            Discovering Your Type • Step {currentQuestion + 1} of 10
           </div>
           
           <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">
@@ -89,18 +109,29 @@ export default function AssessmentPage() {
             ))}
           </div>
 
-          <motion.button
-            onClick={handleNext}
-            disabled={selectedAnswer === null}
-            className={`px-8 py-4 rounded-full font-bold text-lg transition-all duration-300
-              ${selectedAnswer !== null
-                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 hover:-translate-y-1 shadow-lg'
-                : 'bg-gray-600 cursor-not-allowed opacity-50'
-              }`}
-            whileHover={selectedAnswer !== null ? { scale: 1.02 } : {}}
-          >
-            Next Challenge
-          </motion.button>
+          <div className="flex justify-between items-center mt-8">
+            {currentQuestion > 0 ? (
+              <motion.button
+                onClick={handlePrevious}
+                className="px-6 py-3 border border-white/20 rounded-full font-medium hover:bg-white/10 transition-all duration-300"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                ← Previous
+              </motion.button>
+            ) : (
+              <div></div>
+            )}
+
+            <div className="text-sm opacity-60">
+              {selectedAnswer !== null && currentQuestion < 9 && "Moving to next question..."}
+              {currentQuestion === 9 && selectedAnswer !== null && "Completing assessment..."}
+            </div>
+
+            <div className="text-sm opacity-40">
+              Auto-advance in 0.5s
+            </div>
+          </div>
         </motion.div>
       </div>
     </div>
