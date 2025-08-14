@@ -10,9 +10,14 @@ function DashboardContent() {
   const router = useRouter()
   const [avatarType, setAvatarType] = useState('marcus')
   const [userEmail, setUserEmail] = useState('')
+  const [userName, setUserName] = useState('')
   const [trialDaysLeft, setTrialDaysLeft] = useState(7)
   const [currentTime, setCurrentTime] = useState('')
   const [confidenceScore, setConfidenceScore] = useState(0)
+  const [coins, setCoins] = useState(200)
+  const [experience, setExperience] = useState(0)
+  const [level, setLevel] = useState(1)
+  const [streak, setStreak] = useState(1)
 
   const avatarData = {
     marcus: {
@@ -20,50 +25,45 @@ function DashboardContent() {
       fullName: 'Marcus "The Overthinker"',
       icon: '🧠',
       color: 'from-blue-500 to-purple-600',
-      greeting: "Hey there! Marcus here. I can already tell you're the type who thinks things through carefully - that's actually your superpower, even if it doesn't always feel like it.",
-      firstMessage: "Let's start by getting you out of that mental loop and into action. I've been exactly where you are, and I know the way out.",
-      todaysFocus: "Stop overthinking, start doing",
-      quickWin: "The 3-Second Rule technique that kills analysis paralysis instantly"
+      communityName: 'Overthinker\'s Circle',
+      todayChallenge: 'Make one decision in under 10 seconds',
+      quickTip: 'The 3-Second Rule: Count 3-2-1 and ACT before your mind sabotages you'
     },
     jake: {
       name: 'Jake',
       fullName: 'Jake "The Performer"',
       icon: '⚡',
       color: 'from-yellow-500 to-orange-600',
-      greeting: "What's up! Jake here, and I'm pumped to work with you. I can see you're someone who wants to excel at everything - that drive is going to serve you well.",
-      firstMessage: "Performance anxiety? Been there, conquered that. Let me show you how to turn that competitive energy into unshakeable bedroom confidence.",
-      todaysFocus: "Transform pressure into power",
-      quickWin: "The Champion's Breathing technique that eliminates performance anxiety in 60 seconds"
+      communityName: 'Performance Squad',
+      todayChallenge: 'Practice confident posture for 5 minutes',
+      quickTip: 'Champion\'s Breathing: 4 counts in, 7 hold, 8 out - instant confidence'
     },
     alex: {
       name: 'Alex',
       fullName: 'Alex "The Student"',
       icon: '📚',
       color: 'from-green-500 to-emerald-600',
-      greeting: "Hey! Alex here, and honestly, I'm excited to work with you. Your willingness to learn puts you ahead of 90% of guys out there.",
-      firstMessage: "Most men are too proud to admit they need help, but you're different. That growth mindset is going to transform your confidence faster than you think.",
-      todaysFocus: "Build knowledge, build confidence",
-      quickWin: "The Confidence Foundation - 5 principles every confident man knows"
+      communityName: 'Learning Brotherhood',
+      todayChallenge: 'Ask one question in the community',
+      quickTip: 'Knowledge builds confidence: Every expert was once a beginner'
     },
     ryan: {
       name: 'Ryan',
       fullName: 'Ryan "The Rising King"',
       icon: '💎',
       color: 'from-purple-500 to-pink-600',
-      greeting: "Hey! Ryan here. I can see that spark in you - those moments when your natural charisma shines through. That's what we're going to unlock permanently.",
-      firstMessage: "You don't lack confidence, you just can't access it consistently. I'm here to change that. No more good days and bad days - just reliable, magnetic presence.",
-      todaysFocus: "Unlock your consistent confidence",
-      quickWin: "The King's Posture technique that instantly activates your natural charisma"
+      communityName: 'Rising Kings Court',
+      todayChallenge: 'Approach one new person today',
+      quickTip: 'King\'s Posture: Shoulders back, chest out, chin up - instant authority'
     },
     ethan: {
       name: 'Ethan',
       fullName: 'Ethan "The Connection Master"',
       icon: '❤️',
       color: 'from-red-500 to-rose-600',
-      greeting: "Hey there! Ethan here. I can tell you're someone who values real connection - that emotional intelligence you have is actually rare and incredibly powerful.",
-      firstMessage: "Most guys think it's all about techniques, but you understand it's about genuine connection. Let me show you how to combine that with confident physical presence.",
-      todaysFocus: "Deep connection + confident expression",
-      quickWin: "The Heart-to-Heart technique that creates instant emotional intimacy"
+      communityName: 'Connection Masters',
+      todayChallenge: 'Have one meaningful conversation',
+      quickTip: 'Heart-to-Heart: Ask "How are you feeling?" instead of "How are you?"'
     }
   }
 
@@ -73,10 +73,12 @@ function DashboardContent() {
     // Get params from URL
     const avatar = searchParams.get('avatar') || 'marcus'
     const email = searchParams.get('email') || ''
+    const name = searchParams.get('name') || 'Future Alpha'
     const trial = searchParams.get('trial') === 'true'
     
     setAvatarType(avatar)
     setUserEmail(email)
+    setUserName(name)
 
     // Update time
     const updateTime = () => {
@@ -95,18 +97,31 @@ function DashboardContent() {
       if (score >= 34) clearInterval(scoreInterval)
     }, 50)
 
+    // Animate experience
+    let exp = 0
+    const expInterval = setInterval(() => {
+      exp += 5
+      setExperience(exp)
+      if (exp >= 150) clearInterval(expInterval)
+    }, 80)
+
     return () => {
       clearInterval(timeInterval)
       clearInterval(scoreInterval)
+      clearInterval(expInterval)
     }
   }, [searchParams])
 
-  const startChat = () => {
-    router.push(`/chat?avatar=${avatarType}`)
+  const goToCommunity = () => {
+    router.push(`/community?avatar=${avatarType}`)
   }
 
-  const startLesson = () => {
-    alert(`Starting your first lesson with ${currentAvatar.name}! (Lesson system coming soon)`)
+  const startChallenge = () => {
+    alert(`Starting today's challenge! ${currentAvatar.todayChallenge}`)
+  }
+
+  const openAchievements = () => {
+    alert('Achievements system coming soon!')
   }
 
   return (
@@ -127,24 +142,87 @@ function DashboardContent() {
       <div className="container mx-auto px-6 py-8">
         {/* Welcome Section */}
         <motion.div 
-          className="mb-12"
+          className="mb-8"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="flex items-center gap-4 mb-6">
-            <div className="text-5xl">{currentAvatar.icon}</div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="text-4xl">{currentAvatar.icon}</div>
             <div>
-              <h1 className="text-3xl font-bold">Welcome to your transformation</h1>
-              <p className="text-lg opacity-70">Your personal coach {currentAvatar.name} is ready</p>
+              <h1 className="text-2xl font-bold">Welcome back, {userName}!</h1>
+              <p className="text-lg opacity-70">Your coach {currentAvatar.name} is ready to help you level up</p>
             </div>
           </div>
         </motion.div>
 
-        {/* Main Grid */}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Coins */}
+          <motion.div 
+            className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/40 border border-yellow-500/30 rounded-xl p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">🪙</span>
+              <span className="text-sm font-semibold text-yellow-400">Coins</span>
+            </div>
+            <div className="text-2xl font-bold">{coins}</div>
+            <div className="text-xs opacity-70">Monthly allowance</div>
+          </motion.div>
+
+          {/* Experience */}
+          <motion.div 
+            className="bg-gradient-to-br from-purple-900/40 to-purple-800/40 border border-purple-500/30 rounded-xl p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">⚡</span>
+              <span className="text-sm font-semibold text-purple-400">XP</span>
+            </div>
+            <div className="text-2xl font-bold">{experience}</div>
+            <div className="text-xs opacity-70">Level {level} progress</div>
+          </motion.div>
+
+          {/* Streak */}
+          <motion.div 
+            className="bg-gradient-to-br from-red-900/40 to-red-800/40 border border-red-500/30 rounded-xl p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">🔥</span>
+              <span className="text-sm font-semibold text-red-400">Streak</span>
+            </div>
+            <div className="text-2xl font-bold">{streak}</div>
+            <div className="text-xs opacity-70">Days active</div>
+          </motion.div>
+
+          {/* Confidence Score */}
+          <motion.div 
+            className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 border border-blue-500/30 rounded-xl p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">📈</span>
+              <span className="text-sm font-semibold text-blue-400">Confidence</span>
+            </div>
+            <div className="text-2xl font-bold">{confidenceScore}%</div>
+            <div className="text-xs opacity-70">Assessment score</div>
+          </motion.div>
+        </div>
+
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Coach Introduction */}
+          {/* Community Section */}
           <motion.div 
             className="lg:col-span-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8"
             initial={{ opacity: 0, x: -30 }}
@@ -153,7 +231,7 @@ function DashboardContent() {
           >
             <div className="flex items-start gap-6">
               <motion.div 
-                className={`w-20 h-20 rounded-full bg-gradient-to-br ${currentAvatar.color} flex items-center justify-center text-3xl shadow-2xl`}
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${currentAvatar.color} flex items-center justify-center text-2xl shadow-2xl`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4, type: "spring", bounce: 0.5 }}
@@ -162,138 +240,158 @@ function DashboardContent() {
               </motion.div>
               
               <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-4">{currentAvatar.fullName}</h2>
-                <div className="space-y-4">
-                  <div className="bg-white/10 rounded-lg p-4 border-l-4 border-red-500">
-                    <p className="text-lg leading-relaxed italic">
-                      "{currentAvatar.greeting}"
-                    </p>
-                  </div>
-                  <p className="text-lg leading-relaxed opacity-90">
-                    {currentAvatar.firstMessage}
-                  </p>
+                <h2 className="text-xl font-bold mb-2">{currentAvatar.communityName}</h2>
+                <p className="text-lg mb-4 opacity-90">
+                  Your tribe of like-minded men on the same journey. Share experiences, ask questions, and learn from each other.
+                </p>
+                
+                <div className="bg-white/10 rounded-lg p-4 border-l-4 border-red-500 mb-4">
+                  <p className="text-sm font-semibold text-red-400 mb-1">💡 Today's Quick Tip</p>
+                  <p className="text-sm opacity-90">{currentAvatar.quickTip}</p>
                 </div>
                 
                 <motion.button
-                  onClick={startChat}
-                  className="mt-6 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold
+                  onClick={goToCommunity}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold
                            transition-all duration-300 ease-out"
                   whileHover={{ scale: 1.05, y: -1 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Start chatting with {currentAvatar.name}
+                  Join Your Community 💬
                 </motion.button>
               </div>
             </div>
           </motion.div>
 
-          {/* Progress Sidebar */}
+          {/* Right Sidebar */}
           <motion.div 
             className="space-y-6"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            {/* Confidence Score */}
+            {/* Today's Challenge */}
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Your Confidence Score</h3>
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full border-8 border-gray-700 relative mx-auto">
-                  <div 
-                    className="absolute inset-0 rounded-full border-8 border-red-500 border-t-transparent transition-all duration-1000"
-                    style={{ 
-                      transform: `rotate(${(confidenceScore / 100) * 360}deg)`,
-                      borderTopColor: confidenceScore > 50 ? '#ef4444' : 'transparent'
-                    }}
-                  ></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold">{confidenceScore}%</span>
-                  </div>
-                </div>
-                <p className="text-center mt-4 text-sm opacity-70">
-                  Based on your assessment
-                </p>
-              </div>
-            </div>
-
-            {/* Today's Focus */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Today's Focus</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <span>🎯</span> Today's Challenge
+              </h3>
               <div className="text-center">
-                <div className="text-3xl mb-3">🎯</div>
-                <p className="font-semibold text-red-400 mb-2">{currentAvatar.todaysFocus}</p>
-                <p className="text-sm opacity-70 leading-relaxed">
-                  {currentAvatar.quickWin}
-                </p>
+                <p className="font-semibold text-red-400 mb-3">{currentAvatar.todayChallenge}</p>
+                <button 
+                  onClick={startChallenge}
+                  className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-300"
+                >
+                  Accept Challenge (+10 XP)
+                </button>
               </div>
-              <button 
-                onClick={startLesson}
-                className="w-full mt-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-300"
-              >
-                Start Today's Lesson
-              </button>
             </div>
 
-            {/* Quick Stats */}
+            {/* Level Progress */}
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Your Progress</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <span>⬆️</span> Level Progress
+              </h3>
               <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="opacity-70">Lessons completed</span>
-                  <span className="font-semibold">0/5</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm opacity-70">Level {level}</span>
+                  <span className="text-sm font-semibold">{experience}/250 XP</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="opacity-70">Exercises done</span>
-                  <span className="font-semibold">0/3</span>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-1000"
+                    style={{ width: `${(experience / 250) * 100}%` }}
+                  ></div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="opacity-70">Streak</span>
-                  <span className="font-semibold text-red-400">Day 1</span>
-                </div>
+                <p className="text-xs opacity-70 text-center">
+                  {250 - experience} XP to Level {level + 1}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <button 
+                  onClick={goToCommunity}
+                  className="w-full p-3 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
+                >
+                  <span>❓</span>
+                  <div>
+                    <div className="font-semibold">Ask Question</div>
+                    <div className="text-xs opacity-70">Get help from community</div>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={goToCommunity}
+                  className="w-full p-3 bg-green-600/20 hover:bg-green-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
+                >
+                  <span>💡</span>
+                  <div>
+                    <div className="font-semibold">Share Win</div>
+                    <div className="text-xs opacity-70">Inspire others</div>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={openAchievements}
+                  className="w-full p-3 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
+                >
+                  <span>🏆</span>
+                  <div>
+                    <div className="font-semibold">Achievements</div>
+                    <div className="text-xs opacity-70">View badges earned</div>
+                  </div>
+                </button>
               </div>
             </div>
           </motion.div>
         </div>
 
-        {/* Action Cards */}
+        {/* Recent Activity */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
+          className="mt-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
         >
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center">
-            <div className="text-3xl mb-4">💬</div>
-            <h3 className="font-semibold mb-2">Chat with {currentAvatar.name}</h3>
-            <p className="text-sm opacity-70 mb-4">Get instant answers and guidance</p>
-            <button 
-              onClick={startChat}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-            >
-              Start Chat
-            </button>
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <span>📋</span> Recent Community Activity
+          </h3>
+          <div className="space-y-4">
+            {[
+              { user: "Mike_Confident", action: "answered your question about approaching women", time: "2h ago", coins: "+5" },
+              { user: "David_Phoenix", action: "shared a success story in your community", time: "4h ago", coins: "+8" },
+              { user: "Coach_Dan", action: "gave you expert advice on confidence building", time: "1d ago", coins: "+12" }
+            ].map((activity, index) => (
+              <motion.div 
+                key={index}
+                className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.8 + (index * 0.1) }}
+              >
+                <div className="flex-1">
+                  <p className="text-sm">
+                    <span className="font-semibold text-blue-400">{activity.user}</span>
+                    <span className="opacity-70"> {activity.action}</span>
+                  </p>
+                  <p className="text-xs opacity-50">{activity.time}</p>
+                </div>
+                <div className="text-yellow-400 font-semibold text-sm">
+                  {activity.coins} 🪙
+                </div>
+              </motion.div>
+            ))}
           </div>
-
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center">
-            <div className="text-3xl mb-4">📚</div>
-            <h3 className="font-semibold mb-2">Today's Lesson</h3>
-            <p className="text-sm opacity-70 mb-4">Personalized for your type</p>
-            <button 
-              onClick={startLesson}
-              className="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-            >
-              Start Learning
-            </button>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center">
-            <div className="text-3xl mb-4">⚡</div>
-            <h3 className="font-semibold mb-2">Quick Exercise</h3>
-            <p className="text-sm opacity-70 mb-4">5-minute confidence boost</p>
-            <button className="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
-              Start Exercise
-            </button>
-          </div>
+          
+          <button 
+            onClick={goToCommunity}
+            className="w-full mt-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold transition-all duration-300 hover:from-red-700 hover:to-red-800"
+          >
+            View All Community Activity
+          </button>
         </motion.div>
       </div>
     </div>

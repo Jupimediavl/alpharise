@@ -10,6 +10,7 @@ function SignupContent() {
   const router = useRouter()
   const [avatarType, setAvatarType] = useState('marcus')
   const [email, setEmail] = useState('')
+  const [userName, setUserName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [liveCount, setLiveCount] = useState(47)
 
@@ -71,17 +72,17 @@ function SignupContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    if (!email || !userName) return
 
     setIsLoading(true)
 
     // Simulate API call
     setTimeout(() => {
       // In real app: save to database, send welcome email
-      console.log('User signed up:', { email, avatarType })
+      console.log('User signed up:', { email, userName, avatarType })
       
-      // Redirect to dashboard with trial active
-      router.push(`/dashboard?avatar=${avatarType}&trial=true&email=${encodeURIComponent(email)}`)
+      // Redirect to dashboard with trial active and username
+      router.push(`/dashboard?avatar=${avatarType}&trial=true&email=${encodeURIComponent(email)}&name=${encodeURIComponent(userName)}`)
     }, 2000)
   }
 
@@ -106,7 +107,7 @@ function SignupContent() {
           >
             <div className="text-5xl mb-6">{currentAvatar.icon}</div>
             <h1 className="text-3xl md:text-4xl font-bold mb-6">
-              Hey {currentAvatar.name}, let's get you started
+              Ready to start your transformation?
             </h1>
             <p className="text-lg leading-relaxed opacity-90 mb-8">
               {currentAvatar.personalMessage}
@@ -131,6 +132,19 @@ function SignupContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
+                <label className="block text-sm font-semibold text-red-400 mb-2">
+                  What should we call you, future alpha?
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="John, Johnny, J-Money... whatever feels right"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:border-red-500 focus:outline-none transition-colors duration-300"
+                  required
+                />
+              </div>
+              <div>
                 <input 
                   type="email" 
                   placeholder="Enter your email address"
@@ -143,13 +157,13 @@ function SignupContent() {
               
               <motion.button 
                 type="submit"
-                disabled={isLoading || !email}
+                disabled={isLoading || !email || !userName}
                 className={`w-full p-4 rounded-lg font-bold text-xl transition-all duration-300 ease-out ${
-                  isLoading || !email 
+                  isLoading || !email || !userName
                     ? 'bg-gray-600 cursor-not-allowed opacity-50' 
                     : 'bg-gradient-to-r from-red-600 to-red-700'
                 }`}
-                whileHover={!isLoading && email ? { 
+                whileHover={!isLoading && email && userName ? { 
                   scale: 1.02, 
                   boxShadow: "0 10px 30px rgba(255, 68, 68, 0.4)" 
                 } : {}}
@@ -158,10 +172,10 @@ function SignupContent() {
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Creating Your Account...
+                    Creating Your Alpha Account...
                   </div>
                 ) : (
-                  "START MY FREE TRIAL"
+                  "START MY ALPHA JOURNEY"
                 )}
               </motion.button>
             </form>
@@ -171,7 +185,7 @@ function SignupContent() {
                 ✓ Free for 7 days • ✓ Cancel anytime • ✓ No credit card required
               </p>
               <p className="text-xs opacity-40">
-                After trial: $27/month • Over 2,000 men have transformed their confidence
+                After trial: $27/month • Over 2,000 alphas have transformed their confidence
               </p>
             </div>
           </motion.div>
@@ -187,7 +201,7 @@ function SignupContent() {
             <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center">
               <div className="text-red-400 font-bold text-lg mb-2">🔴 Live Now</div>
               <div className="text-2xl font-black text-white mb-1">{liveCount}</div>
-              <div className="text-sm opacity-70">men started their trial today</div>
+              <div className="text-sm opacity-70">future alphas started today</div>
             </div>
 
             {/* Limited Spots */}
@@ -215,7 +229,7 @@ function SignupContent() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-red-400 mt-1">✓</div>
-                <div>Daily 5-minute exercises designed specifically for your type</div>
+                <div>Access to your exclusive alpha brotherhood community</div>
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-red-400 mt-1">✓</div>
@@ -223,7 +237,11 @@ function SignupContent() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-red-400 mt-1">✓</div>
-                <div>24/7 access to your personal AI coach (that understands your personality)</div>
+                <div>Daily confidence challenges designed for your personality type</div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="text-red-400 mt-1">✓</div>
+                <div>Coin rewards system - earn money back on your subscription</div>
               </div>
             </div>
           </motion.div>
@@ -251,7 +269,7 @@ export default function SignupPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🚀</div>
-          <h2 className="text-2xl font-bold">Preparing your program...</h2>
+          <h2 className="text-2xl font-bold">Preparing your alpha program...</h2>
         </div>
       </div>
     }>

@@ -8,8 +8,20 @@ export default function LandingPage() {
   const router = useRouter()
   const [userCount, setUserCount] = useState(2847)
   const [liveUsers, setLiveUsers] = useState(23)
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
+    // Set window size safely on client side
+    const updateWindowSize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    updateWindowSize()
+    window.addEventListener('resize', updateWindowSize)
+
     // Animate user count
     const interval = setInterval(() => {
       setUserCount(prev => prev + Math.floor(Math.random() * 3))
@@ -23,6 +35,7 @@ export default function LandingPage() {
     return () => {
       clearInterval(interval)
       clearInterval(liveInterval)
+      window.removeEventListener('resize', updateWindowSize)
     }
   }, [])
 
@@ -35,29 +48,31 @@ export default function LandingPage() {
       {/* Animated Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900 animate-gradient-shift"></div>
       
-      {/* Floating Particles */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(30)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-red-500 rounded-full opacity-30"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: window.innerHeight + 100,
-            }}
-            animate={{
-              y: -100,
-              x: Math.random() * window.innerWidth,
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear",
-              delay: Math.random() * 5,
-            }}
-          />
-        ))}
-      </div>
+      {/* Floating Particles - Only render after window is available */}
+      {windowSize.width > 0 && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-red-500 rounded-full opacity-30"
+              initial={{
+                x: Math.random() * windowSize.width,
+                y: windowSize.height + 100,
+              }}
+              animate={{
+                y: -100,
+                x: Math.random() * windowSize.width,
+              }}
+              transition={{
+                duration: Math.random() * 10 + 10,
+                repeat: Infinity,
+                ease: "linear",
+                delay: Math.random() * 5,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Header */}
       <header className="fixed top-0 w-full z-50 transition-all duration-300">
@@ -240,7 +255,7 @@ export default function LandingPage() {
           </motion.button>
           
           <motion.div 
-            className="text-sm opacity-60 space-y-1"
+            className="mt-8 text-sm opacity-60 space-y-1"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}

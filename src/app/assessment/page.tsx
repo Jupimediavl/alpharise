@@ -10,15 +10,6 @@ export default function AssessmentPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
 
-  // Avatar scoring system
-  const avatarTypes = {
-    marcus: { name: 'Marcus "The Overthinker"', icon: '🧠', score: 0 },
-    jake: { name: 'Jake "The Performer"', icon: '⚡', score: 0 },
-    alex: { name: 'Alex "The Student"', icon: '📚', score: 0 },
-    ryan: { name: 'Ryan "The Rising King"', icon: '💎', score: 0 },
-    ethan: { name: 'Ethan "The Connection Master"', icon: '❤️', score: 0 }
-  }
-
   // Scoring rules for each question/answer combination
   const scoring = [
     // Question 1: What's going through your head when you're about to be intimate?
@@ -104,21 +95,32 @@ export default function AssessmentPage() {
   ]
 
   const calculateAvatar = () => {
-    const scores = { marcus: 0, jake: 0, alex: 0, ryan: 0, ethan: 0 }
+    const scores: Record<string, number> = { marcus: 0, jake: 0, alex: 0, ryan: 0, ethan: 0 }
     
     answers.forEach((answerIndex, questionIndex) => {
       const questionScoring = scoring[questionIndex]
-      const answerScoring = questionScoring[answerIndex]
-      
-      Object.entries(answerScoring).forEach(([avatar, points]) => {
-        scores[avatar as keyof typeof scores] += points
-      })
+      if (questionScoring && questionScoring[answerIndex]) {
+        const answerScoring = questionScoring[answerIndex]
+        
+        // Safely iterate through the scoring object
+        for (const [avatar, points] of Object.entries(answerScoring)) {
+          if (scores[avatar] !== undefined) {
+            scores[avatar] += points
+          }
+        }
+      }
     })
 
     // Find the avatar with highest score
-    const winningAvatar = Object.entries(scores).reduce((a, b) => 
-      scores[a[0] as keyof typeof scores] > scores[b[0] as keyof typeof scores] ? a : b
-    )[0]
+    let winningAvatar = 'marcus'
+    let highestScore = 0
+    
+    for (const [avatar, score] of Object.entries(scores)) {
+      if (score > highestScore) {
+        highestScore = score
+        winningAvatar = avatar
+      }
+    }
 
     return winningAvatar
   }
