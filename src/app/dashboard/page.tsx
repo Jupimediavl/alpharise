@@ -344,6 +344,18 @@ function DashboardContent() {
                     <div className="text-xs opacity-70">View badges earned</div>
                   </div>
                 </button>
+
+                <button 
+  onClick={() => router.push('/coins')}
+  className="w-full p-3 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
+>
+  <span>🪙</span>
+  <div>
+    <div className="font-semibold">Coin Economy</div>
+    <div className="text-xs opacity-70">Manage your coins & rewards</div>
+  </div>
+</button>
+
               </div>
             </div>
           </motion.div>
