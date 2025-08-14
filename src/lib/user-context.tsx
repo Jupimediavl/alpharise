@@ -151,45 +151,56 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
         const avatar = urlParams.get('avatar') as AlphaRiseUser['avatarType'];
-        const name = urlParams.get('name');
+        const name = urlParams.get('name') || urlParams.get('username'); 
         const email = urlParams.get('email');
         const trial = urlParams.get('trial') === 'true';
+
+        console.log('UserContext - Raw URL:', window.location.search);
+        console.log('UserContext - URL params extracted:', { avatar, name, email, trial });
+        console.log('UserContext - Name specifically:', name);
 
         if (avatar || name || email) {
           const userData: Partial<AlphaRiseUser> = {};
           if (avatar && avatar in avatarData) userData.avatarType = avatar;
-          if (name) userData.userName = decodeURIComponent(name);
+          if (name) {
+            userData.userName = decodeURIComponent(name);
+            console.log('UserContext - Setting userName to:', userData.userName);
+          }
           if (email) userData.userEmail = email;
           if (trial) userData.subscriptionType = 'trial';
 
-          setUser(prevUser => ({
-            ...createDefaultUser(),
-            ...prevUser,
-            ...userData
-          }));
+          console.log('UserContext - Final userData:', userData);
 
-          // Save to localStorage immediately
           const newUser = {
             ...createDefaultUser(),
             ...userData
           };
+          
+          console.log('UserContext - Creating user with:', newUser);
+          setUser(newUser);
           localStorage.setItem('alpharise_user', JSON.stringify(newUser));
+        } else {
+          console.log('UserContext - No URL params found, checking localStorage');
         }
       }
     };
 
     // Try URL first, then localStorage
     initializeFromURL();
-    if (!user) {
+    
+    // Only use localStorage if no URL params were found
+    if (typeof window !== 'undefined' && !window.location.search) {
       initializeFromStorage();
     }
 
     // If still no user, create default
-    if (!user) {
-      setUser(createDefaultUser());
-    }
-
-    setIsLoading(false);
+    setTimeout(() => {
+      if (!user) {
+        console.log('UserContext - Creating default user');
+        setUser(createDefaultUser());
+      }
+      setIsLoading(false);
+    }, 100);
   }, []);
 
   // Save to localStorage whenever user changes

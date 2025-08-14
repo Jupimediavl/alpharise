@@ -8,6 +8,14 @@ function DashboardContent() {
   const { user, avatar, navigation, updateUser } = useAlphaRise()
   const [currentTime, setCurrentTime] = useState('')
 
+  // DEBUG - să vedem ce date primim
+  useEffect(() => {
+    console.log('Dashboard - User data:', user)
+    console.log('Dashboard - Username:', user?.userName)
+    console.log('Dashboard - URL params:', window.location.search)
+    console.log('Dashboard - localStorage:', localStorage.getItem('alpharise_user'))
+  }, [user])
+
   // Update time
   useEffect(() => {
     const updateTime = () => {

@@ -1,24 +1,23 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
+import { useAlphaRise, withUserAuth } from '@/lib/user-context'
+import { coinEconomyManager, coinHelpers } from '@/lib/coin-economy-system'
 
 function CommunityContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const [avatarType, setAvatarType] = useState('marcus')
-  const [userName, setUserName] = useState('Future Alpha')
+  const { user, avatar, navigation } = useAlphaRise()
   const [activeTab, setActiveTab] = useState('all')
-  const [coins, setCoins] = useState(200)
   const [showNewQuestion, setShowNewQuestion] = useState(false)
   const [newQuestionTitle, setNewQuestionTitle] = useState('')
   const [newQuestionBody, setNewQuestionBody] = useState('')
+  const [selectedQuestionType, setSelectedQuestionType] = useState('regular')
+  const [questions, setQuestions] = useState<any[]>([]) // Fix type
+  const [userCoins, setUserCoins] = useState(0)
 
   // Real problem-based communities
   const communities = [
-    // Performance & Physical
     { 
       id: 'premature-ejaculation', 
       name: 'Premature Ejaculation Solutions', 
@@ -43,8 +42,6 @@ function CommunityContent() {
       description: 'From zero to experience - all the basics',
       color: 'from-purple-500 to-purple-600'
     },
-    
-    // Mental & Confidence
     { 
       id: 'approach-anxiety', 
       name: 'Approach Anxiety & Rejection', 
@@ -69,16 +66,6 @@ function CommunityContent() {
       description: 'Build unshakeable self-esteem and presence',
       color: 'from-orange-500 to-orange-600'
     },
-    
-    // Relationships & Connection
-    { 
-      id: 'getting-her-back', 
-      name: 'Getting Her Back', 
-      icon: '💔', 
-      count: 19,
-      description: 'Ex relationships and reconciliation strategies',
-      color: 'from-pink-500 to-pink-600'
-    },
     { 
       id: 'dating-apps', 
       name: 'Dating App Success', 
@@ -94,58 +81,6 @@ function CommunityContent() {
       count: 16,
       description: 'Emotional intimacy and meaningful relationships',
       color: 'from-rose-500 to-rose-600'
-    },
-    
-    // Specific Situations
-    { 
-      id: 'workplace-confidence', 
-      name: 'Workplace & Professional Confidence', 
-      icon: '👔', 
-      count: 14,
-      description: 'Career success and leadership presence',
-      color: 'from-gray-500 to-gray-600'
-    },
-    { 
-      id: 'age-gap', 
-      name: 'Age Gap Relationships', 
-      icon: '📅', 
-      count: 12,
-      description: 'Navigate younger/older women dynamics',
-      color: 'from-indigo-500 to-indigo-600'
-    },
-    { 
-      id: 'long-distance', 
-      name: 'Long Distance Relationships', 
-      icon: '✈️', 
-      count: 9,
-      description: 'Maintain connection across distance',
-      color: 'from-sky-500 to-sky-600'
-    },
-    
-    // Advanced & Lifestyle
-    { 
-      id: 'alpha-lifestyle', 
-      name: 'Alpha Lifestyle & Habits', 
-      icon: '👑', 
-      count: 21,
-      description: 'Daily routines for success and discipline',
-      color: 'from-amber-500 to-amber-600'
-    },
-    { 
-      id: 'sexual-techniques', 
-      name: 'Sexual Techniques & Pleasure', 
-      icon: '🔥', 
-      count: 17,
-      description: 'Advanced intimacy and satisfaction skills',
-      color: 'from-red-600 to-red-700'
-    },
-    { 
-      id: 'multiple-dating', 
-      name: 'Multiple Dating & Options', 
-      icon: '🎲', 
-      count: 11,
-      description: 'Managing multiple relationships ethically',
-      color: 'from-violet-500 to-violet-600'
     }
   ]
 
@@ -154,7 +89,7 @@ function CommunityContent() {
     { 
       id: 'all', 
       name: 'All Communities', 
-      icon: '🌟', 
+      icon: '⭐', 
       count: communities.reduce((sum, c) => sum + c.count, 0),
       description: 'Real problems, real solutions from men who\'ve been there',
       color: 'from-red-500 to-red-600'
@@ -162,7 +97,15 @@ function CommunityContent() {
     ...communities
   ]
 
-  // Mock questions updated for real problems
+  // Question types with costs
+  const questionTypes = [
+    { id: 'regular', name: 'Regular Question', cost: 2, description: 'Standard community question', icon: '❓' },
+    { id: 'urgent', name: 'Urgent Question', cost: 5, description: 'Guaranteed response in 6 hours', icon: '🚨' },
+    { id: 'private', name: 'Private Question', cost: 8, description: 'Only experts can see and answer', icon: '🔒' },
+    { id: 'vip', name: 'VIP Question', cost: 15, description: 'Direct answer from avatar coaches', icon: '👑' },
+  ]
+
+  // Mock questions with coin integration
   const mockQuestions = [
     {
       id: 1,
@@ -171,16 +114,19 @@ function CommunityContent() {
       author: "StrugglingGuy_25",
       authorAvatar: "premature-ejaculation",
       category: "premature-ejaculation",
-      coins: 8,
+      coinBounty: 8,
       timeAgo: "2h ago",
       replies: 12,
       lastReply: "30min ago",
       isAnswered: true,
+      canAnswer: true,
+      questionType: 'regular', // Add missing property
       topAnswer: {
         author: "ExpertCoach_Dan",
         text: "The stop-start technique combined with kegel exercises changed my life. Start with 3-second holds and build up to 10 seconds...",
         coins: 15,
-        rating: 5
+        rating: 5,
+        earnedCoins: true
       }
     },
     {
@@ -190,16 +136,19 @@ function CommunityContent() {
       author: "NervousNate",
       authorAvatar: "approach-anxiety",
       category: "approach-anxiety",
-      coins: 5,
+      coinBounty: 5,
       timeAgo: "4h ago",
       replies: 18,
       lastReply: "1h ago",
       isAnswered: true,
+      canAnswer: true,
+      questionType: 'urgent', // Add missing property
       topAnswer: {
         author: "ConfidentKing",
         text: "Start with low-stakes interactions. Ask for directions, compliment something non-physical. Build your comfort level gradually...",
         coins: 12,
-        rating: 5
+        rating: 5,
+        earnedCoins: true
       }
     },
     {
@@ -209,17 +158,13 @@ function CommunityContent() {
       author: "LateStarter_24",
       authorAvatar: "first-time",
       category: "first-time",
-      coins: 3,
+      coinBounty: 3,
       timeAgo: "6h ago",
       replies: 24,
       lastReply: "2h ago",
-      isAnswered: true,
-      topAnswer: {
-        author: "BeenThereBro",
-        text: "Honesty is your superpower. Many women find it refreshing. Focus on learning her body and what she likes rather than performing...",
-        coins: 10,
-        rating: 4
-      }
+      isAnswered: false,
+      canAnswer: true,
+      questionType: 'private' // Add missing property
     },
     {
       id: 4,
@@ -228,49 +173,13 @@ function CommunityContent() {
       author: "TinderStruggler",
       authorAvatar: "dating-apps",
       category: "dating-apps",
-      coins: 4,
+      coinBounty: 4,
       timeAgo: "8h ago",
       replies: 15,
       lastReply: "3h ago",
-      isAnswered: true,
-      topAnswer: {
-        author: "AppMaster_Mike",
-        text: "Generic 'hey' messages are death. Comment on something specific in her photos or bio. Ask engaging questions that require more than yes/no...",
-        coins: 8,
-        rating: 4
-      }
-    },
-    {
-      id: 5,
-      title: "How to get my ex back after I messed up badly?",
-      body: "I was jealous and controlling and she left me 3 months ago. I've been working on myself but she won't talk to me. Is there still hope?",
-      author: "RegretfulGuy",
-      authorAvatar: "getting-her-back",
-      category: "getting-her-back",
-      coins: 7,
-      timeAgo: "1d ago",
-      replies: 11,
-      lastReply: "5h ago",
-      isAnswered: false
-    },
-    {
-      id: 6,
-      title: "Best daily habits to build natural confidence?",
-      body: "I want to develop unshakeable confidence from the inside out. What daily practices have made the biggest difference for you guys?",
-      author: "BuildingMyself",
-      authorAvatar: "confidence-building",
-      category: "confidence-building",
-      coins: 6,
-      timeAgo: "1d ago",
-      replies: 19,
-      lastReply: "4h ago",
-      isAnswered: true,
-      topAnswer: {
-        author: "AlphaHabits",
-        text: "Cold showers, gym, meditation, and approaching 3 strangers daily. Small wins compound into massive confidence over time...",
-        coins: 14,
-        rating: 5
-      }
+      isAnswered: false,
+      canAnswer: true,
+      questionType: 'vip' // Add missing property
     }
   ]
 
@@ -280,14 +189,14 @@ function CommunityContent() {
       return {
         name: 'All Communities',
         description: 'Real problems, real solutions from men who\'ve been there',
-        icon: '🌟',
+        icon: '⭐',
         color: 'from-red-500 to-red-600'
       }
     }
     return communities.find(c => c.id === activeTab) || {
       name: 'All Communities',
       description: 'Real problems, real solutions from men who\'ve been there',
-      icon: '🌟',
+      icon: '⭐',
       color: 'from-red-500 to-red-600'
     }
   }
@@ -297,33 +206,115 @@ function CommunityContent() {
     ? mockQuestions 
     : mockQuestions.filter(q => q.category === activeTab)
 
+  // Initialize user coins
   useEffect(() => {
-    const avatar = searchParams.get('avatar') || 'marcus'
-    const name = searchParams.get('name') || 'Future Alpha'
-    setAvatarType(avatar)
-    setUserName(name)
-  }, [searchParams])
+    if (user) {
+      setUserCoins(user.coins)
+    }
+  }, [user])
 
+  // Handle asking question with coin cost
   const handleAskQuestion = () => {
-    if (!newQuestionTitle.trim() || !newQuestionBody.trim()) return
+    if (!user) return
+
+    const questionType = questionTypes.find(qt => qt.id === selectedQuestionType)
+    if (!questionType) return
+
+    const totalCost = questionType.cost
     
-    // In real app: submit to API
-    console.log('New question:', { title: newQuestionTitle, body: newQuestionBody, cost: 2 })
-    setCoins(prev => prev - 2)
-    setNewQuestionTitle('')
-    setNewQuestionBody('')
-    setShowNewQuestion(false)
-    
-    // Show success message
-    alert('Question posted! The community will help you soon. (-2 coins)')
+    if (userCoins < totalCost) {
+      alert(`Insufficient coins! You need ${totalCost} coins but only have ${userCoins}. Answer questions to earn more coins.`)
+      return
+    }
+
+    if (!newQuestionTitle.trim() || !newQuestionBody.trim()) {
+      alert('Please fill in both title and question details.')
+      return
+    }
+
+    // Simulate posting question and spending coins
+    try {
+      coinEconomyManager.askQuestion(user.userName || 'user', selectedQuestionType)
+      
+      // Update local coins
+      setUserCoins(prev => prev - totalCost)
+      
+      // Create new question
+      const newQuestion = {
+        id: Date.now(),
+        title: newQuestionTitle,
+        body: newQuestionBody,
+        author: user.userName || 'Anonymous',
+        authorAvatar: activeTab,
+        category: activeTab === 'all' ? 'confidence-building' : activeTab,
+        coinBounty: 0,
+        timeAgo: "Just now",
+        replies: 0,
+        lastReply: "",
+        isAnswered: false,
+        canAnswer: false,
+        questionType: selectedQuestionType
+      }
+      
+      // Add to questions list
+      setQuestions(prev => [newQuestion, ...prev])
+      
+      // Reset form
+      setNewQuestionTitle('')
+      setNewQuestionBody('')
+      setSelectedQuestionType('regular')
+      setShowNewQuestion(false)
+      
+      alert(`Question posted successfully! Cost: ${totalCost} coins. You now have ${userCoins - totalCost} coins remaining.`)
+      
+    } catch (error) {
+      alert('Error posting question. Please try again.')
+    }
   }
 
+  // Handle answering question to earn coins
   const handleAnswerQuestion = (questionId: number) => {
-    alert('Answer feature coming soon! (+5-10 coins for helpful answers)')
+    if (!user) return
+
+    const question = [...mockQuestions, ...questions].find(q => q.id === questionId)
+    if (!question) return
+
+    // Simulate answering and earning coins
+    const rating = Math.floor(Math.random() * 2) + 4 // 4 or 5 stars
+    const isBestAnswer = Math.random() > 0.7
+    
+    try {
+      const transaction = coinEconomyManager.rewardAnswer(
+        user.userName || 'user', 
+        questionId.toString(), 
+        rating, 
+        isBestAnswer
+      )
+      
+      // Update local coins
+      setUserCoins(prev => prev + transaction.amount)
+      
+      alert(`Great answer! You earned ${transaction.amount} coins for your ${rating}-star ${isBestAnswer ? 'best ' : ''}answer. You now have ${userCoins + transaction.amount} coins.`)
+      
+    } catch (error) {
+      alert('Error submitting answer. Please try again.')
+    }
   }
 
-  const goToDashboard = () => {
-    router.push(`/dashboard?avatar=${avatarType}&name=${encodeURIComponent(userName)}`)
+  // Check if user can afford question type
+  const canAffordQuestion = (cost: number) => {
+    return userCoins >= cost
+  }
+
+  if (!user || !avatar) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">💬</div>
+          <h2 className="text-2xl font-bold">Loading community...</h2>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -333,7 +324,7 @@ function CommunityContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 lg:gap-4">
             <button 
-              onClick={goToDashboard}
+              onClick={navigation.goToDashboard}
               className="text-xl lg:text-2xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
               title="Back to Dashboard"
             >
@@ -345,7 +336,7 @@ function CommunityContent() {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-1 ml-6">
               <button 
-                onClick={goToDashboard}
+                onClick={navigation.goToDashboard}
                 className="px-3 py-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
               >
                 Dashboard
@@ -356,26 +347,26 @@ function CommunityContent() {
                 Community
               </button>
               <button 
-                onClick={() => alert('Profile coming soon!')}
+                onClick={navigation.goToCoins}
                 className="px-3 py-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
               >
-                Profile
+                Coins
               </button>
             </div>
           </div>
           <div className="flex items-center gap-3 lg:gap-4">
             <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-400 px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold">
               <span>🪙</span>
-              <span>{coins}</span>
+              <span>{userCoins}</span>
             </div>
-            <div className="text-sm opacity-70 hidden lg:block">Hey {userName}!</div>
+            <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'Alpha'}!</div>
           </div>
         </div>
         
         {/* Mobile Welcome Message */}
         <div className="lg:hidden mt-3">
           <div className="text-center py-2">
-            <span className="text-lg font-bold text-white">Hey {userName}!</span>
+            <span className="text-lg font-bold text-white">Hey {user.userName || 'Alpha'}!</span>
             <p className="text-sm opacity-70 mt-1">Welcome to the brotherhood</p>
           </div>
         </div>
@@ -384,7 +375,7 @@ function CommunityContent() {
       {/* Mobile Back Button */}
       <div className="lg:hidden fixed bottom-6 left-6 z-40">
         <motion.button
-          onClick={goToDashboard}
+          onClick={navigation.goToDashboard}
           className="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 rounded-full flex items-center justify-center text-white shadow-2xl border-2 border-white/20"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -426,7 +417,7 @@ function CommunityContent() {
           >
             <div className="flex items-center gap-2 justify-center">
               <span>❓</span>
-              <span>Ask Question (-2 🪙)</span>
+              <span>Ask Question (from {questionTypes[0].cost} 🪙)</span>
             </div>
           </motion.button>
         </div>
@@ -478,7 +469,7 @@ function CommunityContent() {
               >
                 <div className="flex items-center gap-2 justify-center">
                   <span>❓</span>
-                  <span>Ask Question (-2 🪙)</span>
+                  <span>Ask Question (from {questionTypes[0].cost} 🪙)</span>
                 </div>
               </motion.button>
             </motion.div>
@@ -529,7 +520,7 @@ function CommunityContent() {
 
             {/* Questions List */}
             <div className="space-y-4 lg:space-y-6">
-              {filteredQuestions.map((question, index) => (
+              {[...questions, ...filteredQuestions].map((question, index) => (
                 <motion.div
                   key={question.id}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl lg:rounded-2xl p-4 lg:p-6"
@@ -552,11 +543,23 @@ function CommunityContent() {
                             <span className="font-semibold text-blue-400">{question.author}</span>
                             <span className="hidden sm:inline">•</span>
                             <span>{question.timeAgo}</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="flex items-center gap-1">
-                              <span>🪙</span>
-                              <span>{question.coins}</span>
-                            </span>
+                            {question.coinBounty > 0 && (
+                              <>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="flex items-center gap-1 text-yellow-400">
+                                  <span>🪙</span>
+                                  <span>{question.coinBounty} bounty</span>
+                                </span>
+                              </>
+                            )}
+                            {question.questionType && question.questionType !== 'regular' && (
+                              <>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs">
+                                  {questionTypes.find(qt => qt.id === question.questionType)?.name || 'Special'}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                         {question.isAnswered && (
@@ -588,16 +591,18 @@ function CommunityContent() {
 
                       {/* Action Buttons */}
                       <div className="flex items-center gap-3 lg:gap-4 text-xs lg:text-sm">
-                        <button 
-                          onClick={() => handleAnswerQuestion(question.id)}
-                          className="flex items-center gap-1 lg:gap-2 font-semibold text-green-400 hover:text-green-300 transition-colors"
-                        >
-                          <span>💡</span>
-                          <span className="hidden sm:inline">Answer (+5-10 🪙)</span>
-                          <span className="sm:hidden">Answer</span>
-                        </button>
+                        {question.canAnswer && (
+                          <button 
+                            onClick={() => handleAnswerQuestion(question.id)}
+                            className="flex items-center gap-1 lg:gap-2 font-semibold text-green-400 hover:text-green-300 transition-colors"
+                          >
+                            <span>💡</span>
+                            <span className="hidden sm:inline">Answer (+3-12 🪙)</span>
+                            <span className="sm:hidden">Answer</span>
+                          </button>
+                        )}
                         <div className="opacity-60">
-                          <span className="hidden sm:inline">{question.replies} replies • Last reply {question.lastReply}</span>
+                          <span className="hidden sm:inline">{question.replies} replies {question.lastReply && `• Last reply ${question.lastReply}`}</span>
                           <span className="sm:hidden">{question.replies} replies</span>
                         </div>
                       </div>
@@ -620,6 +625,46 @@ function CommunityContent() {
             transition={{ duration: 0.3 }}
           >
             <h3 className="text-xl lg:text-2xl font-bold mb-4 lg:mb-6">Ask Your Question</h3>
+            
+            {/* Question Type Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-red-400 mb-3">Question Type</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {questionTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setSelectedQuestionType(type.id)}
+                    disabled={!canAffordQuestion(type.cost)}
+                    className={`p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedQuestionType === type.id
+                        ? 'border-red-500 bg-red-500/20'
+                        : canAffordQuestion(type.cost)
+                        ? 'border-white/20 bg-white/5 hover:border-red-500/50'
+                        : 'border-gray-600 bg-gray-800 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{type.icon}</span>
+                        <span className="font-semibold">{type.name}</span>
+                      </div>
+                      <div className={`flex items-center gap-1 font-bold ${
+                        canAffordQuestion(type.cost) ? 'text-yellow-400' : 'text-gray-500'
+                      }`}>
+                        <span>🪙</span>
+                        <span>{type.cost}</span>
+                      </div>
+                    </div>
+                    <div className="text-sm opacity-70">{type.description}</div>
+                    {!canAffordQuestion(type.cost) && (
+                      <div className="text-xs text-red-400 mt-2">
+                        Need {type.cost - userCoins} more coins
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
             
             <div className="space-y-4 mb-6">
               <div>
@@ -645,9 +690,24 @@ function CommunityContent() {
               </div>
             </div>
 
+            {/* Cost Summary */}
             <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
-              <div className="text-yellow-400 font-semibold text-sm mb-1">💰 Cost: 2 coins</div>
-              <div className="text-xs opacity-70">Quality answers typically earn 5-10+ coins back</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-yellow-400 font-semibold text-sm">
+                  💰 Cost: {questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} coins
+                </div>
+                <div className="text-yellow-400 font-semibold text-sm">
+                  Balance: {userCoins} coins
+                </div>
+              </div>
+              <div className="text-xs opacity-70">
+                {questionTypes.find(qt => qt.id === selectedQuestionType)?.description}
+              </div>
+              {!canAffordQuestion(questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2) && (
+                <div className="text-red-400 text-sm mt-2">
+                  ⚠️ Insufficient coins! Answer questions to earn more.
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
@@ -659,10 +719,10 @@ function CommunityContent() {
               </button>
               <button 
                 onClick={handleAskQuestion}
-                disabled={!newQuestionTitle.trim() || !newQuestionBody.trim()}
+                disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || !canAffordQuestion(questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2)}
                 className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               >
-                Post Question (-2 🪙)
+                Post Question (-{questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} 🪙)
               </button>
             </div>
           </motion.div>
@@ -673,6 +733,8 @@ function CommunityContent() {
 }
 
 export default function CommunityPage() {
+  const CommunityWithAuth = withUserAuth(CommunityContent);
+  
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
@@ -682,7 +744,7 @@ export default function CommunityPage() {
         </div>
       </div>
     }>
-      <CommunityContent />
+      <CommunityWithAuth />
     </Suspense>
   )
 }
