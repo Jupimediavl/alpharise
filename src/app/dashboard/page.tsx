@@ -1,86 +1,15 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
+import { useAlphaRise, withUserAuth } from '@/lib/user-context'
 
 function DashboardContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const [avatarType, setAvatarType] = useState('marcus')
-  const [userEmail, setUserEmail] = useState('')
-  const [userName, setUserName] = useState('')
-  const [trialDaysLeft, setTrialDaysLeft] = useState(7)
+  const { user, avatar, navigation, updateUser } = useAlphaRise()
   const [currentTime, setCurrentTime] = useState('')
-  const [confidenceScore, setConfidenceScore] = useState(0)
-  const [coins, setCoins] = useState(200)
-  const [experience, setExperience] = useState(0)
-  const [level, setLevel] = useState(1)
-  const [streak, setStreak] = useState(1)
 
-  const avatarData = {
-    marcus: {
-      name: 'Marcus',
-      fullName: 'Marcus "The Overthinker"',
-      icon: '🧠',
-      color: 'from-blue-500 to-purple-600',
-      communityName: 'Overthinker\'s Circle',
-      todayChallenge: 'Make one decision in under 10 seconds',
-      quickTip: 'The 3-Second Rule: Count 3-2-1 and ACT before your mind sabotages you'
-    },
-    jake: {
-      name: 'Jake',
-      fullName: 'Jake "The Performer"',
-      icon: '⚡',
-      color: 'from-yellow-500 to-orange-600',
-      communityName: 'Performance Squad',
-      todayChallenge: 'Practice confident posture for 5 minutes',
-      quickTip: 'Champion\'s Breathing: 4 counts in, 7 hold, 8 out - instant confidence'
-    },
-    alex: {
-      name: 'Alex',
-      fullName: 'Alex "The Student"',
-      icon: '📚',
-      color: 'from-green-500 to-emerald-600',
-      communityName: 'Learning Brotherhood',
-      todayChallenge: 'Ask one question in the community',
-      quickTip: 'Knowledge builds confidence: Every expert was once a beginner'
-    },
-    ryan: {
-      name: 'Ryan',
-      fullName: 'Ryan "The Rising King"',
-      icon: '💎',
-      color: 'from-purple-500 to-pink-600',
-      communityName: 'Rising Kings Court',
-      todayChallenge: 'Approach one new person today',
-      quickTip: 'King\'s Posture: Shoulders back, chest out, chin up - instant authority'
-    },
-    ethan: {
-      name: 'Ethan',
-      fullName: 'Ethan "The Connection Master"',
-      icon: '❤️',
-      color: 'from-red-500 to-rose-600',
-      communityName: 'Connection Masters',
-      todayChallenge: 'Have one meaningful conversation',
-      quickTip: 'Heart-to-Heart: Ask "How are you feeling?" instead of "How are you?"'
-    }
-  }
-
-  const currentAvatar = avatarData[avatarType as keyof typeof avatarData] || avatarData.marcus
-
+  // Update time
   useEffect(() => {
-    // Get params from URL
-    const avatar = searchParams.get('avatar') || 'marcus'
-    const email = searchParams.get('email') || ''
-    const name = searchParams.get('name') || 'Future Alpha'
-    const trial = searchParams.get('trial') === 'true'
-    
-    setAvatarType(avatar)
-    setUserEmail(email)
-    setUserName(name)
-
-    // Update time
     const updateTime = () => {
       const now = new Date()
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -89,35 +18,25 @@ function DashboardContent() {
     updateTime()
     const timeInterval = setInterval(updateTime, 1000)
 
-    // Animate confidence score
-    let score = 0
-    const scoreInterval = setInterval(() => {
-      score += 2
-      setConfidenceScore(score)
-      if (score >= 34) clearInterval(scoreInterval)
-    }, 50)
-
-    // Animate experience
-    let exp = 0
-    const expInterval = setInterval(() => {
-      exp += 5
-      setExperience(exp)
-      if (exp >= 150) clearInterval(expInterval)
-    }, 80)
-
     return () => {
       clearInterval(timeInterval)
-      clearInterval(scoreInterval)
-      clearInterval(expInterval)
     }
-  }, [searchParams])
+  }, [])
 
-  const goToCommunity = () => {
-    router.push(`/community?avatar=${avatarType}`)
+  // If no user or avatar data, show loading
+  if (!user || !avatar) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🚀</div>
+          <h2 className="text-2xl font-bold">Loading your dashboard...</h2>
+        </div>
+      </div>
+    )
   }
 
   const startChallenge = () => {
-    alert(`Starting today's challenge! ${currentAvatar.todayChallenge}`)
+    alert(`Starting today's challenge! ${avatar.todayChallenge}`)
   }
 
   const openAchievements = () => {
@@ -134,7 +53,7 @@ function DashboardContent() {
         <div className="flex items-center gap-4">
           <div className="text-sm opacity-70">{currentTime}</div>
           <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-semibold">
-            {trialDaysLeft} days trial left
+            {user.trialDaysLeft} days trial left
           </div>
         </div>
       </header>
@@ -148,10 +67,12 @@ function DashboardContent() {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center gap-4 mb-4">
-            <div className="text-4xl">{currentAvatar.icon}</div>
+            <div className="text-4xl">{avatar.icon}</div>
             <div>
-              <h1 className="text-2xl font-bold">Welcome back, {userName}!</h1>
-              <p className="text-lg opacity-70">Your coach {currentAvatar.name} is ready to help you level up</p>
+              <h1 className="text-2xl font-bold">
+                Welcome back, {user.userName || 'Alpha'}!
+              </h1>
+              <p className="text-lg opacity-70">Your coach {avatar.name} is ready to help you level up</p>
             </div>
           </div>
         </motion.div>
@@ -169,7 +90,7 @@ function DashboardContent() {
               <span className="text-2xl">🪙</span>
               <span className="text-sm font-semibold text-yellow-400">Coins</span>
             </div>
-            <div className="text-2xl font-bold">{coins}</div>
+            <div className="text-2xl font-bold">{user.coins}</div>
             <div className="text-xs opacity-70">Monthly allowance</div>
           </motion.div>
 
@@ -184,8 +105,8 @@ function DashboardContent() {
               <span className="text-2xl">⚡</span>
               <span className="text-sm font-semibold text-purple-400">XP</span>
             </div>
-            <div className="text-2xl font-bold">{experience}</div>
-            <div className="text-xs opacity-70">Level {level} progress</div>
+            <div className="text-2xl font-bold">{user.experience}</div>
+            <div className="text-xs opacity-70">Level {user.level} progress</div>
           </motion.div>
 
           {/* Streak */}
@@ -199,7 +120,7 @@ function DashboardContent() {
               <span className="text-2xl">🔥</span>
               <span className="text-sm font-semibold text-red-400">Streak</span>
             </div>
-            <div className="text-2xl font-bold">{streak}</div>
+            <div className="text-2xl font-bold">{user.streak}</div>
             <div className="text-xs opacity-70">Days active</div>
           </motion.div>
 
@@ -214,7 +135,7 @@ function DashboardContent() {
               <span className="text-2xl">📈</span>
               <span className="text-sm font-semibold text-blue-400">Confidence</span>
             </div>
-            <div className="text-2xl font-bold">{confidenceScore}%</div>
+            <div className="text-2xl font-bold">{user.confidenceScore}%</div>
             <div className="text-xs opacity-70">Assessment score</div>
           </motion.div>
         </div>
@@ -231,27 +152,27 @@ function DashboardContent() {
           >
             <div className="flex items-start gap-6">
               <motion.div 
-                className={`w-16 h-16 rounded-full bg-gradient-to-br ${currentAvatar.color} flex items-center justify-center text-2xl shadow-2xl`}
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${avatar.color} flex items-center justify-center text-2xl shadow-2xl`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4, type: "spring", bounce: 0.5 }}
               >
-                {currentAvatar.icon}
+                {avatar.icon}
               </motion.div>
               
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-2">{currentAvatar.communityName}</h2>
+                <h2 className="text-xl font-bold mb-2">{avatar.communityName}</h2>
                 <p className="text-lg mb-4 opacity-90">
                   Your tribe of like-minded men on the same journey. Share experiences, ask questions, and learn from each other.
                 </p>
                 
                 <div className="bg-white/10 rounded-lg p-4 border-l-4 border-red-500 mb-4">
                   <p className="text-sm font-semibold text-red-400 mb-1">💡 Today's Quick Tip</p>
-                  <p className="text-sm opacity-90">{currentAvatar.quickTip}</p>
+                  <p className="text-sm opacity-90">{avatar.quickTip}</p>
                 </div>
                 
                 <motion.button
-                  onClick={goToCommunity}
+                  onClick={navigation.goToCommunity}
                   className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold
                            transition-all duration-300 ease-out"
                   whileHover={{ scale: 1.05, y: -1 }}
@@ -276,7 +197,7 @@ function DashboardContent() {
                 <span>🎯</span> Today's Challenge
               </h3>
               <div className="text-center">
-                <p className="font-semibold text-red-400 mb-3">{currentAvatar.todayChallenge}</p>
+                <p className="font-semibold text-red-400 mb-3">{avatar.todayChallenge}</p>
                 <button 
                   onClick={startChallenge}
                   className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-300"
@@ -293,17 +214,17 @@ function DashboardContent() {
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm opacity-70">Level {level}</span>
-                  <span className="text-sm font-semibold">{experience}/250 XP</span>
+                  <span className="text-sm opacity-70">Level {user.level}</span>
+                  <span className="text-sm font-semibold">{user.experience}/250 XP</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(experience / 250) * 100}%` }}
+                    style={{ width: `${(user.experience / 250) * 100}%` }}
                   ></div>
                 </div>
                 <p className="text-xs opacity-70 text-center">
-                  {250 - experience} XP to Level {level + 1}
+                  {250 - user.experience} XP to Level {user.level + 1}
                 </p>
               </div>
             </div>
@@ -313,7 +234,7 @@ function DashboardContent() {
               <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
-                  onClick={goToCommunity}
+                  onClick={navigation.goToCommunity}
                   className="w-full p-3 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
                 >
                   <span>❓</span>
@@ -324,7 +245,7 @@ function DashboardContent() {
                 </button>
                 
                 <button 
-                  onClick={goToCommunity}
+                  onClick={navigation.goToCommunity}
                   className="w-full p-3 bg-green-600/20 hover:bg-green-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
                 >
                   <span>💡</span>
@@ -346,16 +267,15 @@ function DashboardContent() {
                 </button>
 
                 <button 
-  onClick={() => router.push('/coins')}
-  className="w-full p-3 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
->
-  <span>🪙</span>
-  <div>
-    <div className="font-semibold">Coin Economy</div>
-    <div className="text-xs opacity-70">Manage your coins & rewards</div>
-  </div>
-</button>
-
+                  onClick={navigation.goToCoins}
+                  className="w-full p-3 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-left flex items-center gap-3"
+                >
+                  <span>🪙</span>
+                  <div>
+                    <div className="font-semibold">Coin Economy</div>
+                    <div className="text-xs opacity-70">Manage your coins & rewards</div>
+                  </div>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -399,7 +319,7 @@ function DashboardContent() {
           </div>
           
           <button 
-            onClick={goToCommunity}
+            onClick={navigation.goToCommunity}
             className="w-full mt-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold transition-all duration-300 hover:from-red-700 hover:to-red-800"
           >
             View All Community Activity
@@ -420,7 +340,9 @@ export default function DashboardPage() {
         </div>
       </div>
     }>
-      <DashboardContent />
+      <DashboardWithAuth />
     </Suspense>
   )
 }
+
+const DashboardWithAuth = withUserAuth(DashboardContent)

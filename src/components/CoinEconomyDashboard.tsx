@@ -324,6 +324,19 @@ const CoinEconomyDashboard: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserCoinProfile | null>(null);
   const [transactions, setTransactions] = useState<CoinTransaction[]>([]);
   const [leaderboard, setLeaderboard] = useState<UserCoinProfile[]>([]);
+  
+  // Navigation functions
+  const goToDashboard = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/dashboard';
+    }
+  };
+
+  const goToCommunity = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/community';
+    }
+  };
 
   useEffect(() => {
     refreshData();
@@ -342,8 +355,8 @@ const CoinEconomyDashboard: React.FC = () => {
       refreshData();
       alert(`Question posted! Cost: ${type === 'urgent' ? 5 : type === 'private' ? 8 : type === 'vip' ? 15 : 2} coins`);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'An error occurred');
-
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      alert(errorMessage);
     }
   };
 
@@ -373,13 +386,48 @@ const CoinEconomyDashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-            Coin Economy Dashboard
-          </h1>
-          <p className="text-gray-400">Earn coins by helping others, spend them on getting help</p>
-        </div>
+        {/* Header with Navigation */}
+        <header className="mb-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={goToDashboard}
+                className="text-2xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+              >
+                AlphaRise
+              </button>
+              <span className="text-white/40">•</span>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                Coin Economy
+              </h1>
+            </div>
+            
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={goToDashboard}
+                className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors text-sm font-semibold flex items-center gap-2"
+              >
+                <span>🏠</span>
+                Dashboard
+              </button>
+              <button 
+                onClick={goToCommunity}
+                className="px-4 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg transition-colors text-sm font-semibold flex items-center gap-2"
+              >
+                <span>💬</span>
+                Community
+              </button>
+            </div>
+          </div>
+          
+          {/* Breadcrumb */}
+          <div className="mt-4 text-sm text-gray-400">
+            <span className="hover:text-white cursor-pointer" onClick={goToDashboard}>Dashboard</span>
+            <span className="mx-2">/</span>
+            <span className="text-yellow-400">Coin Economy</span>
+          </div>
+        </header>
 
         {/* User Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -459,6 +507,22 @@ const CoinEconomyDashboard: React.FC = () => {
           ))}
         </div>
 
+        {/* Quick Navigation to Community */}
+        <div className="mb-8 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold mb-2">Ready to Earn Coins?</h3>
+              <p className="text-sm text-gray-300">Answer questions in the community to earn 3-12 coins per helpful response!</p>
+            </div>
+            <button 
+              onClick={goToCommunity}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
+            >
+              Go to Community →
+            </button>
+          </div>
+        </div>
+
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -494,12 +558,12 @@ const CoinEconomyDashboard: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={handleDailyLogin}
-                  className="p-4 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-left"
+                  onClick={goToCommunity}
+                  className="p-4 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg transition-colors text-left"
                 >
-                  <div className="text-2xl mb-2">📅</div>
-                  <div className="font-semibold">Daily Login</div>
-                  <div className="text-xs text-gray-400">Earn: 1+ coins</div>
+                  <div className="text-2xl mb-2">💬</div>
+                  <div className="font-semibold">Go to Community</div>
+                  <div className="text-xs text-gray-400">Start earning now!</div>
                 </button>
               </div>
             </div>
