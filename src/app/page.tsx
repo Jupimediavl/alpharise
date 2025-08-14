@@ -41,14 +41,14 @@ export default function LandingPage() {
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-red-500 rounded-full opacity-30"
-initial={{
-  x: Math.random() * 1920,
-  y: 1000,
-}}
-animate={{
-  y: -100,
-  x: Math.random() * 1920,
-}}
+            initial={{
+              x: Math.random() * window.innerWidth,
+              y: window.innerHeight + 100,
+            }}
+            animate={{
+              y: -100,
+              x: Math.random() * window.innerWidth,
+            }}
             transition={{
               duration: Math.random() * 10 + 10,
               repeat: Infinity,
@@ -98,12 +98,18 @@ animate={{
           <motion.button
             onClick={handleStartTransformation}
             className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 rounded-full 
-                     hover:from-red-500 hover:to-red-600 transition-all duration-300 
-                     shadow-2xl hover:shadow-red-500/25 hover:-translate-y-1 
-                     relative overflow-hidden group"
+                     transition-all duration-300 ease-out
+                     shadow-2xl relative overflow-hidden group"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
+            whileHover={{ 
+              scale: 1.05, 
+              y: -2,
+              boxShadow: "0 20px 50px rgba(255, 68, 68, 0.4)",
+              background: "linear-gradient(135deg, #ff5555, #dd0000)"
+            }}
+            whileTap={{ scale: 0.98 }}
           >
             <span className="relative z-10">START YOUR TRANSFORMATION</span>
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
@@ -215,13 +221,18 @@ animate={{
           <motion.button
             onClick={handleStartTransformation}
             className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 rounded-full 
-                     hover:from-red-500 hover:to-red-600 transition-all duration-300 
-                     shadow-2xl hover:shadow-red-500/25 hover:-translate-y-1 
-                     relative overflow-hidden group mb-8"
+                     transition-all duration-300 ease-out
+                     shadow-2xl relative overflow-hidden group"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             viewport={{ once: true }}
+            whileHover={{ 
+              scale: 1.05, 
+              y: -2,
+              boxShadow: "0 20px 50px rgba(255, 68, 68, 0.4)"
+            }}
+            whileTap={{ scale: 0.98 }}
           >
             <span className="relative z-10">TAKE THE CONFIDENCE ASSESSMENT</span>
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
