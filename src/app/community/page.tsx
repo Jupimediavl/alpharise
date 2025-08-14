@@ -2,26 +2,62 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
-import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, Filter } from 'lucide-react'
+import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw } from 'lucide-react'
 import { useAlphaRise, withUserAuth } from '@/lib/user-context'
-import { coinEconomyManager } from '@/lib/coin-economy-system'
-import { liveQAManager, qaHelpers, Question, Answer } from '@/lib/qa-system'
+import { 
+  SupabaseQuestionManager, 
+  SupabaseAnswerManager, 
+  SupabaseCoinManager, 
+  SupabaseUserManager,
+  supabaseHelpers 
+} from '@/lib/supabase'
+
+interface QuestionWithAnswers {
+  id: string
+  title: string
+  body: string
+  author_id: string
+  author_name: string
+  category: string
+  question_type: 'regular' | 'urgent' | 'private' | 'vip'
+  coin_cost: number
+  coin_bounty: number
+  views: number
+  is_answered: boolean
+  is_solved: boolean
+  best_answer_id?: string
+  created_at: string
+  last_activity: string
+  answers: Array<{
+    id: string
+    author_id: string
+    author_name: string
+    content: string
+    rating: number
+    rated_by: string[]
+    coin_earnings: number
+    is_best_answer: boolean
+    votes: number
+    voted_by: string[]
+    created_at: string
+  }>
+}
 
 function CommunityContent() {
-  const { user, avatar, navigation } = useAlphaRise()
+  const { user, avatar, navigation, updateUser } = useAlphaRise()
   const [activeTab, setActiveTab] = useState('all')
-  const [questions, setQuestions] = useState<Question[]>([])
+  const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [showNewQuestion, setShowNewQuestion] = useState(false)
   const [showAnswerModal, setShowAnswerModal] = useState(false)
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionWithAnswers | null>(null)
   const [newQuestionTitle, setNewQuestionTitle] = useState('')
   const [newQuestionBody, setNewQuestionBody] = useState('')
   const [newAnswerContent, setNewAnswerContent] = useState('')
   const [selectedQuestionType, setSelectedQuestionType] = useState('regular')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'urgent' | 'unsolved'>('newest')
-  const [userCoins, setUserCoins] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Communities configuration
   const communities = [
@@ -101,37 +137,80 @@ function CommunityContent() {
     { id: 'vip', name: 'VIP Question', cost: 15, description: 'Direct answer from avatar coaches', icon: '👑' },
   ]
 
-  // Initialize data
+  // Initialize user in database and load questions
   useEffect(() => {
-    loadQuestions()
     if (user) {
-      setUserCoins(user.coins)
+      initializeUserInDB()
+      loadQuestions()
     }
-  }, [activeTab, sortBy, user])
+  }, [user, activeTab, sortBy])
 
-  // Load questions based on current filters
-  const loadQuestions = () => {
+  // Initialize user in Supabase
+  const initializeUserInDB = async () => {
+    if (!user) return
+
+    try {
+      await supabaseHelpers.initializeUser(
+        user.userName || 'user',
+        user.userEmail || '',
+        user.avatarType
+      )
+    } catch (error) {
+      console.error('Error initializing user:', error)
+    }
+  }
+
+  // Load questions from Supabase
+  const loadQuestions = async () => {
     setLoading(true)
     
-    const filters: any = {
-      category: activeTab === 'all' ? undefined : activeTab,
-      limit: 20,
-      sortBy: sortBy === 'unsolved' ? 'newest' : sortBy
+    try {
+      let loadedQuestions: QuestionWithAnswers[] = []
+
+      if (searchQuery.trim()) {
+        // Search questions
+        const searchResults = await SupabaseQuestionManager.searchQuestions(
+          searchQuery, 
+          activeTab === 'all' ? undefined : activeTab
+        )
+        
+        // Get answers for each question
+        for (const question of searchResults) {
+          const { answers } = await SupabaseQuestionManager.getQuestionWithAnswers(question.id)
+          loadedQuestions.push({
+            ...question,
+            answers: answers || []
+          })
+        }
+      } else {
+        // Get questions with filters
+        const filters: any = {
+          category: activeTab === 'all' ? undefined : activeTab,
+          limit: 20,
+          sortBy: sortBy === 'unsolved' ? 'newest' : sortBy
+        }
+
+        if (sortBy === 'unsolved') {
+          filters.is_answered = false
+        }
+
+        loadedQuestions = await supabaseHelpers.getQuestionsWithAnswers(filters)
+      }
+
+      setQuestions(loadedQuestions)
+    } catch (error) {
+      console.error('Error loading questions:', error)
+      setQuestions([])
+    } finally {
+      setLoading(false)
     }
+  }
 
-    if (sortBy === 'unsolved') {
-      filters.isAnswered = false
-    }
-
-    let loadedQuestions = qaHelpers.getQuestions(filters)
-
-    // Apply search if query exists
-    if (searchQuery.trim()) {
-      loadedQuestions = qaHelpers.searchQuestions(searchQuery, activeTab === 'all' ? undefined : activeTab)
-    }
-
-    setQuestions(loadedQuestions)
-    setLoading(false)
+  // Refresh questions
+  const refreshQuestions = async () => {
+    setRefreshing(true)
+    await loadQuestions()
+    setRefreshing(false)
   }
 
   // Handle asking new question
@@ -141,41 +220,66 @@ function CommunityContent() {
     const questionType = questionTypes.find(qt => qt.id === selectedQuestionType)
     if (!questionType) return
 
-    if (userCoins < questionType.cost) {
-      alert(`Insufficient coins! You need ${questionType.cost} coins but only have ${userCoins}. Answer questions to earn more coins.`)
+    if ((user.coins || 0) < questionType.cost) {
+      alert(`Insufficient coins! You need ${questionType.cost} coins but only have ${user.coins || 0}. Answer questions to earn more coins.`)
       return
     }
 
     setLoading(true)
 
     try {
-      // Deduct coins first
-      coinEconomyManager.askQuestion(user.userName || 'user', selectedQuestionType)
-      setUserCoins(prev => prev - questionType.cost)
+      // Process coin transaction in Supabase
+      const success = await SupabaseCoinManager.processQuestionPosting(
+        user.userName || 'user',
+        selectedQuestionType,
+        questionType.cost
+      )
 
-      // Create question
-      const newQuestion = qaHelpers.askQuestion({
+      if (!success) {
+        throw new Error('Failed to process coin transaction')
+      }
+
+      // Create question in Supabase
+      const newQuestion = await SupabaseQuestionManager.createQuestion({
         title: newQuestionTitle,
         body: newQuestionBody,
-        authorId: user.userName || 'user',
-        authorName: user.userName || 'Anonymous',
+        author_id: user.userName || 'user',
+        author_name: user.userName || 'Anonymous',
         category: activeTab === 'all' ? 'confidence-building' : activeTab,
-        questionType: selectedQuestionType,
-        tags: []
+        question_type: selectedQuestionType as any,
+        coin_cost: questionType.cost,
+        coin_bounty: 0,
+        tags: [],
+        views: 0,
+        is_answered: false,
+        is_solved: false,
+        is_private: selectedQuestionType === 'private',
+        urgent_deadline: selectedQuestionType === 'urgent' 
+          ? new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
+          : undefined,
+        allowed_responders: []
       })
 
-      // Reset form
-      setNewQuestionTitle('')
-      setNewQuestionBody('')
-      setSelectedQuestionType('regular')
-      setShowNewQuestion(false)
+      if (newQuestion) {
+        // Update user coins in context
+        updateUser({ coins: (user.coins || 0) - questionType.cost })
 
-      // Reload questions
-      loadQuestions()
+        // Reset form
+        setNewQuestionTitle('')
+        setNewQuestionBody('')
+        setSelectedQuestionType('regular')
+        setShowNewQuestion(false)
 
-      alert(`Question posted successfully! Cost: ${questionType.cost} coins. You now have ${userCoins - questionType.cost} coins remaining.`)
+        // Reload questions
+        await loadQuestions()
+
+        alert(`Question posted successfully! Cost: ${questionType.cost} coins. You now have ${(user.coins || 0) - questionType.cost} coins remaining.`)
+      } else {
+        throw new Error('Failed to create question')
+      }
       
     } catch (error) {
+      console.error('Error posting question:', error)
       alert('Error posting question. Please try again.')
     } finally {
       setLoading(false)
@@ -189,11 +293,18 @@ function CommunityContent() {
     setLoading(true)
 
     try {
-      const newAnswer = qaHelpers.answerQuestion({
-        questionId: selectedQuestion.id,
-        authorId: user.userName || 'user',
-        authorName: user.userName || 'Anonymous',
-        content: newAnswerContent
+      const newAnswer = await SupabaseAnswerManager.createAnswer({
+        question_id: selectedQuestion.id,
+        author_id: user.userName || 'user',
+        author_name: user.userName || 'Anonymous',
+        content: newAnswerContent,
+        rating: 0,
+        rated_by: [],
+        coin_earnings: 0,
+        is_best_answer: false,
+        is_helpful: false,
+        votes: 0,
+        voted_by: []
       })
 
       if (newAnswer) {
@@ -203,12 +314,15 @@ function CommunityContent() {
         setSelectedQuestion(null)
 
         // Reload questions to show new answer
-        loadQuestions()
+        await loadQuestions()
 
         alert('Answer submitted successfully! You\'ll earn coins when it gets rated by the community.')
+      } else {
+        throw new Error('Failed to create answer')
       }
       
     } catch (error) {
+      console.error('Error submitting answer:', error)
       alert('Error submitting answer. Please try again.')
     } finally {
       setLoading(false)
@@ -216,33 +330,41 @@ function CommunityContent() {
   }
 
   // Handle rating an answer
-  const handleRateAnswer = async (answerId: string, rating: number) => {
+  const handleRateAnswer = async (answerId: string, rating: number): Promise<void> => {
     if (!user) return
 
     try {
-      const result = qaHelpers.rateAnswer(answerId, rating, user.userName || 'user')
+      const result = await SupabaseAnswerManager.rateAnswer(
+        answerId, 
+        rating, 
+        user.userName || 'user'
+      )
       
-      if (result.coinEarnings > 0) {
+      if (result.success && result.coinEarnings > 0) {
         // Find the answer to get author info
         const answer = questions
           .flatMap(q => q.answers)
-          .find(a => a.id === answerId);
+          .find(a => a.id === answerId)
         
         if (answer) {
-          // Reward the answer author with coins
-          coinEconomyManager.rewardAnswer(
-            answer.authorId,
+          // Process coin reward for answer author
+          await SupabaseCoinManager.processAnswerReward(
+            answer.author_id,
             selectedQuestion?.id || '',
-            rating,
-            false
-          );
+            answerId,
+            result.coinEarnings,
+            rating
+          )
         }
         
-        loadQuestions(); // Reload to show updated ratings
-        alert(`Rating submitted! The answer author earned ${result.coinEarnings} coins.`);
+        await loadQuestions() // Reload to show updated ratings
+        alert(`Rating submitted! The answer author earned ${result.coinEarnings} coins.`)
+      } else if (!result.success) {
+        alert('You have already rated this answer or cannot rate your own answer.')
       }
       
     } catch (error) {
+      console.error('Error submitting rating:', error)
       alert('Error submitting rating. Please try again.')
     }
   }
@@ -252,22 +374,28 @@ function CommunityContent() {
     if (!user) return
 
     try {
-      const success = qaHelpers.markBestAnswer(questionId, answerId, user.userName || 'user')
+      const success = await SupabaseAnswerManager.markBestAnswer(
+        questionId, 
+        answerId, 
+        user.userName || 'user'
+      )
       
       if (success) {
-        loadQuestions(); // Reload to show best answer
-        alert('Best answer marked! The author received bonus coins.');
+        await loadQuestions() // Reload to show best answer
+        alert('Best answer marked! The author received bonus coins.')
       } else {
-        alert('Only the question author can mark the best answer.');
+        alert('Only the question author can mark the best answer.')
       }
       
     } catch (error) {
-      alert('Error marking best answer. Please try again.');
+      console.error('Error marking best answer:', error)
+      alert('Error marking best answer. Please try again.')
     }
   }
 
   // Format time ago
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
     const now = new Date()
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
     
@@ -312,9 +440,17 @@ function CommunityContent() {
             <span className="text-base lg:text-lg font-semibold hidden lg:inline">Live Q&A Community</span>
           </div>
           <div className="flex items-center gap-3 lg:gap-4">
+            <button
+              onClick={refreshQuestions}
+              disabled={refreshing}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh questions"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
             <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-400 px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold">
               <span>🪙</span>
-              <span>{userCoins}</span>
+              <span>{user.coins || 0}</span>
             </div>
             <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'Alpha'}!</div>
           </div>
@@ -395,13 +531,13 @@ function CommunityContent() {
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-yellow-400">
-              {questions.filter(q => q.isSolved).length}
+              {questions.filter(q => q.is_solved).length}
             </div>
             <div className="text-sm opacity-70">Solved</div>
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-purple-400">
-              {questions.filter(q => q.questionType === 'urgent').length}
+              {questions.filter(q => q.question_type === 'urgent').length}
             </div>
             <div className="text-sm opacity-70">Urgent</div>
           </div>
@@ -412,7 +548,7 @@ function CommunityContent() {
           {loading ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">⏳</div>
-              <div className="text-lg">Loading questions...</div>
+              <div className="text-lg">Loading questions from database...</div>
             </div>
           ) : questions.length === 0 ? (
             <div className="text-center py-12">
@@ -432,19 +568,19 @@ function CommunityContent() {
                 {/* Question Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-bold">{question.title}</h3>
-                      {question.isSolved && (
+                      {question.is_solved && (
                         <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
                           ✓ Solved
                         </div>
                       )}
-                      {question.questionType !== 'regular' && (
+                      {question.question_type !== 'regular' && (
                         <div className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-semibold">
-                          {questionTypes.find(qt => qt.id === question.questionType)?.name}
+                          {questionTypes.find(qt => qt.id === question.question_type)?.name}
                         </div>
                       )}
-                      {question.urgentDeadline && question.urgentDeadline > new Date() && (
+                      {question.question_type === 'urgent' && (
                         <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           <span>Urgent</span>
@@ -452,16 +588,16 @@ function CommunityContent() {
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-3 text-sm opacity-70 mb-3">
-                      <span className="font-semibold text-blue-400">{question.authorName}</span>
+                    <div className="flex items-center gap-3 text-sm opacity-70 mb-3 flex-wrap">
+                      <span className="font-semibold text-blue-400">{question.author_name}</span>
                       <span>•</span>
-                      <span>{formatTimeAgo(question.timestamp)}</span>
+                      <span>{formatTimeAgo(question.created_at)}</span>
                       <span>•</span>
                       <span>{question.views} views</span>
-                      {question.coinBounty > 0 && (
+                      {question.coin_bounty > 0 && (
                         <>
                           <span>•</span>
-                          <span className="text-yellow-400">🪙 {question.coinBounty} bounty</span>
+                          <span className="text-yellow-400">🪙 {question.coin_bounty} bounty</span>
                         </>
                       )}
                     </div>
@@ -479,8 +615,8 @@ function CommunityContent() {
                     
                     {question.answers
                       .sort((a, b) => {
-                        if (a.isBestAnswer) return -1;
-                        if (b.isBestAnswer) return 1;
+                        if (a.is_best_answer) return -1;
+                        if (b.is_best_answer) return 1;
                         return b.rating - a.rating;
                       })
                       .slice(0, 2) // Show top 2 answers
@@ -488,19 +624,19 @@ function CommunityContent() {
                         <div
                           key={answer.id}
                           className={`p-4 rounded-lg ${
-                            answer.isBestAnswer ? 'bg-green-500/10 border border-green-500/30' : 'bg-white/5'
+                            answer.is_best_answer ? 'bg-green-500/10 border border-green-500/30' : 'bg-white/5'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <span className="font-semibold text-blue-400">{answer.authorName}</span>
-                              {answer.isBestAnswer && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="font-semibold text-blue-400">{answer.author_name}</span>
+                              {answer.is_best_answer && (
                                 <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                                   <Award className="h-3 w-3" />
                                   <span>Best Answer</span>
                                 </div>
                               )}
-                              <span className="text-xs opacity-70">{formatTimeAgo(answer.timestamp)}</span>
+                              <span className="text-xs opacity-70">{formatTimeAgo(answer.created_at)}</span>
                             </div>
                             
                             <div className="flex items-center gap-2">
@@ -523,7 +659,7 @@ function CommunityContent() {
                           
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              {!answer.ratedBy.includes(user.userName || 'user') && answer.authorId !== (user.userName || 'user') && (
+                              {!answer.rated_by.includes(user.userName || 'user') && answer.author_id !== (user.userName || 'user') && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs opacity-70">Rate:</span>
                                   {[1, 2, 3, 4, 5].map((rating) => (
@@ -538,7 +674,7 @@ function CommunityContent() {
                                 </div>
                               )}
                               
-                              {question.authorId === (user.userName || 'user') && !question.bestAnswerId && (
+                              {question.author_id === (user.userName || 'user') && !question.best_answer_id && (
                                 <button
                                   onClick={() => handleMarkBestAnswer(question.id, answer.id)}
                                   className="text-green-400 hover:text-green-300 text-xs font-semibold transition-colors"
@@ -548,9 +684,9 @@ function CommunityContent() {
                               )}
                             </div>
                             
-                            {answer.coinEarnings > 0 && (
+                            {answer.coin_earnings > 0 && (
                               <div className="text-yellow-400 text-xs font-semibold">
-                                +{answer.coinEarnings} 🪙 earned
+                                +{answer.coin_earnings} 🪙 earned
                               </div>
                             )}
                           </div>
@@ -579,7 +715,7 @@ function CommunityContent() {
                   </button>
                   
                   <div className="text-sm opacity-60">
-                    {question.answers.length} answers • Last activity {formatTimeAgo(question.lastActivity)}
+                    {question.answers.length} answers • Last activity {formatTimeAgo(question.last_activity)}
                   </div>
                 </div>
               </motion.div>
@@ -608,11 +744,11 @@ function CommunityContent() {
                     <button
                       key={type.id}
                       onClick={() => setSelectedQuestionType(type.id)}
-                      disabled={userCoins < type.cost}
+                      disabled={(user.coins || 0) < type.cost}
                       className={`p-4 rounded-lg border-2 transition-all text-left ${
                         selectedQuestionType === type.id
                           ? 'border-red-500 bg-red-500/20'
-                          : userCoins >= type.cost
+                          : (user.coins || 0) >= type.cost
                           ? 'border-white/20 bg-white/5 hover:border-red-500/50'
                           : 'border-gray-600 bg-gray-800 opacity-50 cursor-not-allowed'
                       }`}
@@ -623,13 +759,18 @@ function CommunityContent() {
                           <span className="font-semibold">{type.name}</span>
                         </div>
                         <div className={`flex items-center gap-1 font-bold ${
-                          userCoins >= type.cost ? 'text-yellow-400' : 'text-gray-500'
+                          (user.coins || 0) >= type.cost ? 'text-yellow-400' : 'text-gray-500'
                         }`}>
                           <span>🪙</span>
                           <span>{type.cost}</span>
                         </div>
                       </div>
                       <div className="text-sm opacity-70">{type.description}</div>
+                      {(user.coins || 0) < type.cost && (
+                        <div className="text-xs text-red-400 mt-2">
+                          Need {type.cost - (user.coins || 0)} more coins
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -659,6 +800,15 @@ function CommunityContent() {
                 </div>
               </div>
 
+              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                <div className="text-yellow-400 font-semibold text-sm mb-1">
+                  💰 Cost: {questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} coins
+                </div>
+                <div className="text-xs opacity-70">
+                  Your balance: {user.coins || 0} coins
+                </div>
+              </div>
+
               <div className="flex gap-4">
                 <button 
                   onClick={() => setShowNewQuestion(false)}
@@ -668,7 +818,7 @@ function CommunityContent() {
                 </button>
                 <button 
                   onClick={handleAskQuestion}
-                  disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || loading}
+                  disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || loading || (user.coins || 0) < (questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2)}
                   className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold disabled:opacity-50 transition-all"
                 >
                   {loading ? 'Posting...' : `Post Question (-${questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} 🪙)`}
