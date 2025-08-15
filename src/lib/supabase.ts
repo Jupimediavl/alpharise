@@ -1,15 +1,15 @@
 // /lib/supabase.ts
-// Supabase integration for AlphaRise
+// Fixed Supabase integration with Anti-Abuse Coin System
 
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration - replace with your actual values
+// Supabase configuration
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Database Types (based on AlphaRise schema)
+// Database Types
 export interface DbUser {
   id: string
   username: string
@@ -84,20 +84,69 @@ export interface DbCoinTransaction {
   created_at: string
 }
 
-// User Management
+// User Management - FIXED VERSION
 export class SupabaseUserManager {
   
-  // Create or update user
+  // Create or update user - FIXED upsert
   static async upsertUser(userData: Partial<DbUser>): Promise<DbUser | null> {
     try {
+      // First try to get existing user
+      if (userData.username) {
+        const existingUser = await this.getUserByUsername(userData.username)
+        if (existingUser) {
+          // Update existing user - only update specific fields
+          const updateData = {
+            email: userData.email || existingUser.email,
+            avatar_type: userData.avatar_type || existingUser.avatar_type,
+            updated_at: new Date().toISOString(),
+            last_active: new Date().toISOString()
+          }
+
+          const { data, error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('username', userData.username)
+            .select()
+            .single()
+          
+          if (error) {
+            console.warn('Error updating user, returning existing:', error.message)
+            return existingUser // Return existing user if update fails
+          }
+          
+          return data
+        }
+      }
+
+      // Create new user if doesn't exist
+      const newUserData = {
+        username: userData.username,
+        email: userData.email,
+        avatar_type: userData.avatar_type || 'marcus',
+        coins: userData.coins || 200,
+        streak: userData.streak || 1,
+        level: userData.level || 1,
+        total_earned: userData.total_earned || 0,
+        monthly_earnings: userData.monthly_earnings || 0,
+        discount_earned: userData.discount_earned || 0,
+        subscription_type: userData.subscription_type || 'trial',
+        trial_days_left: userData.trial_days_left || 7,
+        confidence_score: userData.confidence_score || 34,
+        experience: userData.experience || 150,
+        badges: userData.badges || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_active: new Date().toISOString()
+      }
+
       const { data, error } = await supabase
         .from('users')
-        .upsert(userData, { onConflict: 'username' })
+        .insert(newUserData)
         .select()
         .single()
       
       if (error) {
-        console.error('Error upserting user:', error)
+        console.error('Error creating user:', error)
         return null
       }
       
@@ -117,7 +166,7 @@ export class SupabaseUserManager {
         .eq('username', username)
         .single()
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error getting user:', error)
         return null
       }
@@ -129,7 +178,7 @@ export class SupabaseUserManager {
     }
   }
 
-  // Update user coins
+  // Update user coins with daily limit check
   static async updateUserCoins(username: string, newBalance: number): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -183,12 +232,321 @@ export class SupabaseUserManager {
       return false
     }
   }
+
+  // Check daily earning limit (50 coins/day from answers)
+  static async checkDailyEarningLimit(username: string): Promise<{ canEarn: boolean; todayEarnings: number }> {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      
+      const { data, error } = await supabase
+        .from('coin_transactions')
+        .select('amount')
+        .eq('user_id', username)
+        .eq('type', 'earn')
+        .eq('category', 'answer')
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`)
+
+      if (error) {
+        console.error('Error checking daily limit:', error)
+        return { canEarn: true, todayEarnings: 0 }
+      }
+
+      const todayEarnings = (data || []).reduce((sum, tx) => sum + tx.amount, 0)
+      const canEarn = todayEarnings < 50
+
+      return { canEarn, todayEarnings }
+    } catch (error) {
+      console.error('Error in checkDailyEarningLimit:', error)
+      return { canEarn: true, todayEarnings: 0 }
+    }
+  }
 }
 
-// Question Management
+// Answer Management - ENHANCED WITH ANTI-ABUSE
+export class SupabaseAnswerManager {
+  
+  // Create new answer
+  static async createAnswer(answerData: Omit<DbAnswer, 'id' | 'created_at' | 'updated_at'>): Promise<DbAnswer | null> {
+    try {
+      const { data, error } = await supabase
+        .from('answers')
+        .insert({
+          ...answerData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating answer:', error)
+        return null
+      }
+
+      // Update question as answered
+      await SupabaseQuestionManager.updateQuestion(answerData.question_id, {
+        is_answered: true
+      })
+
+      return data
+    } catch (error) {
+      console.error('Error in createAnswer:', error)
+      return null
+    }
+  }
+
+  // Rate answer with enhanced validation
+  static async rateAnswer(answerId: string, rating: number, ratedBy: string): Promise<{
+    success: boolean
+    coinEarnings: number
+    newRating: number
+    message: string
+  }> {
+    try {
+      // Get current answer and question info
+      const { data: answer, error: getError } = await supabase
+        .from('answers')
+        .select(`
+          *,
+          question:questions(author_id)
+        `)
+        .eq('id', answerId)
+        .single()
+
+      if (getError || !answer) {
+        return { success: false, coinEarnings: 0, newRating: 0, message: 'Answer not found' }
+      }
+
+      // Anti-abuse checks
+      if (answer.author_id === ratedBy) {
+        return { success: false, coinEarnings: 0, newRating: answer.rating, message: 'Cannot rate your own answer' }
+      }
+
+      if (answer.rated_by.includes(ratedBy)) {
+        return { success: false, coinEarnings: 0, newRating: answer.rating, message: 'You have already rated this answer' }
+      }
+
+      // Calculate new rating
+      const newRatedBy = [...answer.rated_by, ratedBy]
+      const totalRatings = newRatedBy.length
+      const newRating = ((answer.rating * (totalRatings - 1)) + rating) / totalRatings
+
+      // Calculate base coin earnings (only from rating)
+      let coinEarnings = 0
+      if (newRating >= 3.0) coinEarnings = 3
+      if (newRating >= 4.0) coinEarnings = 5
+      if (newRating >= 4.5) coinEarnings = 8
+
+      // Check daily earning limit
+      const { canEarn, todayEarnings } = await SupabaseUserManager.checkDailyEarningLimit(answer.author_id)
+      if (!canEarn) {
+        coinEarnings = 0
+      }
+
+      // Update answer
+      const { error: updateError } = await supabase
+        .from('answers')
+        .update({
+          rating: newRating,
+          rated_by: newRatedBy,
+          coin_earnings: answer.coin_earnings + coinEarnings,
+          is_helpful: newRating >= 4,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', answerId)
+
+      if (updateError) {
+        console.error('Error updating answer:', updateError)
+        return { success: false, coinEarnings: 0, newRating: answer.rating, message: 'Failed to update rating' }
+      }
+
+      return { 
+        success: true, 
+        coinEarnings, 
+        newRating,
+        message: coinEarnings > 0 ? `Rating submitted! Author earned ${coinEarnings} coins.` : 'Rating submitted! (Daily limit reached for author)'
+      }
+    } catch (error) {
+      console.error('Error in rateAnswer:', error)
+      return { success: false, coinEarnings: 0, newRating: 0, message: 'Error submitting rating' }
+    }
+  }
+
+  // Mark best answer with enhanced validation
+  static async markBestAnswer(questionId: string, answerId: string, markedBy: string): Promise<{
+    success: boolean
+    message: string
+    coinsAwarded: number
+  }> {
+    try {
+      // Get question and answer details
+      const { data: question, error: questionError } = await supabase
+        .from('questions')
+        .select('author_id, best_answer_id')
+        .eq('id', questionId)
+        .single()
+
+      if (questionError || !question) {
+        return { success: false, message: 'Question not found', coinsAwarded: 0 }
+      }
+
+      // Anti-abuse check: Only question author can mark best answer
+      if (question.author_id !== markedBy) {
+        return { success: false, message: 'Only the question author can mark the best answer', coinsAwarded: 0 }
+      }
+
+      // Get answer details for additional validation
+      const { data: answer, error: answerError } = await supabase
+        .from('answers')
+        .select('author_id, rated_by, rating, coin_earnings')
+        .eq('id', answerId)
+        .single()
+
+      if (answerError || !answer) {
+        return { success: false, message: 'Answer not found', coinsAwarded: 0 }
+      }
+
+      // Anti-abuse check: Cannot mark own answer as best
+      if (answer.author_id === markedBy) {
+        return { success: false, message: 'Cannot mark your own answer as best answer', coinsAwarded: 0 }
+      }
+
+      // Enhanced validation: Best answer requires community validation
+      const hasMinimumRatings = answer.rated_by.length >= 2
+      const hasGoodRating = answer.rating >= 4.0
+
+      let coinsAwarded = 0
+      let validationMessage = ''
+
+      if (hasMinimumRatings && hasGoodRating) {
+        // Award full best answer bonus
+        coinsAwarded = 8
+        validationMessage = 'Best answer marked! Author earned bonus coins.'
+      } else if (answer.rated_by.length === 0) {
+        // No ratings yet - mark as preferred but no coins until validated
+        coinsAwarded = 0
+        validationMessage = 'Answer marked as preferred. Bonus coins will be awarded when community validates it (min 2 ratings, 4+ stars).'
+      } else {
+        // Some ratings but not enough or too low
+        coinsAwarded = 0
+        validationMessage = 'Answer marked as preferred. Needs more community validation for bonus coins (min 2 ratings, 4+ stars).'
+      }
+
+      // Check daily earning limit for bonus coins
+      if (coinsAwarded > 0) {
+        const { canEarn } = await SupabaseUserManager.checkDailyEarningLimit(answer.author_id)
+        if (!canEarn) {
+          coinsAwarded = 0
+          validationMessage += ' (Author reached daily earning limit)'
+        }
+      }
+
+      // Remove previous best answer if exists
+      if (question.best_answer_id) {
+        await supabase
+          .from('answers')
+          .update({ is_best_answer: false })
+          .eq('id', question.best_answer_id)
+      }
+
+      // Set new best answer
+      const { error: answerUpdateError } = await supabase
+        .from('answers')
+        .update({ 
+          is_best_answer: true,
+          coin_earnings: answer.coin_earnings + coinsAwarded,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', answerId)
+
+      if (answerUpdateError) {
+        console.error('Error marking best answer:', answerUpdateError)
+        return { success: false, message: 'Failed to mark best answer', coinsAwarded: 0 }
+      }
+
+      // Update question
+      const { error: questionUpdateError } = await supabase
+        .from('questions')
+        .update({
+          best_answer_id: answerId,
+          is_solved: true,
+          updated_at: new Date().toISOString(),
+          last_activity: new Date().toISOString()
+        })
+        .eq('id', questionId)
+
+      if (questionUpdateError) {
+        console.error('Error updating question:', questionUpdateError)
+        return { success: false, message: 'Failed to update question', coinsAwarded: 0 }
+      }
+
+      return { success: true, message: validationMessage, coinsAwarded }
+    } catch (error) {
+      console.error('Error in markBestAnswer:', error)
+      return { success: false, message: 'Error marking best answer', coinsAwarded: 0 }
+    }
+  }
+
+  // Vote on answer (like/dislike) with anti-abuse
+  static async voteAnswer(answerId: string, userId: string, voteType: 'up' | 'down'): Promise<{
+    success: boolean
+    message: string
+    newVoteCount: number
+  }> {
+    try {
+      const { data: answer, error } = await supabase
+        .from('answers')
+        .select('author_id, votes, voted_by')
+        .eq('id', answerId)
+        .single()
+
+      if (error || !answer) {
+        return { success: false, message: 'Answer not found', newVoteCount: 0 }
+      }
+
+      // Anti-abuse: Cannot vote own answer
+      if (answer.author_id === userId) {
+        return { success: false, message: 'Cannot vote on your own answer', newVoteCount: answer.votes }
+      }
+
+      // Check if already voted
+      if (answer.voted_by.includes(userId)) {
+        return { success: false, message: 'You have already voted on this answer', newVoteCount: answer.votes }
+      }
+
+      const newVotedBy = [...answer.voted_by, userId]
+      const newVotes = voteType === 'up' ? answer.votes + 1 : answer.votes - 1
+
+      const { error: updateError } = await supabase
+        .from('answers')
+        .update({
+          votes: newVotes,
+          voted_by: newVotedBy,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', answerId)
+
+      if (updateError) {
+        console.error('Error voting answer:', updateError)
+        return { success: false, message: 'Failed to record vote', newVoteCount: answer.votes }
+      }
+
+      return { 
+        success: true, 
+        message: `Vote recorded!`, 
+        newVoteCount: newVotes 
+      }
+    } catch (error) {
+      console.error('Error in voteAnswer:', error)
+      return { success: false, message: 'Error recording vote', newVoteCount: 0 }
+    }
+  }
+}
+
+// Question Management (unchanged but with better error handling)
 export class SupabaseQuestionManager {
   
-  // Create new question
   static async createQuestion(questionData: Omit<DbQuestion, 'id' | 'created_at' | 'updated_at' | 'last_activity'>): Promise<DbQuestion | null> {
     try {
       const { data, error } = await supabase
@@ -214,7 +572,6 @@ export class SupabaseQuestionManager {
     }
   }
 
-  // Get questions with filters
   static async getQuestions(filters: {
     category?: string
     question_type?: string
@@ -228,7 +585,6 @@ export class SupabaseQuestionManager {
         .from('questions')
         .select('*')
 
-      // Apply filters
       if (filters.category && filters.category !== 'all') {
         query = query.eq('category', filters.category)
       }
@@ -242,7 +598,6 @@ export class SupabaseQuestionManager {
         query = query.eq('author_id', filters.author_id)
       }
 
-      // Apply sorting
       switch (filters.sortBy) {
         case 'newest':
           query = query.order('created_at', { ascending: false })
@@ -278,13 +633,11 @@ export class SupabaseQuestionManager {
     }
   }
 
-  // Get single question with answers
   static async getQuestionWithAnswers(questionId: string): Promise<{
     question: DbQuestion | null
     answers: DbAnswer[]
   }> {
     try {
-      // Get question
       const { data: question, error: questionError } = await supabase
         .from('questions')
         .select('*')
@@ -305,7 +658,6 @@ export class SupabaseQuestionManager {
         })
         .eq('id', questionId)
 
-      // Get answers
       const { data: answers, error: answersError } = await supabase
         .from('answers')
         .select('*')
@@ -324,7 +676,6 @@ export class SupabaseQuestionManager {
     }
   }
 
-  // Update question
   static async updateQuestion(questionId: string, updates: Partial<DbQuestion>): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -348,7 +699,6 @@ export class SupabaseQuestionManager {
     }
   }
 
-  // Search questions
   static async searchQuestions(query: string, category?: string): Promise<DbQuestion[]> {
     try {
       let supabaseQuery = supabase
@@ -376,187 +726,39 @@ export class SupabaseQuestionManager {
   }
 }
 
-// Answer Management
-export class SupabaseAnswerManager {
+// Enhanced Coin Management with Anti-Abuse
+export class SupabaseCoinManager {
   
-  // Create new answer
-  static async createAnswer(answerData: Omit<DbAnswer, 'id' | 'created_at' | 'updated_at'>): Promise<DbAnswer | null> {
+  // Record transaction with better error handling
+  static async recordTransaction(transactionData: Omit<DbCoinTransaction, 'id' | 'created_at'>): Promise<DbCoinTransaction | null> {
     try {
-      const { data, error } = await supabase
-        .from('answers')
-        .insert({
-          ...answerData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error creating answer:', error)
+      // Validate required fields
+      if (!transactionData.user_id || !transactionData.type || !transactionData.amount || !transactionData.reason || !transactionData.category) {
+        console.error('Missing required transaction fields:', transactionData)
         return null
       }
 
-      // Update question as answered
-      await SupabaseQuestionManager.updateQuestion(answerData.question_id, {
-        is_answered: true
-      })
-
-      return data
-    } catch (error) {
-      console.error('Error in createAnswer:', error)
-      return null
-    }
-  }
-
-  // Rate answer
-  static async rateAnswer(answerId: string, rating: number, ratedBy: string): Promise<{
-    success: boolean
-    coinEarnings: number
-    newRating: number
-  }> {
-    try {
-      // Get current answer
-      const { data: answer, error: getError } = await supabase
-        .from('answers')
-        .select('*')
-        .eq('id', answerId)
-        .single()
-
-      if (getError || !answer) {
-        console.error('Error getting answer:', getError)
-        return { success: false, coinEarnings: 0, newRating: 0 }
+      const insertData = {
+        user_id: transactionData.user_id,
+        type: transactionData.type,
+        amount: transactionData.amount,
+        reason: transactionData.reason,
+        category: transactionData.category,
+        question_id: transactionData.question_id || null,
+        answer_id: transactionData.answer_id || null,
+        rating: transactionData.rating || null,
+        created_at: new Date().toISOString()
       }
 
-      // Check if user already rated
-      if (answer.rated_by.includes(ratedBy)) {
-        return { success: false, coinEarnings: 0, newRating: answer.rating }
-      }
-
-      // Calculate new rating
-      const newRatedBy = [...answer.rated_by, ratedBy]
-      const totalRatings = newRatedBy.length
-      const newRating = ((answer.rating * (totalRatings - 1)) + rating) / totalRatings
-
-      // Calculate coin earnings
-      let coinEarnings = 3 // Base earning
-      if (newRating >= 4) coinEarnings = 5
-      if (newRating >= 4.5) coinEarnings = 8
-      if (newRating === 5) coinEarnings = 12
-
-      // Weekend bonus
-      const isWeekend = [0, 6].includes(new Date().getDay())
-      if (isWeekend) coinEarnings *= 2
-
-      // Update answer
-      const { error: updateError } = await supabase
-        .from('answers')
-        .update({
-          rating: newRating,
-          rated_by: newRatedBy,
-          coin_earnings: coinEarnings,
-          is_helpful: newRating >= 4,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', answerId)
-
-      if (updateError) {
-        console.error('Error updating answer:', updateError)
-        return { success: false, coinEarnings: 0, newRating: answer.rating }
-      }
-
-      return { success: true, coinEarnings, newRating }
-    } catch (error) {
-      console.error('Error in rateAnswer:', error)
-      return { success: false, coinEarnings: 0, newRating: 0 }
-    }
-  }
-
-  // Mark best answer
-  static async markBestAnswer(questionId: string, answerId: string, markedBy: string): Promise<boolean> {
-    try {
-      // Verify question ownership
-      const { data: question, error: questionError } = await supabase
-        .from('questions')
-        .select('author_id, best_answer_id')
-        .eq('id', questionId)
-        .single()
-
-      if (questionError || !question || question.author_id !== markedBy) {
-        return false
-      }
-
-      // Remove previous best answer if exists
-      if (question.best_answer_id) {
-        await supabase
-          .from('answers')
-          .update({ is_best_answer: false })
-          .eq('id', question.best_answer_id)
-      }
-
-      // Get current answer to update coin earnings
-      const { data: currentAnswer } = await supabase
-        .from('answers')
-        .select('coin_earnings')
-        .eq('id', answerId)
-        .single()
-
-      // Set new best answer
-      const { error: answerError } = await supabase
-        .from('answers')
-        .update({ 
-          is_best_answer: true,
-          coin_earnings: (currentAnswer?.coin_earnings || 0) + 5,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', answerId)
-
-      if (answerError) {
-        console.error('Error marking best answer:', answerError)
-        return false
-      }
-
-      // Update question
-      const { error: questionUpdateError } = await supabase
-        .from('questions')
-        .update({
-          best_answer_id: answerId,
-          is_solved: true,
-          updated_at: new Date().toISOString(),
-          last_activity: new Date().toISOString()
-        })
-        .eq('id', questionId)
-
-      if (questionUpdateError) {
-        console.error('Error updating question:', questionUpdateError)
-        return false
-      }
-
-      return true
-    } catch (error) {
-      console.error('Error in markBestAnswer:', error)
-      return false
-    }
-  }
-}
-
-// Coin Transaction Management
-export class SupabaseCoinManager {
-  
-  // Record coin transaction
-  static async recordTransaction(transactionData: Omit<DbCoinTransaction, 'id' | 'created_at'>): Promise<DbCoinTransaction | null> {
-    try {
       const { data, error } = await supabase
         .from('coin_transactions')
-        .insert({
-          ...transactionData,
-          created_at: new Date().toISOString()
-        })
+        .insert(insertData)
         .select()
         .single()
 
       if (error) {
         console.error('Error recording transaction:', error)
+        console.error('Transaction data:', insertData)
         return null
       }
 
@@ -567,7 +769,6 @@ export class SupabaseCoinManager {
     }
   }
 
-  // Get user transactions
   static async getUserTransactions(userId: string, limit: number = 20): Promise<DbCoinTransaction[]> {
     try {
       const { data, error } = await supabase
@@ -589,24 +790,16 @@ export class SupabaseCoinManager {
     }
   }
 
-  // Process question posting (spend coins)
-  static async processQuestionPosting(
-    username: string, 
-    questionType: string, 
-    coinCost: number
-  ): Promise<boolean> {
+  static async processQuestionPosting(username: string, questionType: string, coinCost: number): Promise<boolean> {
     try {
-      // Get current user
       const user = await SupabaseUserManager.getUserByUsername(username)
       if (!user || user.coins < coinCost) {
         return false
       }
 
-      // Update user coins
       const newBalance = user.coins - coinCost
       await SupabaseUserManager.updateUserCoins(username, newBalance)
 
-      // Record transaction
       await this.recordTransaction({
         user_id: username,
         type: 'spend',
@@ -622,20 +815,26 @@ export class SupabaseCoinManager {
     }
   }
 
-  // Process answer reward (earn coins)
   static async processAnswerReward(
     username: string,
     questionId: string,
     answerId: string,
     coinEarnings: number,
-    rating: number
+    rating?: number
   ): Promise<boolean> {
     try {
-      // Get current user
+      if (coinEarnings <= 0) return true // No coins to award
+
+      // Check daily limit
+      const { canEarn } = await SupabaseUserManager.checkDailyEarningLimit(username)
+      if (!canEarn) {
+        console.log(`User ${username} reached daily earning limit, skipping reward`)
+        return false
+      }
+
       const user = await SupabaseUserManager.getUserByUsername(username)
       if (!user) return false
 
-      // Update user coins and stats
       const newBalance = user.coins + coinEarnings
       await SupabaseUserManager.updateUserCoins(username, newBalance)
       await SupabaseUserManager.updateUserStats(username, {
@@ -643,12 +842,11 @@ export class SupabaseCoinManager {
         monthly_earnings: user.monthly_earnings + coinEarnings
       })
 
-      // Record transaction
       await this.recordTransaction({
         user_id: username,
         type: 'earn',
         amount: coinEarnings,
-        reason: `Answer rated ${rating} stars`,
+        reason: rating ? `Answer rated ${rating} stars` : 'Best answer bonus',
         category: 'answer',
         question_id: questionId,
         answer_id: answerId,
@@ -663,9 +861,8 @@ export class SupabaseCoinManager {
   }
 }
 
-// Utility functions
+// Utility functions - FIXED VERSION
 export const supabaseHelpers = {
-  // Initialize user session
   initializeUser: async (username: string, email: string, avatarType: string) => {
     return await SupabaseUserManager.upsertUser({
       username,
@@ -681,14 +878,10 @@ export const supabaseHelpers = {
       trial_days_left: 7,
       confidence_score: 34,
       experience: 150,
-      badges: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_active: new Date().toISOString()
+      badges: []
     })
   },
 
-  // Get questions with answers for community page
   getQuestionsWithAnswers: async (filters: any = {}) => {
     const questions = await SupabaseQuestionManager.getQuestions(filters)
     

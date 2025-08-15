@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
+import { supabaseHelpers, SupabaseUserManager, supabase } from '@/lib/supabase'
 
 function SignupContent() {
   const searchParams = useSearchParams()
@@ -13,6 +14,15 @@ function SignupContent() {
   const [userName, setUserName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [liveCount, setLiveCount] = useState(47)
+  const [errors, setErrors] = useState<{
+    userName?: string | null
+    email?: string | null
+    general?: string | null
+  }>({})
+  const [validationLoading, setValidationLoading] = useState<{
+    userName?: boolean
+    email?: boolean
+  }>({})
 
   const avatarData = {
     marcus: {
@@ -70,20 +80,167 @@ function SignupContent() {
     return () => clearInterval(interval)
   }, [searchParams])
 
+  // Validate username availability (debounced)
+  useEffect(() => {
+    if (!userName || userName.length < 3) {
+      setErrors(prev => ({ ...prev, userName: null }))
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setValidationLoading(prev => ({ ...prev, userName: true }))
+      
+      try {
+        // Use the existing function from supabase.ts but with error handling
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('username', userName.trim())
+          .maybeSingle() // Use maybeSingle instead of single
+        
+        if (data) {
+          setErrors(prev => ({ ...prev, userName: 'Username already taken. Try another one!' }))
+        } else {
+          setErrors(prev => ({ ...prev, userName: null }))
+        }
+      } catch (error) {
+        console.error('Error checking username availability:', error)
+        // Don't show error to user for availability checks, just allow them to continue
+        setErrors(prev => ({ ...prev, userName: null }))
+      } finally {
+        setValidationLoading(prev => ({ ...prev, userName: false }))
+      }
+    }, 800)
+
+    return () => clearTimeout(timeoutId)
+  }, [userName])
+
+  // Validate email format and availability (debounced)
+  useEffect(() => {
+    if (!email || !isValidEmail(email)) {
+      setErrors(prev => ({ ...prev, email: null }))
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setValidationLoading(prev => ({ ...prev, email: true }))
+      
+      try {
+        // Check if email already exists by trying to get user with that email
+        const { data, error } = await supabase
+          .from('users')
+          .select('email')
+          .eq('email', email.trim())
+          .maybeSingle() // Use maybeSingle instead of single to avoid errors when no data found
+        
+        if (data) {
+          setErrors(prev => ({ ...prev, email: 'Email already registered. Try signing in instead!' }))
+        } else {
+          setErrors(prev => ({ ...prev, email: null }))
+        }
+      } catch (error) {
+        console.error('Error checking email availability:', error)
+        // Don't show error to user for availability checks, just allow them to continue
+        setErrors(prev => ({ ...prev, email: null }))
+      } finally {
+        setValidationLoading(prev => ({ ...prev, email: false }))
+      }
+    }, 800)
+
+    return () => clearTimeout(timeoutId)
+  }, [email])
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !userName) return
+    
+    // Basic validation
+    if (!email || !userName) {
+      setErrors({
+        email: !email ? 'Email is required' : null,
+        userName: !userName ? 'Username is required' : null
+      })
+      return
+    }
+
+    if (!isValidEmail(email)) {
+      setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }))
+      return
+    }
+
+    if (userName.length < 3) {
+      setErrors(prev => ({ ...prev, userName: 'Username must be at least 3 characters long' }))
+      return
+    }
+
+    // Check for existing errors
+    if (errors.email || errors.userName) {
+      return
+    }
 
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      // In real app: save to database, send welcome email
-      console.log('User signed up:', { email, userName, avatarType })
+    try {
+      // Create user in database using existing helper function
+      const newUser = await supabaseHelpers.initializeUser(
+        userName.trim(),
+        email.trim(), 
+        avatarType
+      )
+
+      if (newUser) {
+        console.log('✅ User created successfully:', newUser)
+        
+        // Store user info in sessionStorage for immediate access
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('alpharise_user', JSON.stringify({
+            username: newUser.username,
+            email: newUser.email,
+            avatar_type: newUser.avatar_type,
+            coins: newUser.coins,
+            created_at: newUser.created_at
+          }))
+        }
+        
+        // Redirect to dashboard with success
+        router.push(`/dashboard?welcome=true&username=${encodeURIComponent(newUser.username)}`)
+      } else {
+        throw new Error('Failed to create user account')
+      }
+    } catch (error: any) {
+      console.error('❌ Signup error:', error)
       
-      // Redirect to dashboard with trial active and username
-      router.push(`/dashboard?avatar=${avatarType}&trial=true&email=${encodeURIComponent(email)}&name=${encodeURIComponent(userName)}`)
-    }, 2000)
+      // Handle specific errors
+      if (error.message?.includes('duplicate key')) {
+        if (error.message.includes('username')) {
+          setErrors(prev => ({ ...prev, userName: 'Username already taken' }))
+        } else if (error.message.includes('email')) {
+          setErrors(prev => ({ ...prev, email: 'Email already registered' }))
+        }
+      } else {
+        setErrors(prev => ({ 
+          ...prev, 
+          general: 'Something went wrong. Please try again.' 
+        }))
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const isFormValid = () => {
+    return userName && 
+           email && 
+           userName.length >= 3 && 
+           isValidEmail(email) && 
+           !errors.userName && 
+           !errors.email &&
+           !validationLoading.userName &&
+           !validationLoading.email
   }
 
   return (
@@ -130,40 +287,98 @@ function SignupContent() {
               </p>
             </div>
 
+            {/* General Error */}
+            {errors.general && (
+              <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400 text-center">
+                {errors.general}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Username Field */}
               <div>
                 <label className="block text-sm font-semibold text-red-400 mb-2">
                   What should we call you, future alpha?
                 </label>
-                <input 
-                  type="text" 
-                  placeholder="John, Johnny, J-Money... whatever feels right"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:border-red-500 focus:outline-none transition-colors duration-300"
-                  required
-                />
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="John, Johnny, J-Money... whatever feels right"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className={`w-full p-4 bg-white/10 border rounded-lg text-white placeholder-white/60 focus:outline-none transition-colors duration-300 ${
+                      errors.userName 
+                        ? 'border-red-500 focus:border-red-400' 
+                        : validationLoading.userName
+                        ? 'border-yellow-500 focus:border-yellow-400'
+                        : userName && !errors.userName && userName.length >= 3
+                        ? 'border-green-500 focus:border-green-400'
+                        : 'border-white/20 focus:border-red-500'
+                    }`}
+                    required
+                    minLength={3}
+                    disabled={isLoading}
+                  />
+                  {validationLoading.userName && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <div className="w-5 h-5 border-2 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                {errors.userName && (
+                  <p className="mt-2 text-sm text-red-400">{errors.userName}</p>
+                )}
+                {userName && userName.length >= 3 && !errors.userName && !validationLoading.userName && (
+                  <p className="mt-2 text-sm text-green-400">✓ Username available!</p>
+                )}
               </div>
+
+              {/* Email Field */}
               <div>
-                <input 
-                  type="email" 
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:border-red-500 focus:outline-none transition-colors duration-300"
-                  required
-                />
+                <label className="block text-sm font-semibold text-red-400 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <input 
+                    type="email" 
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full p-4 bg-white/10 border rounded-lg text-white placeholder-white/60 focus:outline-none transition-colors duration-300 ${
+                      errors.email 
+                        ? 'border-red-500 focus:border-red-400' 
+                        : validationLoading.email
+                        ? 'border-yellow-500 focus:border-yellow-400'
+                        : email && isValidEmail(email) && !errors.email
+                        ? 'border-green-500 focus:border-green-400'
+                        : 'border-white/20 focus:border-red-500'
+                    }`}
+                    required
+                    disabled={isLoading}
+                  />
+                  {validationLoading.email && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <div className="w-5 h-5 border-2 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-400">{errors.email}</p>
+                )}
+                {email && isValidEmail(email) && !errors.email && !validationLoading.email && (
+                  <p className="mt-2 text-sm text-green-400">✓ Email looks good!</p>
+                )}
               </div>
               
               <motion.button 
                 type="submit"
-                disabled={isLoading || !email || !userName}
+                disabled={isLoading || !isFormValid()}
                 className={`w-full p-4 rounded-lg font-bold text-xl transition-all duration-300 ease-out ${
-                  isLoading || !email || !userName
+                  isLoading || !isFormValid()
                     ? 'bg-gray-600 cursor-not-allowed opacity-50' 
-                    : 'bg-gradient-to-r from-red-600 to-red-700'
+                    : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
                 }`}
-                whileHover={!isLoading && email && userName ? { 
+                whileHover={!isLoading && isFormValid() ? { 
                   scale: 1.02, 
                   boxShadow: "0 10px 30px rgba(255, 68, 68, 0.4)" 
                 } : {}}

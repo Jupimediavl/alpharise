@@ -1,8 +1,10 @@
+// Fixed Community page.tsx with corrected UI and logic
+
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
-import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw } from 'lucide-react'
+import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins } from 'lucide-react'
 import { useAlphaRise, withUserAuth } from '@/lib/user-context'
 import { 
   SupabaseQuestionManager, 
@@ -11,6 +13,7 @@ import {
   SupabaseUserManager,
   supabaseHelpers 
 } from '@/lib/supabase'
+import DynamicRating from '@/components/DynamicRating'
 
 interface QuestionWithAnswers {
   id: string
@@ -71,7 +74,7 @@ function CommunityContent() {
     { 
       id: 'lasting-longer', 
       name: 'Lasting Longer in Bed', 
-      icon: '⏱️', 
+      icon: 'ⱖ️', 
       description: 'Performance tips and stamina building',
       color: 'from-green-500 to-green-600'
     },
@@ -160,6 +163,33 @@ function CommunityContent() {
     }
   }
 
+  // Sync user data after coin transactions
+  const syncUserData = async () => {
+    if (!user?.userName) return;
+    
+    try {
+      const updatedUser = await SupabaseUserManager.getUserByUsername(user.userName);
+      if (updatedUser) {
+        // Update user context with fresh data from Supabase
+        updateUser({
+          coins: updatedUser.coins,
+          totalEarned: updatedUser.total_earned,
+          monthlyEarnings: updatedUser.monthly_earnings,
+          streak: updatedUser.streak,
+          level: updatedUser.level
+        });
+        
+        console.log('✅ User data synced after transaction:', {
+          username: user.userName,
+          newCoins: updatedUser.coins,
+          totalEarned: updatedUser.total_earned
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing user data:', error);
+    }
+  };
+
   // Load questions from Supabase
   const loadQuestions = async () => {
     setLoading(true)
@@ -215,17 +245,17 @@ function CommunityContent() {
 
   // Handle asking new question
   const handleAskQuestion = async () => {
-    if (!user || !newQuestionTitle.trim() || !newQuestionBody.trim()) return
+    if (!user || !newQuestionTitle.trim() || !newQuestionBody.trim()) return;
 
-    const questionType = questionTypes.find(qt => qt.id === selectedQuestionType)
-    if (!questionType) return
+    const questionType = questionTypes.find(qt => qt.id === selectedQuestionType);
+    if (!questionType) return;
 
     if ((user.coins || 0) < questionType.cost) {
-      alert(`Insufficient coins! You need ${questionType.cost} coins but only have ${user.coins || 0}. Answer questions to earn more coins.`)
-      return
+      alert(`Insufficient AlphaCoins! You need ${questionType.cost} AlphaCoins but only have ${user.coins || 0}. Answer questions to earn more.`);
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       // Process coin transaction in Supabase
@@ -233,10 +263,10 @@ function CommunityContent() {
         user.userName || 'user',
         selectedQuestionType,
         questionType.cost
-      )
+      );
 
       if (!success) {
-        throw new Error('Failed to process coin transaction')
+        throw new Error('Failed to process AlphaCoin transaction');
       }
 
       // Create question in Supabase
@@ -258,39 +288,39 @@ function CommunityContent() {
           ? new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
           : undefined,
         allowed_responders: []
-      })
+      });
 
       if (newQuestion) {
-        // Update user coins in context
-        updateUser({ coins: (user.coins || 0) - questionType.cost })
+        // Sync user data to get updated coins from Supabase
+        await syncUserData();
 
         // Reset form
-        setNewQuestionTitle('')
-        setNewQuestionBody('')
-        setSelectedQuestionType('regular')
-        setShowNewQuestion(false)
+        setNewQuestionTitle('');
+        setNewQuestionBody('');
+        setSelectedQuestionType('regular');
+        setShowNewQuestion(false);
 
         // Reload questions
-        await loadQuestions()
+        await loadQuestions();
 
-        alert(`Question posted successfully! Cost: ${questionType.cost} coins. You now have ${(user.coins || 0) - questionType.cost} coins remaining.`)
+        alert(`Question posted successfully! Cost: ${questionType.cost} AlphaCoins. Check your updated balance above.`);
       } else {
-        throw new Error('Failed to create question')
+        throw new Error('Failed to create question');
       }
       
     } catch (error) {
-      console.error('Error posting question:', error)
-      alert('Error posting question. Please try again.')
+      console.error('Error posting question:', error);
+      alert('Error posting question. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Handle answering question
   const handleAnswerQuestion = async () => {
-    if (!user || !selectedQuestion || !newAnswerContent.trim()) return
+    if (!user || !selectedQuestion || !newAnswerContent.trim()) return;
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const newAnswer = await SupabaseAnswerManager.createAnswer({
@@ -305,93 +335,85 @@ function CommunityContent() {
         is_helpful: false,
         votes: 0,
         voted_by: []
-      })
+      });
 
       if (newAnswer) {
         // Reset form
-        setNewAnswerContent('')
-        setShowAnswerModal(false)
-        setSelectedQuestion(null)
+        setNewAnswerContent('');
+        setShowAnswerModal(false);
+        setSelectedQuestion(null);
 
         // Reload questions to show new answer
-        await loadQuestions()
+        await loadQuestions();
 
-        alert('Answer submitted successfully! You\'ll earn coins when it gets rated by the community.')
+        alert('Answer submitted successfully! You\'ll earn AlphaCoins when it gets rated by the community.');
       } else {
-        throw new Error('Failed to create answer')
+        throw new Error('Failed to create answer');
       }
       
     } catch (error) {
-      console.error('Error submitting answer:', error)
-      alert('Error submitting answer. Please try again.')
+      console.error('Error submitting answer:', error);
+      alert('Error submitting answer. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  };
+
+  // Handle rating an answer - simplified since DynamicRating handles the logic
+  const handleAnswerUpdate = (questionIndex: number, answerIndex: number, newRating: number, newCoinEarnings: number, newRatedBy: string[]) => {
+    setQuestions(prevQuestions => {
+      const updated = [...prevQuestions]
+      updated[questionIndex].answers[answerIndex] = {
+        ...updated[questionIndex].answers[answerIndex],
+        rating: newRating,
+        coin_earnings: newCoinEarnings,
+        rated_by: newRatedBy
+      }
+      return updated
+    })
   }
 
-  // Handle rating an answer
-  const handleRateAnswer = async (answerId: string, rating: number): Promise<void> => {
-    if (!user) return
-
-    try {
-      const result = await SupabaseAnswerManager.rateAnswer(
-        answerId, 
-        rating, 
-        user.userName || 'user'
-      )
-      
-      if (result.success && result.coinEarnings > 0) {
-        // Find the answer to get author info
-        const answer = questions
-          .flatMap(q => q.answers)
-          .find(a => a.id === answerId)
-        
-        if (answer) {
-          // Process coin reward for answer author
-          await SupabaseCoinManager.processAnswerReward(
-            answer.author_id,
-            selectedQuestion?.id || '',
-            answerId,
-            result.coinEarnings,
-            rating
-          )
-        }
-        
-        await loadQuestions() // Reload to show updated ratings
-        alert(`Rating submitted! The answer author earned ${result.coinEarnings} coins.`)
-      } else if (!result.success) {
-        alert('You have already rated this answer or cannot rate your own answer.')
-      }
-      
-    } catch (error) {
-      console.error('Error submitting rating:', error)
-      alert('Error submitting rating. Please try again.')
-    }
+  // Handle user coins update
+  const handleUserCoinsUpdate = (earnedCoins: number) => {
+    updateUser({
+      coins: (user?.coins || 0) + earnedCoins,
+      totalEarned: (user?.totalEarned || 0) + earnedCoins,
+      monthlyEarnings: (user?.monthlyEarnings || 0) + earnedCoins
+    })
   }
 
   // Handle marking best answer
   const handleMarkBestAnswer = async (questionId: string, answerId: string): Promise<void> => {
-    if (!user) return
+    if (!user) return;
 
     try {
-      const success = await SupabaseAnswerManager.markBestAnswer(
+      const result = await SupabaseAnswerManager.markBestAnswer(
         questionId, 
         answerId, 
         user.userName || 'user'
-      )
+      );
       
-      if (success) {
-        await loadQuestions() // Reload to show best answer
-        alert('Best answer marked! The author received bonus coins.')
+      if (result.success) {
+        // Find the answer to get author info for syncing
+        const answer = questions
+          .flatMap(q => q.answers)
+          .find(a => a.id === answerId);
+        
+        if (answer && answer.author_id === user.userName) {
+          await syncUserData(); // Sync if current user is the answer author
+        }
+        
+        await loadQuestions(); // Reload to show best answer
+        alert(result.message);
       } else {
-        alert('Only the question author can mark the best answer.')
+        alert(result.message);
       }
       
     } catch (error) {
-      console.error('Error marking best answer:', error)
-      alert('Error marking best answer. Please try again.')
+      console.error('Error marking best answer:', error);
+      alert('Error marking best answer. Please try again.');
     }
-  }
+  };
 
   // Format time ago
   const formatTimeAgo = (dateString: string) => {
@@ -426,10 +448,21 @@ function CommunityContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      {/* Header */}
+      {/* Header with Better Navigation */}
       <header className="p-4 lg:p-6 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 lg:gap-4">
+            {/* Back to Dashboard Button */}
+            <button 
+              onClick={navigation.goToDashboard}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="hidden sm:inline text-sm font-medium">Dashboard</span>
+            </button>
+            
             <button 
               onClick={navigation.goToDashboard}
               className="text-xl lg:text-2xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
@@ -449,7 +482,7 @@ function CommunityContent() {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-400 px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold">
-              <span>🪙</span>
+              <Coins className="w-4 h-4" />
               <span>{user.coins || 0}</span>
             </div>
             <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'Alpha'}!</div>
@@ -597,7 +630,10 @@ function CommunityContent() {
                       {question.coin_bounty > 0 && (
                         <>
                           <span>•</span>
-                          <span className="text-yellow-400">🪙 {question.coin_bounty} bounty</span>
+                          <span className="text-yellow-400 flex items-center gap-1">
+                            <Coins className="w-3 h-3" />
+                            {question.coin_bounty} bounty
+                          </span>
                         </>
                       )}
                     </div>
@@ -620,7 +656,7 @@ function CommunityContent() {
                         return b.rating - a.rating;
                       })
                       .slice(0, 2) // Show top 2 answers
-                      .map((answer) => (
+                      .map((answer, answerIndex) => (
                         <div
                           key={answer.id}
                           className={`p-4 rounded-lg ${
@@ -638,56 +674,35 @@ function CommunityContent() {
                               )}
                               <span className="text-xs opacity-70">{formatTimeAgo(answer.created_at)}</span>
                             </div>
-                            
-                            <div className="flex items-center gap-2">
-                              {answer.rating > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                                  <span className="text-sm">{answer.rating.toFixed(1)}</span>
-                                </div>
-                              )}
-                              {answer.votes > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <ThumbsUp className="h-4 w-4 text-blue-400" />
-                                  <span className="text-sm">{answer.votes}</span>
-                                </div>
-                              )}
-                            </div>
                           </div>
                           
-                          <p className="text-sm leading-relaxed mb-3">{answer.content}</p>
+                          <p className="text-sm leading-relaxed mb-4">{answer.content}</p>
                           
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {!answer.rated_by.includes(user.userName || 'user') && answer.author_id !== (user.userName || 'user') && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs opacity-70">Rate:</span>
-                                  {[1, 2, 3, 4, 5].map((rating) => (
-                                    <button
-                                      key={rating}
-                                      onClick={() => handleRateAnswer(answer.id, rating)}
-                                      className="text-yellow-400 hover:text-yellow-300 transition-colors"
-                                    >
-                                      <Star className="h-4 w-4" />
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                              
-                              {question.author_id === (user.userName || 'user') && !question.best_answer_id && (
-                                <button
-                                  onClick={() => handleMarkBestAnswer(question.id, answer.id)}
-                                  className="text-green-400 hover:text-green-300 text-xs font-semibold transition-colors"
-                                >
-                                  Mark as Best Answer
-                                </button>
-                              )}
-                            </div>
-                            
-                            {answer.coin_earnings > 0 && (
-                              <div className="text-yellow-400 text-xs font-semibold">
-                                +{answer.coin_earnings} 🪙 earned
-                              </div>
+                          {/* Dynamic Rating Component */}
+                          <DynamicRating
+                            answerId={answer.id}
+                            authorId={answer.author_id}
+                            currentRating={answer.rating}
+                            ratedBy={answer.rated_by}
+                            coinEarnings={answer.coin_earnings}
+                            currentUser={user?.userName || 'user'}
+                            onRatingUpdate={(newRating, newCoinEarnings, newRatedBy) => 
+                              handleAnswerUpdate(index, answerIndex, newRating, newCoinEarnings, newRatedBy)
+                            }
+                            onCoinsEarned={handleUserCoinsUpdate}
+                          />
+
+                          {/* Mark as Best Answer Button */}
+                          <div className="mt-3 pt-3 border-t border-white/10">
+                            {question.author_id === (user.userName || 'user') && 
+                             answer.author_id !== (user.userName || 'user') && 
+                             !question.best_answer_id && (
+                              <button
+                                onClick={() => handleMarkBestAnswer(question.id, answer.id)}
+                                className="text-green-400 hover:text-green-300 text-xs font-semibold transition-colors"
+                              >
+                                Mark as Best Answer
+                              </button>
                             )}
                           </div>
                         </div>
@@ -701,21 +716,35 @@ function CommunityContent() {
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex items-center gap-4 mt-6 pt-4 border-t border-white/10">
-                  <button
-                    onClick={() => {
-                      setSelectedQuestion(question)
-                      setShowAnswerModal(true)
-                    }}
-                    className="flex items-center gap-2 text-green-400 hover:text-green-300 font-semibold transition-colors"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Answer (+3-12 🪙)</span>
-                  </button>
+                {/* Help & Answer Section - Responsive Design */}
+                <div className="mt-6 pt-4 border-t border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    {/* Left: Motivational Text */}
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <span className="text-2xl">💡</span>
+                      <div>
+                        <div className="text-sm font-medium text-gray-300">Help & Earn AlphaCoins</div>
+                        <div className="text-xs opacity-70">Share your experience and get rewarded</div>
+                      </div>
+                    </div>
+                    
+                    {/* Right: Answer Button */}
+                    <button
+                      onClick={() => {
+                        setSelectedQuestion(question)
+                        setShowAnswerModal(true)
+                      }}
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-[1.02] w-full sm:w-auto"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Answer Question</span>
+                    </button>
+                  </div>
                   
-                  <div className="text-sm opacity-60">
-                    {question.answers.length} answers • Last activity {formatTimeAgo(question.last_activity)}
+                  {/* Additional Info Row */}
+                  <div className="flex items-center justify-between text-xs opacity-60 mt-3">
+                    <span>{question.answers.length} answers • Last activity {formatTimeAgo(question.last_activity)}</span>
+                    <span className="hidden sm:inline">Earn 3-8 AlphaCoins per helpful answer</span>
                   </div>
                 </div>
               </motion.div>
@@ -761,14 +790,14 @@ function CommunityContent() {
                         <div className={`flex items-center gap-1 font-bold ${
                           (user.coins || 0) >= type.cost ? 'text-yellow-400' : 'text-gray-500'
                         }`}>
-                          <span>🪙</span>
+                          <Coins className="w-4 h-4" />
                           <span>{type.cost}</span>
                         </div>
                       </div>
                       <div className="text-sm opacity-70">{type.description}</div>
                       {(user.coins || 0) < type.cost && (
                         <div className="text-xs text-red-400 mt-2">
-                          Need {type.cost - (user.coins || 0)} more coins
+                          Need {type.cost - (user.coins || 0)} more AlphaCoins
                         </div>
                       )}
                     </button>
@@ -801,11 +830,12 @@ function CommunityContent() {
               </div>
 
               <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
-                <div className="text-yellow-400 font-semibold text-sm mb-1">
-                  💰 Cost: {questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} coins
+                <div className="text-yellow-400 font-semibold text-sm mb-1 flex items-center gap-1">
+                  <Coins className="w-4 h-4" />
+                  Cost: {questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} AlphaCoins
                 </div>
                 <div className="text-xs opacity-70">
-                  Your balance: {user.coins || 0} coins
+                  Your balance: {user.coins || 0} AlphaCoins
                 </div>
               </div>
 
@@ -819,9 +849,16 @@ function CommunityContent() {
                 <button 
                   onClick={handleAskQuestion}
                   disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || loading || (user.coins || 0) < (questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2)}
-                  className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold disabled:opacity-50 transition-all"
+                  className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold disabled:opacity-50 transition-all flex items-center justify-center gap-1"
                 >
-                  {loading ? 'Posting...' : `Post Question (-${questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} 🪙)`}
+                  {loading ? 'Posting...' : (
+                    <>
+                      Post Question 
+                      <span className="flex items-center gap-1">
+                        (-{questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} <Coins className="w-4 h-4" />)
+                      </span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -855,8 +892,8 @@ function CommunityContent() {
                   rows={6}
                   className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:border-red-500 focus:outline-none transition-colors resize-none"
                 />
-                <div className="text-xs opacity-60 mt-2">
-                  Helpful answers earn 3-12 coins based on community ratings
+                <div className="text-xs opacity-60 mt-2 flex items-center gap-1">
+                  Helpful answers earn 3-8 AlphaCoins based on community ratings
                 </div>
               </div>
 
