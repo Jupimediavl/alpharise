@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react'
-import { SupabaseUserManager } from '@/lib/supabase'
+import { ArrowLeft, Loader2 } from 'lucide-react'
+import { SupabaseUserManager, supabase } from '@/lib/supabase' // FIXED: Added supabase import
 
 export default function LoginPage() {
   const router = useRouter()
@@ -31,19 +31,28 @@ export default function LoginPage() {
       let user = null
       
       if (formData.identifier.includes('@')) {
-        // Email login
-        const { data } = await supabase
+        // Email login - FIXED: Use proper method
+        const { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('email', formData.identifier.trim())
           .single()
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Email lookup error:', error)
+          throw new Error('Database error')
+        }
+        
         user = data
       } else {
-        // Username login
+        // Username login - FIXED: Already correct
         user = await SupabaseUserManager.getUserByUsername(formData.identifier.trim())
       }
 
       if (user) {
+        // Update last active time
+        await SupabaseUserManager.updateUserStats(user.username, {})
+
         // Store user info in sessionStorage
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('alpharise_user', JSON.stringify({
@@ -51,7 +60,10 @@ export default function LoginPage() {
             email: user.email,
             avatar_type: user.avatar_type,
             coins: user.coins,
-            created_at: user.created_at
+            created_at: user.created_at,
+            level: user.level,
+            streak: user.streak,
+            confidence_score: user.confidence_score
           }))
         }
 
