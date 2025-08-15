@@ -123,8 +123,8 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
           // No saved user, create default with proper username
           const newUser = {
             ...defaultUser,
-            userName: 'testtest1', // Set actual username instead of empty string
-            userEmail: 'testtest1@alpharise.com'
+            userName: 'coach_rodriguez', // Changed from 'testtest1' to 'coach_rodriguez'
+            userEmail: 'coach_rodriguez@alpharise.com'
           }
           console.log('🆕 Creating new user:', newUser)
           setUser(newUser)
@@ -135,8 +135,8 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
         // Fallback to default user
         const fallbackUser = {
           ...defaultUser,
-          userName: 'testtest1',
-          userEmail: 'testtest1@alpharise.com'
+          userName: 'coach_rodriguez', // Changed to match expected user
+          userEmail: 'coach_rodriguez@alpharise.com'
         }
         setUser(fallbackUser)
         localStorage.setItem('alpharise_user', JSON.stringify(fallbackUser))
@@ -316,8 +316,8 @@ export const userUtils = {
   resetUser: () => {
     const newUser = {
       ...defaultUser,
-      userName: 'testtest1',
-      userEmail: 'testtest1@alpharise.com'
+      userName: 'coach_rodriguez', // Updated default user
+      userEmail: 'coach_rodriguez@alpharise.com'
     }
     localStorage.setItem('alpharise_user', JSON.stringify(newUser))
     window.location.reload()
