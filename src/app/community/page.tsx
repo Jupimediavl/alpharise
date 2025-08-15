@@ -1,10 +1,10 @@
-// Fixed Community page.tsx with corrected UI and logic
+// Enhanced Community page.tsx with Load More answers and Smart Sorting
 
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, Suspense } from 'react'
-import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins } from 'lucide-react'
+import { useState, useEffect, Suspense, useRef } from 'react'
+import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAlphaRise, withUserAuth } from '@/lib/user-context'
 import { 
   SupabaseQuestionManager, 
@@ -46,6 +46,9 @@ interface QuestionWithAnswers {
   }>
 }
 
+// Answer sorting types
+type AnswerSortType = 'best-first' | 'newest-first' | 'most-helpful'
+
 function CommunityContent() {
   const { user, avatar, navigation, updateUser } = useAlphaRise()
   const [activeTab, setActiveTab] = useState('all')
@@ -61,20 +64,31 @@ function CommunityContent() {
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'urgent' | 'unsolved'>('newest')
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null)
+
+  // Answer display management
+  const [visibleAnswersCount, setVisibleAnswersCount] = useState<Record<string, number>>({})
+  const [answerSortType, setAnswerSortType] = useState<AnswerSortType>('best-first')
+  const INITIAL_ANSWERS_SHOW = 3
+  const LOAD_MORE_INCREMENT = 5
+
+  // Ref to maintain scroll position
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
 
   // Communities configuration
   const communities = [
     { 
       id: 'premature-ejaculation', 
       name: 'Premature Ejaculation Solutions', 
-      icon: '🕐', 
+      icon: '🕒', 
       description: 'Proven techniques to last longer and build confidence',
       color: 'from-blue-500 to-blue-600'
     },
     { 
       id: 'lasting-longer', 
       name: 'Lasting Longer in Bed', 
-      icon: 'ⱖ️', 
+      icon: '⏱️', 
       description: 'Performance tips and stamina building',
       color: 'from-green-500 to-green-600'
     },
@@ -140,26 +154,105 @@ function CommunityContent() {
     { id: 'vip', name: 'VIP Question', cost: 15, description: 'Direct answer from avatar coaches', icon: '👑' },
   ]
 
+  // Smart Answer Sorting Function
+  const sortAnswers = (answers: QuestionWithAnswers['answers'], sortType: AnswerSortType) => {
+    return [...answers].sort((a, b) => {
+      switch (sortType) {
+        case 'best-first':
+          // 1. Best answer always first
+          if (a.is_best_answer && !b.is_best_answer) return -1
+          if (b.is_best_answer && !a.is_best_answer) return 1
+          
+          // 2. Then by rating quality (higher is better)
+          if (a.rating !== b.rating) return b.rating - a.rating
+          
+          // 3. If same rating, newest first
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+
+        case 'newest-first':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+
+        case 'most-helpful':
+          // Sort by votes, then rating, then newest
+          if (a.votes !== b.votes) return b.votes - a.votes
+          if (a.rating !== b.rating) return b.rating - a.rating
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+
+        default:
+          return 0
+      }
+    })
+  }
+
+  // Initialize visible answers count for a question
+  const initializeVisibleCount = (questionId: string, totalAnswers: number) => {
+    if (!(questionId in visibleAnswersCount)) {
+      setVisibleAnswersCount(prev => ({
+        ...prev,
+        [questionId]: Math.min(INITIAL_ANSWERS_SHOW, totalAnswers)
+      }))
+    }
+  }
+
+  // Load more answers for a specific question
+  const loadMoreAnswers = (questionId: string, totalAnswers: number) => {
+    setVisibleAnswersCount(prev => ({
+      ...prev,
+      [questionId]: Math.min((prev[questionId] || INITIAL_ANSWERS_SHOW) + LOAD_MORE_INCREMENT, totalAnswers)
+    }))
+  }
+
+  // Show fewer answers for a specific question  
+  const showFewerAnswers = (questionId: string) => {
+    setVisibleAnswersCount(prev => ({
+      ...prev,
+      [questionId]: INITIAL_ANSWERS_SHOW
+    }))
+  }
+
+  // Check if question should redirect to dedicated page
+  const shouldRedirectToFullView = (answersCount: number) => {
+    return answersCount >= 20
+  }
+
   // Initialize user in database and load questions
   useEffect(() => {
-    if (user) {
+    if (user?.userName) {
       initializeUserInDB()
       loadQuestions()
     }
   }, [user, activeTab, sortBy])
 
+  // Initialize visible counts when questions load
+  useEffect(() => {
+    questions.forEach(question => {
+      initializeVisibleCount(question.id, question.answers.length)
+    })
+  }, [questions])
+
   // Initialize user in Supabase
   const initializeUserInDB = async () => {
-    if (!user) return
+    if (!user?.userName) return
 
     try {
-      await supabaseHelpers.initializeUser(
-        user.userName || 'user',
-        user.userEmail || '',
+      console.log('🔄 Initializing user in DB:', {
+        userName: user.userName,
+        userEmail: user.userEmail,
+        avatarType: user.avatarType
+      })
+
+      const dbUser = await supabaseHelpers.initializeUser(
+        user.userName,
+        user.userEmail || `${user.userName}@alpharise.com`,
         user.avatarType
       )
+
+      if (dbUser) {
+        setCurrentUserProfile(dbUser)
+        console.log('✅ User initialized in DB:', dbUser)
+      }
     } catch (error) {
-      console.error('Error initializing user:', error)
+      console.error('❌ Error initializing user:', error)
     }
   }
 
@@ -170,7 +263,6 @@ function CommunityContent() {
     try {
       const updatedUser = await SupabaseUserManager.getUserByUsername(user.userName);
       if (updatedUser) {
-        // Update user context with fresh data from Supabase
         updateUser({
           coins: updatedUser.coins,
           totalEarned: updatedUser.total_earned,
@@ -179,6 +271,8 @@ function CommunityContent() {
           level: updatedUser.level
         });
         
+        setCurrentUserProfile(updatedUser);
+        
         console.log('✅ User data synced after transaction:', {
           username: user.userName,
           newCoins: updatedUser.coins,
@@ -186,9 +280,25 @@ function CommunityContent() {
         });
       }
     } catch (error) {
-      console.error('Error syncing user data:', error);
+      console.error('❌ Error syncing user data:', error);
     }
   };
+
+  // Save scroll position before updates
+  const saveScrollPosition = () => {
+    if (containerRef.current) {
+      setScrollPosition(containerRef.current.scrollTop)
+    }
+  }
+
+  // Restore scroll position after updates
+  const restoreScrollPosition = () => {
+    setTimeout(() => {
+      if (containerRef.current && scrollPosition > 0) {
+        containerRef.current.scrollTop = scrollPosition
+      }
+    }, 100)
+  }
 
   // Load questions from Supabase
   const loadQuestions = async () => {
@@ -198,13 +308,11 @@ function CommunityContent() {
       let loadedQuestions: QuestionWithAnswers[] = []
 
       if (searchQuery.trim()) {
-        // Search questions
         const searchResults = await SupabaseQuestionManager.searchQuestions(
           searchQuery, 
           activeTab === 'all' ? undefined : activeTab
         )
         
-        // Get answers for each question
         for (const question of searchResults) {
           const { answers } = await SupabaseQuestionManager.getQuestionWithAnswers(question.id)
           loadedQuestions.push({
@@ -213,7 +321,6 @@ function CommunityContent() {
           })
         }
       } else {
-        // Get questions with filters
         const filters: any = {
           category: activeTab === 'all' ? undefined : activeTab,
           limit: 20,
@@ -229,7 +336,7 @@ function CommunityContent() {
 
       setQuestions(loadedQuestions)
     } catch (error) {
-      console.error('Error loading questions:', error)
+      console.error('❌ Error loading questions:', error)
       setQuestions([])
     } finally {
       setLoading(false)
@@ -239,13 +346,18 @@ function CommunityContent() {
   // Refresh questions
   const refreshQuestions = async () => {
     setRefreshing(true)
+    saveScrollPosition()
     await loadQuestions()
+    restoreScrollPosition()
     setRefreshing(false)
   }
 
   // Handle asking new question
   const handleAskQuestion = async () => {
-    if (!user || !newQuestionTitle.trim() || !newQuestionBody.trim()) return;
+    if (!user?.userName || !newQuestionTitle.trim() || !newQuestionBody.trim()) {
+      console.log('❌ Missing required data for question')
+      return;
+    }
 
     const questionType = questionTypes.find(qt => qt.id === selectedQuestionType);
     if (!questionType) return;
@@ -258,9 +370,8 @@ function CommunityContent() {
     setLoading(true);
 
     try {
-      // Process coin transaction in Supabase
       const success = await SupabaseCoinManager.processQuestionPosting(
-        user.userName || 'user',
+        user.userName,
         selectedQuestionType,
         questionType.cost
       );
@@ -269,12 +380,11 @@ function CommunityContent() {
         throw new Error('Failed to process AlphaCoin transaction');
       }
 
-      // Create question in Supabase
       const newQuestion = await SupabaseQuestionManager.createQuestion({
         title: newQuestionTitle,
         body: newQuestionBody,
-        author_id: user.userName || 'user',
-        author_name: user.userName || 'Anonymous',
+        author_id: user.userName,
+        author_name: user.userName,
         category: activeTab === 'all' ? 'confidence-building' : activeTab,
         question_type: selectedQuestionType as any,
         coin_cost: questionType.cost,
@@ -291,25 +401,21 @@ function CommunityContent() {
       });
 
       if (newQuestion) {
-        // Sync user data to get updated coins from Supabase
         await syncUserData();
-
-        // Reset form
         setNewQuestionTitle('');
         setNewQuestionBody('');
         setSelectedQuestionType('regular');
         setShowNewQuestion(false);
-
-        // Reload questions
+        saveScrollPosition();
         await loadQuestions();
-
-        alert(`Question posted successfully! Cost: ${questionType.cost} AlphaCoins. Check your updated balance above.`);
+        restoreScrollPosition();
+        alert(`Question posted successfully! Cost: ${questionType.cost} AlphaCoins.`);
       } else {
         throw new Error('Failed to create question');
       }
       
     } catch (error) {
-      console.error('Error posting question:', error);
+      console.error('❌ Error posting question:', error);
       alert('Error posting question. Please try again.');
     } finally {
       setLoading(false);
@@ -318,15 +424,19 @@ function CommunityContent() {
 
   // Handle answering question
   const handleAnswerQuestion = async () => {
-    if (!user || !selectedQuestion || !newAnswerContent.trim()) return;
+    if (!user?.userName || !selectedQuestion || !newAnswerContent.trim()) {
+      console.log('❌ Missing required data for answer')
+      return;
+    }
 
     setLoading(true);
+    saveScrollPosition();
 
     try {
       const newAnswer = await SupabaseAnswerManager.createAnswer({
         question_id: selectedQuestion.id,
-        author_id: user.userName || 'user',
-        author_name: user.userName || 'Anonymous',
+        author_id: user.userName,
+        author_name: user.userName,
         content: newAnswerContent,
         rating: 0,
         rated_by: [],
@@ -338,28 +448,45 @@ function CommunityContent() {
       });
 
       if (newAnswer) {
-        // Reset form
         setNewAnswerContent('');
         setShowAnswerModal(false);
         setSelectedQuestion(null);
 
-        // Reload questions to show new answer
-        await loadQuestions();
+        // Update questions list and show the new answer
+        setQuestions(prevQuestions => {
+          return prevQuestions.map(q => {
+            if (q.id === selectedQuestion.id) {
+              const updatedAnswers = [newAnswer, ...q.answers]
+              // Ensure we can see the new answer
+              setVisibleAnswersCount(prev => ({
+                ...prev,
+                [q.id]: Math.max(prev[q.id] || INITIAL_ANSWERS_SHOW, INITIAL_ANSWERS_SHOW)
+              }))
+              return {
+                ...q,
+                answers: updatedAnswers,
+                is_answered: true
+              }
+            }
+            return q
+          })
+        });
 
-        alert('Answer submitted successfully! You\'ll earn AlphaCoins when it gets rated by the community.');
+        restoreScrollPosition();
+        console.log('✅ Answer submitted successfully');
       } else {
         throw new Error('Failed to create answer');
       }
       
     } catch (error) {
-      console.error('Error submitting answer:', error);
+      console.error('❌ Error submitting answer:', error);
       alert('Error submitting answer. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle rating an answer - simplified since DynamicRating handles the logic
+  // Handle answer update from DynamicRating
   const handleAnswerUpdate = (questionIndex: number, answerIndex: number, newRating: number, newCoinEarnings: number, newRatedBy: string[]) => {
     setQuestions(prevQuestions => {
       const updated = [...prevQuestions]
@@ -375,6 +502,7 @@ function CommunityContent() {
 
   // Handle user coins update
   const handleUserCoinsUpdate = (earnedCoins: number) => {
+    console.log('🪙 User earned coins:', earnedCoins)
     updateUser({
       coins: (user?.coins || 0) + earnedCoins,
       totalEarned: (user?.totalEarned || 0) + earnedCoins,
@@ -384,33 +512,35 @@ function CommunityContent() {
 
   // Handle marking best answer
   const handleMarkBestAnswer = async (questionId: string, answerId: string): Promise<void> => {
-    if (!user) return;
+    if (!user?.userName) return;
 
     try {
+      saveScrollPosition();
+      
       const result = await SupabaseAnswerManager.markBestAnswer(
         questionId, 
         answerId, 
-        user.userName || 'user'
+        user.userName
       );
       
       if (result.success) {
-        // Find the answer to get author info for syncing
         const answer = questions
           .flatMap(q => q.answers)
           .find(a => a.id === answerId);
         
         if (answer && answer.author_id === user.userName) {
-          await syncUserData(); // Sync if current user is the answer author
+          await syncUserData();
         }
         
-        await loadQuestions(); // Reload to show best answer
+        await loadQuestions();
+        restoreScrollPosition();
         alert(result.message);
       } else {
         alert(result.message);
       }
       
     } catch (error) {
-      console.error('Error marking best answer:', error);
+      console.error('❌ Error marking best answer:', error);
       alert('Error marking best answer. Please try again.');
     }
   };
@@ -426,15 +556,6 @@ function CommunityContent() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
 
-  // Get current community
-  const getCurrentCommunity = () => {
-    return activeTab === 'all' 
-      ? allCommunities[0]
-      : communities.find(c => c.id === activeTab) || allCommunities[0]
-  }
-
-  const currentCommunity = getCurrentCommunity()
-
   if (!user || !avatar) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
@@ -447,12 +568,11 @@ function CommunityContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      {/* Header with Better Navigation */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white" ref={containerRef}>
+      {/* Header */}
       <header className="p-4 lg:p-6 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 lg:gap-4">
-            {/* Back to Dashboard Button */}
             <button 
               onClick={navigation.goToDashboard}
               className="flex items-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg transition-colors"
@@ -485,7 +605,7 @@ function CommunityContent() {
               <Coins className="w-4 h-4" />
               <span>{user.coins || 0}</span>
             </div>
-            <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'Alpha'}!</div>
+            <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'User'}!</div>
           </div>
         </div>
       </header>
@@ -494,7 +614,6 @@ function CommunityContent() {
         {/* Search and Filters */}
         <div className="mb-6 space-y-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
@@ -507,7 +626,6 @@ function CommunityContent() {
               />
             </div>
 
-            {/* Sort Filter */}
             <div className="flex gap-2">
               <select
                 value={sortBy}
@@ -518,6 +636,18 @@ function CommunityContent() {
                 <option value="popular">Most Popular</option>
                 <option value="urgent">Urgent First</option>
                 <option value="unsolved">Unsolved Only</option>
+              </select>
+
+              {/* Answer Sort Toggle */}
+              <select
+                value={answerSortType}
+                onChange={(e) => setAnswerSortType(e.target.value as AnswerSortType)}
+                className="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:border-red-500 focus:outline-none text-sm"
+                title="Sort answers by"
+              >
+                <option value="best-first">🏆 Best First</option>
+                <option value="newest-first">🕐 Newest First</option>
+                <option value="most-helpful">👍 Most Helpful</option>
               </select>
 
               <button
@@ -590,73 +720,83 @@ function CommunityContent() {
               <div className="text-sm opacity-70">Be the first to ask a question in this category!</div>
             </div>
           ) : (
-            questions.map((question, index) => (
-              <motion.div
-                key={question.id}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-              >
-                {/* Question Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-bold">{question.title}</h3>
-                      {question.is_solved && (
-                        <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
-                          ✓ Solved
-                        </div>
-                      )}
-                      {question.question_type !== 'regular' && (
-                        <div className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-semibold">
-                          {questionTypes.find(qt => qt.id === question.question_type)?.name}
-                        </div>
-                      )}
-                      {question.question_type === 'urgent' && (
-                        <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>Urgent</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-3 text-sm opacity-70 mb-3 flex-wrap">
-                      <span className="font-semibold text-blue-400">{question.author_name}</span>
-                      <span>•</span>
-                      <span>{formatTimeAgo(question.created_at)}</span>
-                      <span>•</span>
-                      <span>{question.views} views</span>
-                      {question.coin_bounty > 0 && (
-                        <>
-                          <span>•</span>
-                          <span className="text-yellow-400 flex items-center gap-1">
-                            <Coins className="w-3 h-3" />
-                            {question.coin_bounty} bounty
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    
-                    <p className="text-base opacity-90 leading-relaxed">{question.body}</p>
-                  </div>
-                </div>
+            questions.map((question, index) => {
+              const sortedAnswers = sortAnswers(question.answers, answerSortType)
+              const visibleCount = visibleAnswersCount[question.id] || INITIAL_ANSWERS_SHOW
+              const visibleAnswers = sortedAnswers.slice(0, visibleCount)
+              const hasMoreAnswers = sortedAnswers.length > visibleCount
+              const showingAll = visibleCount >= sortedAnswers.length
 
-                {/* Answers Section */}
-                {question.answers.length > 0 && (
-                  <div className="mt-6 space-y-4">
-                    <div className="text-sm font-semibold text-gray-300">
-                      {question.answers.length} Answer{question.answers.length !== 1 ? 's' : ''}
+              return (
+                <motion.div
+                  key={question.id}
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                >
+                  {/* Question Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="text-lg font-bold">{question.title}</h3>
+                        {question.is_solved && (
+                          <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
+                            ✓ Solved
+                          </div>
+                        )}
+                        {question.question_type !== 'regular' && (
+                          <div className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-semibold">
+                            {questionTypes.find(qt => qt.id === question.question_type)?.name}
+                          </div>
+                        )}
+                        {question.question_type === 'urgent' && (
+                          <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>Urgent</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 text-sm opacity-70 mb-3 flex-wrap">
+                        <span className="font-semibold text-blue-400">{question.author_name}</span>
+                        <span>•</span>
+                        <span>{formatTimeAgo(question.created_at)}</span>
+                        <span>•</span>
+                        <span>{question.views} views</span>
+                        {question.coin_bounty > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-yellow-400 flex items-center gap-1">
+                              <Coins className="w-3 h-3" />
+                              {question.coin_bounty} bounty
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      
+                      <p className="text-base opacity-90 leading-relaxed">{question.body}</p>
                     </div>
-                    
-                    {question.answers
-                      .sort((a, b) => {
-                        if (a.is_best_answer) return -1;
-                        if (b.is_best_answer) return 1;
-                        return b.rating - a.rating;
-                      })
-                      .slice(0, 2) // Show top 2 answers
-                      .map((answer, answerIndex) => (
+                  </div>
+
+                  {/* Answers Section - ENHANCED WITH SMART SORTING & LOAD MORE */}
+                  {question.answers.length > 0 && (
+                    <div className="mt-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-300">
+                          {question.answers.length} Answer{question.answers.length !== 1 ? 's' : ''}
+                        </div>
+                        
+                        {/* Show current sorting method */}
+                        <div className="text-xs opacity-60">
+                          {answerSortType === 'best-first' && '🏆 Best answers first'}
+                          {answerSortType === 'newest-first' && '🕐 Newest first'}
+                          {answerSortType === 'most-helpful' && '👍 Most helpful first'}
+                        </div>
+                      </div>
+                      
+                      {/* Render Visible Answers */}
+                      {visibleAnswers.map((answer, answerIndex) => (
                         <div
                           key={answer.id}
                           className={`p-4 rounded-lg ${
@@ -694,8 +834,8 @@ function CommunityContent() {
 
                           {/* Mark as Best Answer Button */}
                           <div className="mt-3 pt-3 border-t border-white/10">
-                            {question.author_id === (user.userName || 'user') && 
-                             answer.author_id !== (user.userName || 'user') && 
+                            {question.author_id === (user?.userName || 'user') && 
+                             answer.author_id !== (user?.userName || 'user') && 
                              !question.best_answer_id && (
                               <button
                                 onClick={() => handleMarkBestAnswer(question.id, answer.id)}
@@ -707,48 +847,96 @@ function CommunityContent() {
                           </div>
                         </div>
                       ))}
-                    
-                    {question.answers.length > 2 && (
-                      <button className="text-blue-400 hover:text-blue-300 text-sm font-semibold">
-                        View all {question.answers.length} answers
-                      </button>
-                    )}
-                  </div>
-                )}
+                      
+                      {/* Load More / View Less Controls - ENHANCED */}
+                      {question.answers.length > INITIAL_ANSWERS_SHOW && (
+                        <div className="text-center pt-4 border-t border-white/5">
+                          {shouldRedirectToFullView(question.answers.length) ? (
+                            /* For 20+ answers, redirect to dedicated page */
+                            <div className="space-y-3">
+                              {hasMoreAnswers && (
+                                <button
+                                  onClick={() => loadMoreAnswers(question.id, question.answers.length)}
+                                  className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors flex items-center justify-center gap-2 mx-auto"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                  Load {Math.min(LOAD_MORE_INCREMENT, question.answers.length - visibleCount)} More Answers
+                                </button>
+                              )}
+                              
+                              <button
+                                onClick={() => {/* Navigate to dedicated page */}}
+                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all flex items-center justify-center gap-2"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                                View Full Discussion ({question.answers.length} answers)
+                              </button>
+                            </div>
+                          ) : (
+                            /* For less than 20 answers, use load more */
+                            <div className="flex items-center justify-center gap-4">
+                              {hasMoreAnswers && (
+                                <button
+                                  onClick={() => loadMoreAnswers(question.id, question.answers.length)}
+                                  className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors flex items-center gap-2"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                  Load {Math.min(LOAD_MORE_INCREMENT, question.answers.length - visibleCount)} More
+                                </button>
+                              )}
+                              
+                              {visibleCount > INITIAL_ANSWERS_SHOW && (
+                                <button
+                                  onClick={() => showFewerAnswers(question.id)}
+                                  className="text-gray-400 hover:text-gray-300 text-sm font-semibold transition-colors flex items-center gap-2"
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                  Show Less
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Answer count indicator */}
+                          <div className="text-xs opacity-50 mt-2">
+                            Showing {visibleCount} of {question.answers.length} answers
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* Help & Answer Section - Responsive Design */}
-                <div className="mt-6 pt-4 border-t border-white/10">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    {/* Left: Motivational Text */}
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="text-2xl">💡</span>
-                      <div>
-                        <div className="text-sm font-medium text-gray-300">Help & Earn AlphaCoins</div>
-                        <div className="text-xs opacity-70">Share your experience and get rewarded</div>
+                  {/* Help & Answer Section */}
+                  <div className="mt-6 pt-4 border-t border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <span className="text-2xl">💡</span>
+                        <div>
+                          <div className="text-sm font-medium text-gray-300">Help & Earn AlphaCoins</div>
+                          <div className="text-xs opacity-70">Share your experience and get rewarded</div>
+                        </div>
                       </div>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedQuestion(question)
+                          setShowAnswerModal(true)
+                        }}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-[1.02] w-full sm:w-auto"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>Answer Question</span>
+                      </button>
                     </div>
                     
-                    {/* Right: Answer Button */}
-                    <button
-                      onClick={() => {
-                        setSelectedQuestion(question)
-                        setShowAnswerModal(true)
-                      }}
-                      className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-[1.02] w-full sm:w-auto"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Answer Question</span>
-                    </button>
+                    <div className="flex items-center justify-between text-xs opacity-60 mt-3">
+                      <span>{question.answers.length} answers • Last activity {formatTimeAgo(question.last_activity)}</span>
+                      <span className="hidden sm:inline">Earn 3-8 AlphaCoins per helpful answer</span>
+                    </div>
                   </div>
-                  
-                  {/* Additional Info Row */}
-                  <div className="flex items-center justify-between text-xs opacity-60 mt-3">
-                    <span>{question.answers.length} answers • Last activity {formatTimeAgo(question.last_activity)}</span>
-                    <span className="hidden sm:inline">Earn 3-8 AlphaCoins per helpful answer</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              )
+            })
           )}
         </div>
       </div>
@@ -765,7 +953,6 @@ function CommunityContent() {
             >
               <h3 className="text-2xl font-bold mb-6">Ask Your Question</h3>
               
-              {/* Question Type Selection */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-red-400 mb-3">Question Type</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -773,11 +960,11 @@ function CommunityContent() {
                     <button
                       key={type.id}
                       onClick={() => setSelectedQuestionType(type.id)}
-                      disabled={(user.coins || 0) < type.cost}
+                      disabled={(user?.coins || 0) < type.cost}
                       className={`p-4 rounded-lg border-2 transition-all text-left ${
                         selectedQuestionType === type.id
                           ? 'border-red-500 bg-red-500/20'
-                          : (user.coins || 0) >= type.cost
+                          : (user?.coins || 0) >= type.cost
                           ? 'border-white/20 bg-white/5 hover:border-red-500/50'
                           : 'border-gray-600 bg-gray-800 opacity-50 cursor-not-allowed'
                       }`}
@@ -788,16 +975,16 @@ function CommunityContent() {
                           <span className="font-semibold">{type.name}</span>
                         </div>
                         <div className={`flex items-center gap-1 font-bold ${
-                          (user.coins || 0) >= type.cost ? 'text-yellow-400' : 'text-gray-500'
+                          (user?.coins || 0) >= type.cost ? 'text-yellow-400' : 'text-gray-500'
                         }`}>
                           <Coins className="w-4 h-4" />
                           <span>{type.cost}</span>
                         </div>
                       </div>
                       <div className="text-sm opacity-70">{type.description}</div>
-                      {(user.coins || 0) < type.cost && (
+                      {(user?.coins || 0) < type.cost && (
                         <div className="text-xs text-red-400 mt-2">
-                          Need {type.cost - (user.coins || 0)} more AlphaCoins
+                          Need {type.cost - (user?.coins || 0)} more AlphaCoins
                         </div>
                       )}
                     </button>
@@ -835,7 +1022,7 @@ function CommunityContent() {
                   Cost: {questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2} AlphaCoins
                 </div>
                 <div className="text-xs opacity-70">
-                  Your balance: {user.coins || 0} AlphaCoins
+                  Your balance: {user?.coins || 0} AlphaCoins
                 </div>
               </div>
 
@@ -848,7 +1035,7 @@ function CommunityContent() {
                 </button>
                 <button 
                   onClick={handleAskQuestion}
-                  disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || loading || (user.coins || 0) < (questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2)}
+                  disabled={!newQuestionTitle.trim() || !newQuestionBody.trim() || loading || (user?.coins || 0) < (questionTypes.find(qt => qt.id === selectedQuestionType)?.cost || 2)}
                   className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-lg font-semibold disabled:opacity-50 transition-all flex items-center justify-center gap-1"
                 >
                   {loading ? 'Posting...' : (

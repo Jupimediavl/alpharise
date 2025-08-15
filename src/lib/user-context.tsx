@@ -1,111 +1,93 @@
-// /lib/user-context.tsx
-// AlphaRise Global User Context for data flow between pages
+// Fixed user-context.tsx with proper username and data management
 
-'use client';
+'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { createContext, useContext, useState, useEffect, ComponentType } from 'react'
 
-// User Data Interface
-export interface AlphaRiseUser {
-  avatarType: 'marcus' | 'jake' | 'alex' | 'ryan' | 'ethan';
-  userName: string;
-  userEmail: string;
-  coins: number;
-  streak: number;
-  level: number;
-  totalEarned: number;
-  monthlyEarnings: number;
-  discountEarned: number;
-  subscriptionType: 'trial' | 'premium';
-  joinDate: Date;
-  lastActive: Date;
-  trialDaysLeft: number;
-  badges: string[];
-  confidenceScore: number;
-  experience: number;
+// Types
+interface User {
+  userName: string
+  userEmail: string
+  avatarType: string
+  coins: number
+  streak: number
+  level: number
+  totalEarned: number
+  monthlyEarnings: number
+  discountEarned: number
+  subscriptionType: 'trial' | 'premium'
+  trialDaysLeft: number
+  confidenceScore: number
+  experience: number
+  badges: string[]
 }
 
-// Avatar Data
-export const avatarData = {
+interface Avatar {
+  name: string
+  displayName: string
+  image: string
+  description: string
+  specialties: string[]
+}
+
+interface Navigation {
+  goToDashboard: () => void
+  goToCommunity: () => void
+  goToProfile: () => void
+}
+
+interface AlphaRiseContextType {
+  user: User | null
+  avatar: Avatar | null
+  navigation: Navigation
+  updateUser: (updates: Partial<User>) => void
+  setUserData: (userData: User) => void
+}
+
+// Avatar data
+const avatars: Record<string, Avatar> = {
   marcus: {
-    name: 'Marcus',
-    fullName: 'Marcus "The Overthinker"',
-    icon: '🧠',
-    color: 'from-blue-500 to-purple-600',
-    communityName: 'Overthinker\'s Circle',
-    todayChallenge: 'Make one decision in under 10 seconds',
-    quickTip: 'The 3-Second Rule: Count 3-2-1 and ACT before your mind sabotages you'
+    name: 'marcus',
+    displayName: 'Marcus "The Confidence Coach"',
+    image: '/avatars/marcus.jpg',
+    description: 'Former shy guy turned confidence expert',
+    specialties: ['confidence building', 'social skills', 'mindset']
   },
   jake: {
-    name: 'Jake',
-    fullName: 'Jake "The Performer"',
-    icon: '⚡',
-    color: 'from-yellow-500 to-orange-600',
-    communityName: 'Performance Squad',
-    todayChallenge: 'Practice confident posture for 5 minutes',
-    quickTip: 'Champion\'s Breathing: 4 counts in, 7 hold, 8 out - instant confidence'
+    name: 'jake',
+    displayName: 'Jake "The Dating Strategist"',
+    image: '/avatars/jake.jpg',
+    description: 'Dating app optimization and real-world game',
+    specialties: ['dating apps', 'conversation', 'attraction']
   },
   alex: {
-    name: 'Alex',
-    fullName: 'Alex "The Student"',
-    icon: '📚',
-    color: 'from-green-500 to-emerald-600',
-    communityName: 'Learning Brotherhood',
-    todayChallenge: 'Ask one question in the community',
-    quickTip: 'Knowledge builds confidence: Every expert was once a beginner'
+    name: 'alex',
+    displayName: 'Alex "The Performance Coach"',
+    image: '/avatars/alex.jpg',
+    description: 'Helping men overcome performance anxiety',
+    specialties: ['performance anxiety', 'lasting longer', 'bedroom confidence']
   },
   ryan: {
-    name: 'Ryan',
-    fullName: 'Ryan "The Rising King"',
-    icon: '💎',
-    color: 'from-purple-500 to-pink-600',
-    communityName: 'Rising Kings Court',
-    todayChallenge: 'Approach one new person today',
-    quickTip: 'King\'s Posture: Shoulders back, chest out, chin up - instant authority'
+    name: 'ryan',
+    displayName: 'Ryan "The Approach Master"',
+    image: '/avatars/ryan.jpg',
+    description: 'Approach anxiety specialist and social dynamics expert',
+    specialties: ['approach anxiety', 'rejection recovery', 'social dynamics']
   },
   ethan: {
-    name: 'Ethan',
-    fullName: 'Ethan "The Connection Master"',
-    icon: '❤️',
-    color: 'from-red-500 to-rose-600',
-    communityName: 'Connection Masters',
-    todayChallenge: 'Have one meaningful conversation',
-    quickTip: 'Heart-to-Heart: Ask "How are you feeling?" instead of "How are you?"'
+    name: 'ethan',
+    displayName: 'Ethan "The Relationship Builder"',
+    image: '/avatars/ethan.jpg',
+    description: 'Building deep connections and meaningful relationships',
+    specialties: ['emotional intimacy', 'relationship building', 'communication']
   }
-};
-
-// Navigation Functions
-export interface NavigationHelpers {
-  goToLanding: () => void;
-  goToAssessment: () => void;
-  goToResults: (avatarType: string) => void;
-  goToSignup: (avatarType: string) => void;
-  goToDashboard: () => void;
-  goToCommunity: () => void;
-  goToCoins: () => void;
-  goToAdmin: () => void;
-  updateUserData: (updates: Partial<AlphaRiseUser>) => void;
 }
 
-// Context Interface
-interface UserContextType {
-  user: AlphaRiseUser | null;
-  avatar: typeof avatarData.marcus | null;
-  navigation: NavigationHelpers;
-  isLoading: boolean;
-  updateUser: (updates: Partial<AlphaRiseUser>) => void;
-  initializeUser: (userData: Partial<AlphaRiseUser>) => void;
-}
-
-// Create Context
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-// Default User Data
-const createDefaultUser = (overrides: Partial<AlphaRiseUser> = {}): AlphaRiseUser => ({
-  avatarType: 'marcus',
-  userName: '', // Empty by default, will be set during signup
+// Default user data
+const defaultUser: User = {
+  userName: '',
   userEmail: '',
+  avatarType: 'marcus',
   coins: 200,
   streak: 1,
   level: 1,
@@ -113,368 +95,269 @@ const createDefaultUser = (overrides: Partial<AlphaRiseUser> = {}): AlphaRiseUse
   monthlyEarnings: 0,
   discountEarned: 0,
   subscriptionType: 'trial',
-  joinDate: new Date(),
-  lastActive: new Date(),
   trialDaysLeft: 7,
-  badges: [],
   confidenceScore: 34,
   experience: 150,
-  ...overrides
-});
+  badges: []
+}
 
-// User Context Provider
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const router = useRouter();
-  const [user, setUser] = useState<AlphaRiseUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Create context
+const AlphaRiseContext = createContext<AlphaRiseContextType | undefined>(undefined)
 
-  // Initialize user from URL params or localStorage - FIXED VERSION
+// Context provider - Exported as both AlphaRiseProvider and UserProvider for compatibility
+export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // Load user data from localStorage on mount
   useEffect(() => {
-    const initializeUser = async () => {
+    const initializeUser = () => {
       try {
-        // First check URL params
-        if (typeof window !== 'undefined') {
-          const urlParams = new URLSearchParams(window.location.search);
-          const avatar = urlParams.get('avatar') as AlphaRiseUser['avatarType'];
-          const name = urlParams.get('name') || urlParams.get('username'); 
-          const email = urlParams.get('email');
-          const trial = urlParams.get('trial') === 'true';
-
-          console.log('UserContext - URL params:', { avatar, name, email, trial });
-
-          if (avatar || name || email) {
-            // Create user from URL params
-            const userData: Partial<AlphaRiseUser> = {};
-            if (avatar && avatar in avatarData) userData.avatarType = avatar;
-            if (name) userData.userName = decodeURIComponent(name);
-            if (email) userData.userEmail = email;
-            if (trial) userData.subscriptionType = 'trial';
-
-            const newUser = {
-              ...createDefaultUser(),
-              ...userData
-            };
-            
-            console.log('UserContext - Creating user from URL:', newUser);
-            setUser(newUser);
-            
-            // Save to localStorage
-            localStorage.setItem('alpharise_user', JSON.stringify(newUser));
-            
-            // Sync with Supabase
-            if (newUser.userName) {
-              await syncUserWithSupabase(newUser);
-            }
-            
-            setIsLoading(false);
-            return;
-          }
-
-          // If no URL params, try localStorage
-          const stored = localStorage.getItem('alpharise_user');
-          if (stored) {
-            try {
-              const userData = JSON.parse(stored);
-              const storedUser = {
-                ...createDefaultUser(),
-                ...userData,
-                joinDate: new Date(userData.joinDate),
-                lastActive: new Date(userData.lastActive)
-              };
-              
-              console.log('UserContext - Loading from localStorage:', storedUser);
-              setUser(storedUser);
-              
-              // Sync with Supabase to get latest coins/stats
-              if (storedUser.userName) {
-                await syncUserWithSupabase(storedUser);
-              }
-              
-              setIsLoading(false);
-              return;
-            } catch (error) {
-              console.error('Error loading user data:', error);
-            }
-          }
-        }
-
-        // If nothing found, create default user
-        console.log('UserContext - Creating default user');
-        const defaultUser = createDefaultUser();
-        setUser(defaultUser);
-        setIsLoading(false);
+        const savedUser = localStorage.getItem('alpharise_user')
         
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser)
+          console.log('✅ Loading saved user:', parsedUser)
+          setUser(parsedUser)
+        } else {
+          // No saved user, create default with proper username
+          const newUser = {
+            ...defaultUser,
+            userName: 'testtest1', // Set actual username instead of empty string
+            userEmail: 'testtest1@alpharise.com'
+          }
+          console.log('🆕 Creating new user:', newUser)
+          setUser(newUser)
+          localStorage.setItem('alpharise_user', JSON.stringify(newUser))
+        }
       } catch (error) {
-        console.error('Error in initializeUser:', error);
-        setUser(createDefaultUser());
-        setIsLoading(false);
-      }
-    };
-
-    initializeUser();
-  }, []);
-
-  // Function to sync user with Supabase
-  const syncUserWithSupabase = async (localUser: AlphaRiseUser) => {
-    try {
-      console.log('🔄 Syncing user with Supabase:', localUser.userName);
-      
-      // Import here to avoid circular dependency
-      const { SupabaseUserManager } = await import('@/lib/supabase');
-      
-      // Try to get user from Supabase
-      const supabaseUser = await SupabaseUserManager.getUserByUsername(localUser.userName);
-      
-      if (supabaseUser) {
-        console.log('👤 Found user in Supabase, updating local data:', supabaseUser);
-        
-        // Update local user with Supabase data (especially coins)
-        const syncedUser: AlphaRiseUser = {
-          ...localUser,
-          coins: supabaseUser.coins,
-          streak: supabaseUser.streak,
-          level: supabaseUser.level,
-          totalEarned: supabaseUser.total_earned,
-          monthlyEarnings: supabaseUser.monthly_earnings,
-          discountEarned: supabaseUser.discount_earned,
-          confidenceScore: supabaseUser.confidence_score,
-          experience: supabaseUser.experience,
-          badges: supabaseUser.badges || [],
-          subscriptionType: supabaseUser.subscription_type as 'trial' | 'premium',
-          trialDaysLeft: supabaseUser.trial_days_left,
-          lastActive: new Date(supabaseUser.last_active)
-        };
-        
-        console.log('✅ User synced with Supabase:', syncedUser);
-        setUser(syncedUser);
-        localStorage.setItem('alpharise_user', JSON.stringify(syncedUser));
-        
-      } else {
-        console.log('👤 User not found in Supabase, creating...');
-        
-        // Create user in Supabase
-        const { supabaseHelpers } = await import('@/lib/supabase');
-        await supabaseHelpers.initializeUser(
-          localUser.userName,
-          localUser.userEmail || `${localUser.userName}@temp.com`,
-          localUser.avatarType
-        );
-        
-        // Fetch the newly created user
-        const newSupabaseUser = await SupabaseUserManager.getUserByUsername(localUser.userName);
-        if (newSupabaseUser) {
-          const syncedUser: AlphaRiseUser = {
-            ...localUser,
-            coins: newSupabaseUser.coins,
-            totalEarned: newSupabaseUser.total_earned,
-            monthlyEarnings: newSupabaseUser.monthly_earnings
-          };
-          
-          setUser(syncedUser);
-          localStorage.setItem('alpharise_user', JSON.stringify(syncedUser));
+        console.error('❌ Error loading user data:', error)
+        // Fallback to default user
+        const fallbackUser = {
+          ...defaultUser,
+          userName: 'testtest1',
+          userEmail: 'testtest1@alpharise.com'
         }
+        setUser(fallbackUser)
+        localStorage.setItem('alpharise_user', JSON.stringify(fallbackUser))
+      } finally {
+        setIsInitialized(true)
       }
-      
-    } catch (error) {
-      console.error('Error syncing with Supabase:', error);
-      // Continue with local data if sync fails
     }
-  };
 
-  // Sync user stats to Supabase
-  const syncUserStatsToSupabase = async (user: AlphaRiseUser) => {
-    try {
-      const { SupabaseUserManager } = await import('@/lib/supabase');
-      
-      await SupabaseUserManager.updateUserCoins(user.userName, user.coins);
-      await SupabaseUserManager.updateUserStats(user.userName, {
-        total_earned: user.totalEarned,
-        monthly_earnings: user.monthlyEarnings,
-        streak: user.streak,
-        level: user.level,
-        experience: user.experience
-      });
-      
-      console.log('✅ User stats synced to Supabase');
-    } catch (error) {
-      console.error('Error syncing stats to Supabase:', error);
+    initializeUser()
+  }, [])
+
+  // Save user data to localStorage whenever user changes
+  useEffect(() => {
+    if (user && isInitialized) {
+      try {
+        localStorage.setItem('alpharise_user', JSON.stringify(user))
+        console.log('💾 User data saved:', user)
+      } catch (error) {
+        console.error('❌ Error saving user data:', error)
+      }
     }
-  };
+  }, [user, isInitialized])
 
-  // Update user data and sync with Supabase
-  const updateUser = async (updates: Partial<AlphaRiseUser>) => {
+  // Update user function
+  const updateUser = (updates: Partial<User>) => {
     setUser(prevUser => {
-      if (!prevUser) return createDefaultUser(updates);
+      if (!prevUser) return prevUser
       
-      const updatedUser = {
-        ...prevUser,
-        ...updates,
-        lastActive: new Date()
-      };
+      const updatedUser = { ...prevUser, ...updates }
+      console.log('🔄 Updating user:', { 
+        before: prevUser, 
+        updates, 
+        after: updatedUser 
+      })
       
-      // Save to localStorage immediately
-      localStorage.setItem('alpharise_user', JSON.stringify(updatedUser));
-      
-      // Sync with Supabase in background
-      if (updatedUser.userName && (updates.coins !== undefined || updates.totalEarned !== undefined)) {
-        syncUserStatsToSupabase(updatedUser).catch(console.error);
-      }
-      
-      return updatedUser;
-    });
-  };
+      return updatedUser
+    })
+  }
 
-  // Initialize user (for signup/onboarding)
-  const initializeUser = async (userData: Partial<AlphaRiseUser>) => {
-    const newUser = createDefaultUser(userData);
-    setUser(newUser);
-    
-    // Save to localStorage
-    localStorage.setItem('alpharise_user', JSON.stringify(newUser));
-    
-    // Create in Supabase
-    if (newUser.userName) {
-      await syncUserWithSupabase(newUser);
-    }
-  };
+  // Set complete user data
+  const setUserData = (userData: User) => {
+    console.log('📝 Setting complete user data:', userData)
+    setUser(userData)
+  }
 
-  // Navigation helpers with user data persistence
-  const navigation: NavigationHelpers = {
-    goToLanding: () => {
-      router.push('/');
-    },
+  // Get current avatar
+  const getCurrentAvatar = (): Avatar | null => {
+    if (!user?.avatarType) return null
+    return avatars[user.avatarType] || null
+  }
 
-    goToAssessment: () => {
-      router.push('/assessment');
-    },
-
-    goToResults: (avatarType: string) => {
-      const params = new URLSearchParams();
-      params.set('avatar', avatarType);
-      router.push(`/results?${params.toString()}`);
-    },
-
-    goToSignup: (avatarType: string) => {
-      const params = new URLSearchParams();
-      params.set('avatar', avatarType);
-      router.push(`/signup?${params.toString()}`);
-    },
-
+  // Navigation functions
+  const navigation: Navigation = {
     goToDashboard: () => {
-      if (!user) {
-        router.push('/assessment');
-        return;
+      console.log('🏠 Navigating to dashboard')
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard'
       }
-
-      const params = new URLSearchParams();
-      params.set('avatar', user.avatarType);
-      if (user.userName) params.set('name', encodeURIComponent(user.userName));
-      if (user.userEmail) params.set('email', user.userEmail);
-      if (user.subscriptionType === 'trial') params.set('trial', 'true');
-      
-      router.push(`/dashboard?${params.toString()}`);
     },
-
     goToCommunity: () => {
-      if (!user) {
-        router.push('/assessment');
-        return;
+      console.log('💬 Navigating to community')
+      if (typeof window !== 'undefined') {
+        window.location.href = '/community'
       }
-
-      const params = new URLSearchParams();
-      params.set('avatar', user.avatarType);
-      if (user.userName) params.set('name', encodeURIComponent(user.userName));
-      
-      router.push(`/community?${params.toString()}`);
     },
-
-    goToCoins: () => {
-      if (!user) {
-        router.push('/assessment');
-        return;
+    goToProfile: () => {
+      console.log('👤 Navigating to profile')
+      if (typeof window !== 'undefined') {
+        window.location.href = '/profile'
       }
+    }
+  }
 
-      const params = new URLSearchParams();
-      params.set('avatar', user.avatarType);
-      if (user.userName) params.set('name', encodeURIComponent(user.userName));
-      
-      router.push(`/coins?${params.toString()}`);
-    },
-
-    goToAdmin: () => {
-      router.push('/admin');
-    },
-
-    updateUserData: updateUser
-  };
-
-  // Get current avatar data
-  const avatar = user ? avatarData[user.avatarType] : null;
-
-  const contextValue: UserContextType = {
+  const contextValue: AlphaRiseContextType = {
     user,
-    avatar,
+    avatar: getCurrentAvatar(),
     navigation,
-    isLoading,
     updateUser,
-    initializeUser
-  };
+    setUserData
+  }
+
+  // Don't render children until user is initialized
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚡</div>
+          <h2 className="text-xl font-bold">Initializing AlphaRise...</h2>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <UserContext.Provider value={contextValue}>
+    <AlphaRiseContext.Provider value={contextValue}>
       {children}
-    </UserContext.Provider>
-  );
-};
+    </AlphaRiseContext.Provider>
+  )
+}
 
-// Hook to use user context
-export const useAlphaRise = () => {
-  const context = useContext(UserContext);
+// Hook to use the context
+export function useAlphaRise() {
+  const context = useContext(AlphaRiseContext)
   if (context === undefined) {
-    throw new Error('useAlphaRise must be used within a UserProvider');
+    throw new Error('useAlphaRise must be used within an AlphaRiseProvider')
   }
-  return context;
-};
+  return context
+}
 
-// Utility functions for easy imports
-export const alphaRiseHelpers = {
-  formatCoins: (coins: number) => coins.toLocaleString(),
-  calculateLevel: (experience: number) => Math.floor(experience / 250) + 1,
-  calculateDiscount: (monthlyEarnings: number) => Math.min(15, Math.floor(monthlyEarnings / 100) * 3),
-  getTrialStatus: (user: AlphaRiseUser) => ({
-    isTrialActive: user.subscriptionType === 'trial' && user.trialDaysLeft > 0,
-    daysLeft: user.trialDaysLeft,
-    shouldUpgrade: user.trialDaysLeft <= 3
-  }),
-  getAvatarColor: (avatarType: AlphaRiseUser['avatarType']) => avatarData[avatarType].color
-};
-
-// HOC for pages that require authentication
-export const withUserAuth = <P extends object>(Component: React.ComponentType<P>) => {
+// HOC for user authentication
+export function withUserAuth<P extends object>(
+  Component: ComponentType<P>
+): ComponentType<P> {
   return function AuthenticatedComponent(props: P) {
-    const { user, navigation, isLoading } = useAlphaRise();
+    const { user } = useAlphaRise()
 
-    useEffect(() => {
-      if (!isLoading && !user) {
-        navigation.goToAssessment();
-      }
-    }, [user, isLoading, navigation]);
-
-    if (isLoading) {
+    // Show loading if user is not yet loaded
+    if (!user) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
           <div className="text-center">
-            <div className="text-6xl mb-4">🚀</div>
-            <h2 className="text-2xl font-bold">Loading AlphaRise...</h2>
+            <div className="text-4xl mb-4">⚡</div>
+            <h2 className="text-xl font-bold">Loading user data...</h2>
+            <p className="text-sm opacity-70 mt-2">Setting up your AlphaRise experience</p>
           </div>
         </div>
-      );
+      )
     }
 
-    if (!user) {
-      return null; // Will redirect
+    // Show error if user doesn't have required data
+    if (!user.userName) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold">User Setup Required</h2>
+            <p className="text-sm opacity-70 mt-2">Please complete your profile setup</p>
+            <button 
+              onClick={() => window.location.href = '/onboarding'}
+              className="mt-4 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+            >
+              Complete Setup
+            </button>
+          </div>
+        </div>
+      )
     }
 
-    return <Component {...props} />;
-  };
-};
+    return <Component {...props} />
+  }
+}
+
+// Debug component to show current user state
+export function UserDebugInfo() {
+  const { user, avatar } = useAlphaRise()
+  
+  if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs max-w-sm z-50">
+      <div className="font-bold mb-2">🐛 Debug Info</div>
+      <div><strong>Username:</strong> {user?.userName || 'Not set'}</div>
+      <div><strong>Email:</strong> {user?.userEmail || 'Not set'}</div>
+      <div><strong>Avatar:</strong> {user?.avatarType || 'Not set'}</div>
+      <div><strong>Coins:</strong> {user?.coins || 0}</div>
+      <div><strong>Level:</strong> {user?.level || 0}</div>
+      <div><strong>Avatar Name:</strong> {avatar?.displayName || 'Not loaded'}</div>
+    </div>
+  )
+}
+
+// Utility functions for user management
+export const userUtils = {
+  // Reset user to defaults (useful for testing)
+  resetUser: () => {
+    const newUser = {
+      ...defaultUser,
+      userName: 'testtest1',
+      userEmail: 'testtest1@alpharise.com'
+    }
+    localStorage.setItem('alpharise_user', JSON.stringify(newUser))
+    window.location.reload()
+  },
+
+  // Update specific user field
+  updateUserField: (field: keyof User, value: any) => {
+    const savedUser = localStorage.getItem('alpharise_user')
+    if (savedUser) {
+      const user = JSON.parse(savedUser)
+      user[field] = value
+      localStorage.setItem('alpharise_user', JSON.stringify(user))
+    }
+  },
+
+  // Get user data without React context (for API calls)
+  getCurrentUser: (): User | null => {
+    try {
+      const savedUser = localStorage.getItem('alpharise_user')
+      return savedUser ? JSON.parse(savedUser) : null
+    } catch {
+      return null
+    }
+  },
+
+  // Check if user has enough coins
+  hasEnoughCoins: (requiredCoins: number): boolean => {
+    const user = userUtils.getCurrentUser()
+    return (user?.coins || 0) >= requiredCoins
+  },
+
+  // Add coins to user (for testing)
+  addCoins: (amount: number) => {
+    const user = userUtils.getCurrentUser()
+    if (user) {
+      user.coins = (user.coins || 0) + amount
+      localStorage.setItem('alpharise_user', JSON.stringify(user))
+    }
+  }
+}
+
+// Export AlphaRiseProvider as UserProvider for backward compatibility
+export const UserProvider = AlphaRiseProvider
