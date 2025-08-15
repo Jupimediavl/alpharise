@@ -8,10 +8,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
 import { CheckCircle, Circle, ArrowLeft, Clock, Target, Zap } from 'lucide-react'
 
-// Solution content for Sexual Performance
+// Solution content for Sexual Performance - 5 Complete Solutions
 const sexualPerformanceSolutions = {
-  'premature-ejaculation': {
-    title: 'Stop Premature Ejaculation',
+  'stop-start-technique': {
+    title: 'Stop-Start Technique',
     difficulty: 'Beginner',
     duration: '2-4 weeks',
     icon: '🕐',
@@ -30,6 +30,11 @@ The magic happens because you're training your body to recognize the point of no
 
 **Why This Works:**
 Your body learns to distinguish between arousal levels. Most guys go from 1 to 10 in seconds. This technique teaches you to surf the waves between 5-8, which is where all the fun happens anyway.
+
+**Practice Schedule:**
+- **Week 1-2:** Solo practice only, 3 times per week
+- **Week 3-4:** Apply with partner, communicate what you're doing
+- **Results:** Most guys see 2-3x improvement in lasting time
 
 **Pro Tips:**
 - Practice during solo sessions first - never try new techniques with a partner
@@ -69,6 +74,11 @@ This isn't just about lasting longer - it's about staying present and enjoying e
 **The Science:**
 Deep breathing activates your parasympathetic nervous system - basically tells your body to chill out. It also increases blood flow to your brain, helping you stay in control instead of letting your body run the show.
 
+**Daily Training:**
+- **Morning:** 5 minutes of 4-7-8 breathing upon waking
+- **Evening:** 5 minutes before bed to build the habit
+- **Result:** After 1 week, this becomes automatic during intimate moments
+
 **Advanced Move:**
 Sync your breathing with hers. When she breathes in, you breathe in. This creates an incredible connection and naturally slows everything down.
 
@@ -80,7 +90,7 @@ The first few times will feel weird and mechanical. That's normal. By week 2, it
   'kegel-exercises': {
     title: 'Build Your Control Muscles',
     difficulty: 'Intermediate',
-    duration: '3-6 weeks',
+    duration: '6-8 weeks',
     icon: '💪',
     intro: "Think of kegels as gym workouts for your most important muscle. Stronger PC muscle = better control, stronger orgasms, and rock-solid confidence.",
     content: `
@@ -88,15 +98,15 @@ The first few times will feel weird and mechanical. That's normal. By week 2, it
 
 Stop mid-stream while peeing. That muscle you just used? That's your PC (pubococcygeus) muscle. Master this bad boy and you master your timing.
 
-**The Daily Routine:**
+**The Progressive Training Program:**
 
-**Week 1-2: Basic Training**
+**Week 1-2: Foundation Building**
 - 10 quick squeezes (1 second hold each)
 - 10 medium holds (3 seconds each)
 - 5 long holds (10 seconds each)
 - Do this 3 times throughout the day
 
-**Week 3-4: Intermediate Level**
+**Week 3-4: Strength Building**
 - 15 quick squeezes
 - 15 medium holds (5 seconds each)
 - 10 long holds (15 seconds each)
@@ -106,6 +116,12 @@ Stop mid-stream while peeing. That muscle you just used? That's your PC (pubococ
 - 20 quick squeezes
 - 20 medium holds (7 seconds each)
 - 15 long holds (20 seconds each)
+- 3 times daily
+
+**Week 7-8: Master Level**
+- 25 quick squeezes
+- 25 medium holds (10 seconds each)
+- 20 long holds (30 seconds each)
 - 3 times daily
 
 **Pro Tips:**
@@ -120,16 +136,83 @@ During sex, when you feel yourself getting close, give your PC muscle a firm squ
 - Week 2: You'll notice the muscle getting stronger
 - Week 4: You can actually use it for control during sex
 - Week 6: You're a control master
+- Week 8: You can last as long as you want
+    `,
+    nextStep: 'sensitivity-training'
+  },
+  'sensitivity-training': {
+    title: 'Reduce Sensitivity Naturally',
+    difficulty: 'Intermediate',
+    duration: '3-4 weeks',
+    icon: '🎯',
+    intro: "Too much sensitivity can be your enemy. Learn to reduce it naturally without losing pleasure - it's about control, not numbness.",
+    content: `
+**The Gradual Desensitization Method**
+
+This isn't about numbing yourself - it's about training your body to handle stimulation without going over the edge.
+
+**Week 1: Assessment and Baseline**
+- During solo practice, note exactly when you reach the point of no return
+- Rate your sensitivity from 1-10 (most guys start at 8-9)
+- Practice with minimal lubrication to increase friction tolerance
+
+**Week 2-3: Progressive Training**
+- **Day 1-3:** Use regular grip, focus on lasting 2 minutes longer than baseline
+- **Day 4-6:** Slightly firmer grip, maintain same duration goal
+- **Day 7:** Rest day (important for muscle memory)
+- Repeat pattern each week
+
+**Week 4: Integration**
+- Apply techniques with partner
+- Communicate your training process
+- Focus on extended foreplay to build tolerance
+
+**Natural Desensitization Techniques:**
+
+**The Towel Method:**
+After shower, gently rub with a towel for 30 seconds daily. Gradually increases tolerance to friction.
+
+**Temperature Training:**
+- Start with warm water (comfortable)
+- Gradually introduce cooler temperatures
+- Builds nerve tolerance and control
+
+**Pressure Variation:**
+- Light touch for 30 seconds
+- Medium pressure for 30 seconds  
+- Firm pressure for 30 seconds
+- Teaches your body to handle different sensations
+
+**Mindset Shift:**
+Instead of trying to feel less, learn to process sensations differently. Think "I can handle this intensity" rather than "This is too much."
+
+**What NOT to Do:**
+- Don't use numbing creams (they affect her too)
+- Don't death-grip during practice (creates unrealistic expectations)
+- Don't rush the process (gradual change lasts longer)
+
+**Results:**
+Most guys report 50-70% improvement in lasting time after completing this program.
     `,
     nextStep: 'mental-control'
   },
   'mental-control': {
-    title: 'Mental Control Techniques',
+    title: 'Master Your Mental Game',
     difficulty: 'Advanced',
     duration: '2-3 weeks',
     icon: '🧠',
     intro: "Your brain is your most powerful sexual organ. Learn to use it for control instead of letting it run wild with excitement.",
     content: `
+**The Mental Thermostat System**
+
+Imagine your arousal as a thermostat from 1-10:
+- 1-3: Getting started, building arousal
+- 4-6: Sweet spot (stay here as long as possible)
+- 7-8: Warning zone (time to slow down or shift focus)
+- 9-10: Point of no return
+
+Your job is to consciously keep yourself between 6-8, riding the wave instead of crashing over it.
+
 **The Focus Shift Method**
 
 Instead of thinking about random things (which kills the mood), learn to focus on things that keep you present but calm.
@@ -140,88 +223,31 @@ Instead of thinking about random things (which kills the mood), learn to focus o
 3. **Physical sensations** - Feel your feet on the bed, your hands on her body
 4. **The connection** - Eye contact, synchronized movement
 
-**The Mental Thermostat**
+**Advanced Mental Techniques:**
 
-Imagine your arousal as a thermostat from 1-10:
-- 1-3: Getting started
-- 4-6: Sweet spot (stay here as long as possible)
-- 7-8: Warning zone (time to slow down or shift focus)
-- 9-10: Point of no return
-
-Your job is to consciously keep yourself between 6-8, riding the wave instead of crashing over it.
-
-**Advanced Techniques:**
-
-**The Body Scan:**
-When you feel yourself getting too excited, quickly scan your body from head to toe. Notice where you're holding tension and consciously relax those areas.
+**The Observer Method:**
+Step back mentally and observe yourself during sex. "I notice I'm getting excited," "I notice my breathing is speeding up." This creates distance from the sensation.
 
 **The Pleasure Sharing:**
 Instead of focusing on your own sensations, become fascinated by hers. This isn't just nice-guy behavior - it literally reduces your own arousal while making you a better lover.
 
-**Emergency Brake:**
+**The Slow Motion Technique:**
+Mentally slow everything down. Imagine you're moving through honey. This mental slowness translates to physical control.
+
+**Emergency Mental Brakes:**
 If you're about to lose control:
 1. Stop all movement
 2. Take 3 deep breaths
-3. Shift to focusing entirely on her
+3. Ask yourself: "What is she feeling right now?"
 4. Don't resume until you're back to 6/10
 
-**Mindset Shift:**
-Stop thinking of sex as a race to the finish line. Think of it as a dance where the goal is to stay in rhythm as long as possible.
-    `,
-    nextStep: 'performance-confidence'
-  },
-  'performance-confidence': {
-    title: 'Build Performance Confidence',
-    difficulty: 'Intermediate',
-    duration: '1-2 weeks',
-    icon: '🔥',
-    intro: "Confidence in bed isn't about being perfect - it's about being present, adaptable, and focused on the experience rather than your performance.",
-    content: `
-**Confidence vs. Pressure**
+**Building Mental Stamina:**
+- **Daily meditation:** 10 minutes of mindfulness
+- **Visualization:** Imagine lasting as long as you want
+- **Positive self-talk:** "I have complete control" instead of "Don't come yet"
 
-The biggest mistake guys make is putting pressure on themselves to perform like a porn star. Real confidence comes from being comfortable with yourself and focused on the connection.
-
-**The Confidence Building Framework:**
-
-**1. Preparation Confidence**
-- Know your body and your patterns
-- Have practiced the techniques above
-- Understand that good sex is about communication, not perfection
-
-**2. Moment-to-Moment Confidence**
-- Stay present instead of overthinking
-- Communicate what feels good
-- Ask what she likes (confidence is asking, not guessing)
-
-**3. Recovery Confidence**
-- If things don't go as planned, laugh it off and continue
-- Remember that most women care more about effort than performance
-- Have backup plans (hands, mouth, toys)
-
-**Practical Confidence Builders:**
-
-**Before You Start:**
-"I want to take my time with you" - sets the expectation that slow is intentional
-
-**During:**
-"Tell me what feels good" - shows you care about her experience
-
-**If You Need a Break:**
-"I want to focus on you for a while" - turns a pause into an opportunity
-
-**The Reality Check:**
-- 75% of women need more than penetration to orgasm anyway
-- Most women prefer longer foreplay over longer penetration
-- Enthusiasm and attention beat stamina every time
-
-**Building Long-Term Confidence:**
-1. Track your progress with the techniques above
-2. Celebrate small wins (lasting 30 seconds longer is progress)
-3. Focus on her satisfaction as much as your own
-4. Remember that great lovers are made, not born
-
-**Emergency Confidence Boost:**
-If anxiety creeps in, remember: You're here, she's here, and you both want to feel good. That's literally all that matters.
+**The Confidence Loop:**
+Success builds confidence → Confidence reduces anxiety → Less anxiety = better control → Better control = more success
     `
   }
 }
@@ -489,11 +515,11 @@ function SexualPerformancePage() {
                       })}
                     </div>
                     
-                    {solution.nextStep && (
+                    {(solution as any).nextStep && (
                       <div className="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
                         <p className="text-blue-400 font-semibold mb-2">🎯 Next Recommended:</p>
                         <p className="text-sm">
-                          After mastering this, move on to "{sexualPerformanceSolutions[solution.nextStep as keyof typeof sexualPerformanceSolutions]?.title}"
+                          After mastering this, move on to "{sexualPerformanceSolutions[(solution as any).nextStep as keyof typeof sexualPerformanceSolutions]?.title}"
                         </p>
                       </div>
                     )}
