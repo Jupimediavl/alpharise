@@ -1,12 +1,12 @@
-// Dashboard with Direct Solutions - 10 Main Categories with Subcategories
+// Clean Dashboard - Direct Navigation to Solutions Pages
 
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
-import { ChevronDown, ChevronRight, X } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 // Solution Categories Structure
 const solutionCategories = [
@@ -14,131 +14,61 @@ const solutionCategories = [
     id: 'sexual-performance',
     title: '🕐 Sexual Performance',
     description: 'Last longer and perform with confidence',
-    subcategories: [
-      'Premature ejaculation solutions',
-      'Lasting longer in bed',
-      'Performance anxiety fixes',
-      'Maintaining erection',
-      'Better control techniques',
-      'Delaying orgasm naturally'
-    ]
+    solutionCount: 5
   },
   {
     id: 'approach-conversation',
     title: '💬 Approach & Conversation', 
     description: 'Start conversations that lead somewhere',
-    subcategories: [
-      'How to approach a girl',
-      'What to say first',
-      'Overcoming approach anxiety',
-      'Avoiding conversation blocks',
-      'Handling rejection fear',
-      'Keeping conversations flowing'
-    ]
+    solutionCount: 6
   },
   {
     id: 'digital-dating',
     title: '📱 Digital Dating',
     description: 'Master dating apps and online game',
-    subcategories: [
-      'Perfect Tinder/Bumble profile',
-      'Best photos that get matches',
-      'Opening messages that work',
-      'From chat to real date',
-      'Why girls ghost you',
-      'Red flags to avoid online'
-    ]
+    solutionCount: 6
   },
   {
     id: 'physical-intimacy',
     title: '💋 Physical & Intimacy',
     description: 'From first kiss to satisfying her',
-    subcategories: [
-      'First kiss timing & technique',
-      'Reading her signals',
-      'From kissing to more',
-      'Foreplay for beginners',
-      'Best positions for first time',
-      'How to satisfy her'
-    ]
+    solutionCount: 6
   },
   {
     id: 'first-dates',
     title: '🍷 First Dates',
     description: 'Plan, execute, and close successfully',
-    subcategories: [
-      'Where to take her (ideas)',
-      'How to dress for dates',
-      'Conversation topics that work',
-      'Who pays the bill',
-      'Avoiding awkward moments',
-      'How to end the date'
-    ]
+    solutionCount: 6
   },
   {
     id: 'confidence-mindset',
     title: '🧠 Confidence & Mindset',
     description: 'Build unshakeable inner confidence',
-    subcategories: [
-      'Impostor syndrome with women',
-      'Stop being too available',
-      'Not good enough thoughts',
-      'Comparing to other men',
-      'Fear of emotional intimacy',
-      'Self-sabotage in relationships'
-    ]
+    solutionCount: 6
   },
   {
     id: 'presence-attitude',
     title: '💪 Presence & Attitude',
     description: 'Attract through masculine energy',
-    subcategories: [
-      'Attractive body language',
-      'Confident voice and tone',
-      'Not appearing desperate',
-      'Masculine vs feminine energy',
-      'Presence in groups',
-      'Bad boy without being toxic'
-    ]
+    solutionCount: 6
   },
   {
     id: 'social-situations',
     title: '🎭 Social Situations',
     description: 'Navigate any social scenario smoothly',
-    subcategories: [
-      'Conversations at parties',
-      'Joining groups naturally',
-      'When she has friends with her',
-      'Escaping awkward situations',
-      'When and how to get her number',
-      'Following up after meeting'
-    ]
+    solutionCount: 6
   },
   {
     id: 'emotional-psychological',
     title: '❤️ Emotional & Psychological',
     description: 'Handle emotions and attachment healthily',
-    subcategories: [
-      'Fear of rejection',
-      'Not getting attached too fast',
-      'Managing jealousy',
-      'Avoiding neediness',
-      'Setting healthy boundaries',
-      'When to pursue vs when to back off'
-    ]
+    solutionCount: 6
   },
   {
     id: 'zero-experience',
     title: '🔥 Zero Experience',
     description: 'From virgin to confident - complete guide',
-    subcategories: [
-      'Virgin at 25+ - where to start',
-      'First sexual experience',
-      'Not appearing inexperienced',
-      'What to do when you know nothing',
-      'Learning without embarrassment',
-      'Reality vs myths about sex'
-    ]
+    solutionCount: 6
   }
 ]
 
@@ -148,8 +78,6 @@ function DashboardContent() {
   const [user, setUser] = useState<DbUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
-  const [selectedSolution, setSelectedSolution] = useState<{category: string, subcategory: string} | null>(null)
 
   // Coach data focused on real help
   const coachData: {
@@ -266,20 +194,9 @@ function DashboardContent() {
   // Navigation
   const goToCommunity = () => router.push('/community')
 
-  // Handle category expansion
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategory(expandedCategory === categoryId ? null : categoryId)
-    setSelectedSolution(null)
-  }
-
-  // Handle solution selection
-  const selectSolution = (categoryId: string, subcategory: string) => {
-    setSelectedSolution({ category: categoryId, subcategory })
-  }
-
-  // Close solution view
-  const closeSolution = () => {
-    setSelectedSolution(null)
+  // Handle solution selection - Navigate to separate page
+  const selectSolution = (categoryId: string) => {
+    router.push(`/solutions/${categoryId}?username=${user?.username}`)
   }
 
   if (isLoading || !user) {
@@ -375,54 +292,26 @@ function DashboardContent() {
             {solutionCategories.map((category, index) => (
               <motion.div
                 key={category.id}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden"
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
               >
-                {/* Category Header */}
                 <button
-                  onClick={() => toggleCategory(category.id)}
+                  onClick={() => selectSolution(category.id)}
                   className="w-full p-6 text-left hover:bg-white/5 transition-colors flex items-center justify-between"
                 >
                   <div className="flex-1">
                     <h3 className="text-lg font-bold mb-2">{category.title}</h3>
                     <p className="text-sm opacity-70">{category.description}</p>
+                    <div className="mt-3 text-xs text-blue-400">
+                      {category.solutionCount} solutions available
+                    </div>
                   </div>
                   <div className="ml-4">
-                    {expandedCategory === category.id ? (
-                      <ChevronDown className="w-5 h-5" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5" />
-                    )}
+                    <ChevronRight className="w-5 h-5" />
                   </div>
                 </button>
-
-                {/* Subcategories */}
-                <AnimatePresence>
-                  {expandedCategory === category.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="border-t border-white/10"
-                    >
-                      <div className="p-4 space-y-2">
-                        {category.subcategories.map((subcategory, subIndex) => (
-                          <button
-                            key={subIndex}
-                            onClick={() => selectSolution(category.id, subcategory)}
-                            className="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex items-center justify-between group"
-                          >
-                            <span className="text-sm">{subcategory}</span>
-                            <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </motion.div>
             ))}
           </div>
@@ -475,47 +364,6 @@ function DashboardContent() {
           </motion.div>
         </div>
       </div>
-
-      {/* Solution Detail Modal */}
-      <AnimatePresence>
-        {selectedSolution && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div 
-              className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold">{selectedSolution.subcategory}</h3>
-                <button 
-                  onClick={closeSolution}
-                  className="text-gray-400 hover:text-white"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4">
-                  <p className="text-blue-400 font-semibold">💡 Solution Content Coming Soon</p>
-                  <p className="text-sm opacity-70 mt-2">
-                    Step-by-step guide for "{selectedSolution.subcategory}" will be available here.
-                    This will include practical, actionable advice you can use immediately.
-                  </p>
-                </div>
-                
-                <button 
-                  onClick={closeSolution}
-                  className="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
