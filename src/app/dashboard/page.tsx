@@ -7,7 +7,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
-import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle } from 'lucide-react'
+import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins } from 'lucide-react'
 
 // Types
 interface Solution {
@@ -810,6 +810,179 @@ function DashboardContent() {
             </button>
           </motion.div>
         </div>
+
+        {/* Footer Navigation */}
+        <footer className="mt-16 border-t border-gray-700/50 pt-12 pb-8">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {/* Main Pages */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-purple-400" />
+                  Core Features
+                </h4>
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      onClick={() => router.push('/dashboard')}
+                      className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>🏠</span> Dashboard
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/community')}
+                      className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <Users className="w-4 h-4" /> Community
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/assessment')}
+                      className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>📋</span> Assessment
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/solutions/sexual-performance')}
+                      className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>⚡</span> Solutions
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Coins & Economy */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-yellow-400" />
+                  Coins System
+                </h4>
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      onClick={() => router.push('/coins')}
+                      className="text-gray-300 hover:text-yellow-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>💰</span> Coin Dashboard
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/coins-guide')}
+                      className="text-gray-300 hover:text-yellow-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>📖</span> How Coins Work
+                    </button>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>🏆</span> Leaderboard (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>🎁</span> Rewards (Soon)
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Account & Settings */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <span>⚙️</span>
+                  Account
+                </h4>
+                <ul className="space-y-2">
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>👤</span> Profile (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>⚙️</span> Settings (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>📊</span> Analytics (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>💳</span> Billing (Soon)
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Help & Support */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <span>❓</span>
+                  Help & Support
+                </h4>
+                <ul className="space-y-2">
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>📚</span> Help Center (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" /> Support Chat (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>📧</span> Contact Us (Soon)
+                    </span>
+                  </li>
+                  <li>
+                    <span className="text-gray-500 text-sm flex items-center gap-2">
+                      <span>🔐</span> Privacy Policy (Soon)
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Bottom Footer */}
+            <div className="mt-12 pt-8 border-t border-gray-700/30">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">🚀</div>
+                  <div>
+                    <div className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      AlphaRise
+                    </div>
+                    <div className="text-xs text-gray-400">Build confidence. Transform your life.</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-6 text-sm text-gray-400">
+                  <span>© 2025 AlphaRise</span>
+                  <div className="flex items-center gap-2">
+                    <span>Balance:</span>
+                    <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded-full">
+                      <Coins className="w-3 h-3 text-yellow-400" />
+                      <span className="text-yellow-400 font-semibold text-xs">
+                        {userCoinStats?.profile?.currentBalance || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   )
