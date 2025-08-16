@@ -6,9 +6,12 @@ import { motion } from 'framer-motion'
 
 export default function AssessmentPage() {
   const router = useRouter()
-  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [currentQuestion, setCurrentQuestion] = useState(-1) // Start with age verification
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
+  const [userAge, setUserAge] = useState<number | null>(null)
+  const [inputAge, setInputAge] = useState<string>('')
+  const [showAgeError, setShowAgeError] = useState(false)
 
   // Scoring rules for each question/answer combination
   const scoring = [
@@ -111,6 +114,31 @@ export default function AssessmentPage() {
       }
     })
 
+    // AGE-BASED PROFILING: Adjust scores based on age
+    if (userAge !== null) {
+      if (userAge >= 18 && userAge <= 22) {
+        // Young adults - boost Alex (inexperienced) and Ryan (nervous energy)
+        scores.alex += 2
+        scores.ryan += 1
+        console.log('🎯 Young adult bonus: +2 Alex, +1 Ryan')
+      } else if (userAge >= 23 && userAge <= 27) {
+        // Mid twenties - boost Ryan (building confidence) and Marcus (overthinking)
+        scores.ryan += 2
+        scores.marcus += 1
+        console.log('🎯 Mid-twenties bonus: +2 Ryan, +1 Marcus')
+      } else if (userAge >= 28 && userAge <= 35) {
+        // Late twenties/early thirties - boost Marcus (performance anxiety) and Ethan (serious)
+        scores.marcus += 2
+        scores.ethan += 1
+        console.log('🎯 Late twenties bonus: +2 Marcus, +1 Ethan')
+      } else if (userAge >= 36) {
+        // Mature men - boost Ethan (relationship-focused) and Jake (physical concerns)
+        scores.ethan += 2
+        scores.jake += 1
+        console.log('🎯 Mature adult bonus: +2 Ethan, +1 Jake')
+      }
+    }
+
     // Find the avatar with highest score
     let winningAvatar = 'marcus'
     let highestScore = 0
@@ -121,6 +149,10 @@ export default function AssessmentPage() {
         winningAvatar = avatar
       }
     }
+
+    console.log('Avatar scores (with age):', scores)
+    console.log('User age:', userAge)
+    console.log('Winning avatar:', winningAvatar)
 
     return winningAvatar
   }
@@ -239,7 +271,30 @@ export default function AssessmentPage() {
     }
   ]
 
-  const currentQuestionData = questions[currentQuestion]
+  // Handle age verification
+  const handleAgeSubmit = () => {
+    const age = parseInt(inputAge)
+    if (!age || age < 18) {
+      setShowAgeError(true)
+      return
+    }
+    setUserAge(age)
+    
+    // Save age to localStorage for dashboard personalization
+    const existingUser = localStorage.getItem('alpharise_user')
+    if (existingUser) {
+      const userData = JSON.parse(existingUser)
+      userData.age = age
+      localStorage.setItem('alpharise_user', JSON.stringify(userData))
+    } else {
+      localStorage.setItem('alpharise_user', JSON.stringify({ age }))
+    }
+    
+    setCurrentQuestion(0) // Move to first actual question
+    setShowAgeError(false)
+  }
+
+  const currentQuestionData = currentQuestion >= 0 ? questions[currentQuestion] : null
 
   const handleAnswerSelect = (index: number) => {
     setSelectedAnswer(index)
@@ -276,47 +331,119 @@ export default function AssessmentPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header */}
-      <header className="p-6 text-center">
+      <header className="p-6 flex items-center justify-between">
+        <button
+          onClick={() => router.push('/')}
+          className="px-4 py-2 bg-black/30 border border-purple-500/30 rounded-lg text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all font-medium"
+        >
+          ← Home
+        </button>
+        
         <div className="text-3xl font-black text-white">
           AlphaRise
         </div>
+        
+        <div className="w-20"></div> {/* Spacer for centering */}
       </header>
 
       {/* Progress Bar */}
-      <div className="max-w-2xl mx-auto px-6 mb-8">
-        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-full transition-all duration-500"
-            style={{ width: `${((currentQuestion + 1) / 10) * 100}%` }}
-          ></div>
+      {currentQuestion >= 0 && (
+        <div className="max-w-2xl mx-auto px-6 mb-8">
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-full transition-all duration-500"
+              style={{ width: `${((currentQuestion + 1) / 10) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-3 text-sm opacity-70">
+            Building your profile... Step {currentQuestion + 1} of 10
+          </div>
         </div>
-        <div className="text-center mt-3 text-sm opacity-70">
-          Building your profile... Step {currentQuestion + 1} of 10
-        </div>
-      </div>
+      )}
 
       {/* Question Container */}
       <div className="max-w-4xl mx-auto px-6">
-        <motion.div 
-          className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 text-center"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="text-cyan-400 font-semibold text-sm uppercase tracking-wide mb-6">
-            Discovering Your Type • Step {currentQuestion + 1} of 10
-          </div>
-          
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
-            {currentQuestionData.title}
-          </h2>
-          
-          <p className="text-lg opacity-70 mb-12 leading-relaxed">
-            {currentQuestionData.subtitle}
-          </p>
+        {currentQuestion === -1 ? (
+          /* Age Verification */
+          <motion.div 
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 text-center"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="text-orange-400 font-semibold text-sm uppercase tracking-wide mb-6">
+              🔒 Age Verification Required
+            </div>
+            
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+              What's your age?
+            </h2>
+            
+            <p className="text-lg opacity-70 mb-8 leading-relaxed">
+              This assessment contains mature content and is designed for adults only. We also use your age to provide more personalized coaching recommendations.
+            </p>
+
+            {showAgeError && (
+              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+                <div className="text-red-400 font-semibold mb-2">⚠️ Access Restricted</div>
+                <p className="text-sm">You must be 18 or older to use AlphaRise. This service contains mature content and adult-oriented guidance.</p>
+              </div>
+            )}
+
+            <div className="mb-8 space-y-4">
+              <input
+                type="number"
+                placeholder="Enter your age"
+                min="16"
+                max="100"
+                value={inputAge}
+                className="w-full max-w-xs mx-auto p-4 bg-black/60 border border-purple-500/30 rounded-lg text-white text-center text-xl font-semibold focus:border-purple-500 focus:outline-none"
+                onChange={(e) => {
+                  setInputAge(e.target.value)
+                  setShowAgeError(false)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAgeSubmit()
+                  }
+                }}
+              />
+              
+              <button
+                onClick={handleAgeSubmit}
+                disabled={!inputAge}
+                className="block mx-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all transform hover:scale-105 disabled:scale-100"
+              >
+                Continue to Assessment
+              </button>
+            </div>
+
+            <div className="text-xs opacity-60 max-w-lg mx-auto">
+              🛡️ <strong>Privacy:</strong> Your age is used solely for personalization and legal compliance. We never share personal information with third parties.
+            </div>
+          </motion.div>
+        ) : (
+          /* Regular Assessment Questions */
+          <motion.div 
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 text-center"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="text-cyan-400 font-semibold text-sm uppercase tracking-wide mb-6">
+              Discovering Your Type • Step {currentQuestion + 1} of 10
+            </div>
+            
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+              {currentQuestionData?.title}
+            </h2>
+            
+            <p className="text-lg opacity-70 mb-12 leading-relaxed">
+              {currentQuestionData?.subtitle}
+            </p>
 
           <div className="space-y-4 mb-12">
-            {currentQuestionData.answers.map((answer, index) => (
+            {currentQuestionData?.answers.map((answer, index) => (
               <motion.div
                 key={index}
                 onClick={() => handleAnswerSelect(index)}
@@ -358,6 +485,7 @@ export default function AssessmentPage() {
             </div>
           </div>
         </motion.div>
+        )}
       </div>
     </div>
   )

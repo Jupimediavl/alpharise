@@ -1,4 +1,4 @@
-// Clean Dashboard - Direct Navigation to Solutions Pages
+// Personalized Problem-Solution Oriented Dashboard
 
 'use client'
 
@@ -7,71 +7,202 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
-import { ChevronRight, Zap, Target } from 'lucide-react'
+import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle } from 'lucide-react'
 
-// Solution Categories Structure
-const solutionCategories = [
-  {
-    id: 'sexual-performance',
-    title: '🔥 Sexual Performance',
-    description: 'Last longer and perform with confidence',
-    solutionCount: 5
-  },
-  {
-    id: 'approach-conversation',
-    title: '💬 Approach & Conversation', 
-    description: 'Start conversations that lead somewhere',
-    solutionCount: 6
-  },
-  {
-    id: 'digital-dating',
-    title: '📱 Digital Dating',
-    description: 'Master dating apps and online game',
-    solutionCount: 6
-  },
-  {
-    id: 'physical-intimacy',
-    title: '💋 Physical & Intimacy',
-    description: 'From first kiss to satisfying her',
-    solutionCount: 6
-  },
-  {
-    id: 'first-dates',
-    title: '🷷 First Dates',
-    description: 'Plan, execute, and close successfully',
-    solutionCount: 6
-  },
-  {
-    id: 'confidence-mindset',
-    title: '🧠 Confidence & Mindset',
-    description: 'Build unshakeable inner confidence',
-    solutionCount: 6
-  },
-  {
-    id: 'presence-attitude',
-    title: '💪 Presence & Attitude',
-    description: 'Attract through masculine energy',
-    solutionCount: 6
-  },
-  {
-    id: 'social-situations',
-    title: '🎭 Social Situations',
-    description: 'Navigate any social scenario smoothly',
-    solutionCount: 6
-  },
-  {
-    id: 'emotional-psychological',
-    title: '❤️ Emotional & Psychological',
-    description: 'Handle emotions and attachment healthily',
-    solutionCount: 6
-  },
-  {
-    id: 'zero-experience',
-    title: '🔥 Zero Experience',
-    description: 'From virgin to confident - complete guide',
-    solutionCount: 6
+// Problem-Solution Matrix based on Avatar + Age
+const getPersonalizedProblems = (avatarType: string, userAge: number) => {
+  const baseProblems = {
+    marcus: {
+      primaryProblem: "Overthinking is killing your confidence",
+      description: "Your analytical mind works against you in social situations",
+      icon: "🧠",
+      color: "from-purple-500 to-pink-500",
+      urgency: "high",
+      solutions: [
+        {
+          title: "Stop Analysis Paralysis",
+          action: "5-minute confidence reset",
+          type: "immediate",
+          description: "Break the overthinking loop RIGHT NOW"
+        },
+        {
+          title: "Channel Mental Energy",
+          action: "Turn thinking into power",
+          type: "practice",
+          description: "Use your analytical mind as a weapon"
+        }
+      ]
+    },
+    alex: {
+      primaryProblem: "You feel behind and inexperienced",
+      description: "Everyone else seems to know something you don't",
+      icon: "📚",
+      color: "from-blue-500 to-purple-500",
+      urgency: "medium",
+      solutions: [
+        {
+          title: "Beginner's Advantage",
+          action: "Start with fundamentals",
+          type: "learning",
+          description: "Turn inexperience into fresh perspective"
+        },
+        {
+          title: "Rapid Skill Building",
+          action: "Daily micro-practices",
+          type: "practice",
+          description: "Catch up faster than you think"
+        }
+      ]
+    },
+    ryan: {
+      primaryProblem: "Inconsistent confidence holds you back",
+      description: "You have great moments but can't maintain them",
+      icon: "💎",
+      color: "from-magenta-500 to-pink-500",
+      urgency: "high",
+      solutions: [
+        {
+          title: "Consistency System",
+          action: "Build reliable confidence",
+          type: "system",
+          description: "Make your good days your normal days"
+        },
+        {
+          title: "Momentum Builder",
+          action: "Stack small wins",
+          type: "practice",
+          description: "Turn potential into consistent results"
+        }
+      ]
+    },
+    jake: {
+      primaryProblem: "Performance anxiety stops you from trying",
+      description: "Fear of not being good enough keeps you stuck",
+      icon: "⚡",
+      color: "from-purple-500 to-magenta-600",
+      urgency: "high",
+      solutions: [
+        {
+          title: "Performance Breakthrough",
+          action: "Overcome anxiety triggers",
+          type: "immediate",
+          description: "Stop letting fear control your actions"
+        },
+        {
+          title: "Excellence Training",
+          action: "Build unshakeable skills",
+          type: "practice",
+          description: "Become so good anxiety disappears"
+        }
+      ]
+    },
+    ethan: {
+      primaryProblem: "Shallow connections frustrate you",
+      description: "You want depth but struggle to create it",
+      icon: "❤️",
+      color: "from-pink-500 to-purple-600",
+      urgency: "medium",
+      solutions: [
+        {
+          title: "Deep Connection Formula",
+          action: "Create meaningful bonds",
+          type: "technique",
+          description: "Turn conversations into connections"
+        },
+        {
+          title: "Emotional Intelligence",
+          action: "Read and respond perfectly",
+          type: "skill",
+          description: "Use your natural empathy as strength"
+        }
+      ]
+    }
   }
-]
+
+  let problems = baseProblems[avatarType as keyof typeof baseProblems] || baseProblems.marcus
+  
+  // Age-based modifications
+  if (userAge >= 18 && userAge <= 22) {
+    problems = {
+      ...problems,
+      ageContext: "College/Early Career Phase",
+      ageSpecificNote: "Your age is actually an advantage - you're building habits that will last a lifetime"
+    }
+  } else if (userAge >= 23 && userAge <= 27) {
+    problems = {
+      ...problems,
+      ageContext: "Quarter-Life Transition",
+      ageSpecificNote: "This is prime time for transformation - you have energy and wisdom"
+    }
+  } else if (userAge >= 28 && userAge <= 35) {
+    problems = {
+      ...problems,
+      ageContext: "Peak Performance Years",
+      ageSpecificNote: "You have experience and resources - time to leverage them fully"
+    }
+  } else if (userAge >= 36) {
+    problems = {
+      ...problems,
+      ageContext: "Wisdom & Experience Phase",
+      ageSpecificNote: "Your maturity is attractive - focus on authentic confidence"
+    }
+  }
+
+  return problems
+}
+
+// AI Response Generator using OpenAI API
+const generateAIResponse = async (query: string, avatarType: string, userAge: number, username: string) => {
+  try {
+    const response = await fetch('/api/ai-coach', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        avatarType,
+        userAge,
+        username
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('API request failed')
+    }
+
+    const data = await response.json()
+    
+    if (data.success) {
+      return {
+        response: data.response,
+        source: 'openai' as const
+      }
+    } else {
+      // Return fallback response if API fails
+      return {
+        response: data.response,
+        source: 'fallback' as const
+      }
+    }
+  } catch (error) {
+    console.error('Error calling AI Coach API:', error)
+    
+    // Local fallback if API is completely down
+    const fallbackMessages = {
+      marcus: `Hey ${username}, I'm having some technical issues right now, but I hear you. Let's think this through together - your analytical mind is actually a superpower. Whatever you're dealing with regarding "${query}" is completely normal. Can you try asking me again in a moment?`,
+      alex: `Hey ${username}! Don't worry, this is totally normal - I'm just having a small technical hiccup. About "${query}" - let me break this down for you once my systems are back up. You're learning faster than you think!`,
+      ryan: `${username}, you've got this spark in me! I'm just having a quick system restart, but I'm excited to help you with "${query}". Time to level up - try asking me again in a second!`,
+      jake: `Alright ${username}, here's the game plan - I'm optimizing my systems right now, but I'll be back to help you with "${query}" in just a moment. Time to perform like a champion!`,
+      ethan: `${username}, your feelings about "${query}" are completely valid. I'm having a small technical moment, but let's focus on genuine connection - try reaching out again in just a second. Authentic confidence is your greatest strength!`
+    }
+    
+    return {
+      response: fallbackMessages[avatarType as keyof typeof fallbackMessages] || fallbackMessages.marcus,
+      source: 'local' as const
+    }
+  }
+}
 
 function DashboardContent() {
   const searchParams = useSearchParams()
@@ -80,6 +211,14 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
   const [userCoinStats, setUserCoinStats] = useState<any>(null)
+  const [userAge, setUserAge] = useState<number>(25) // Default age
+  const [problemsData, setProblemsData] = useState<any>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [aiResponse, setAiResponse] = useState<string | null>(null)
+  const [showChat, setShowChat] = useState(false)
+  const [responseSource, setResponseSource] = useState<'openai' | 'fallback' | 'local' | null>(null)
+  const [responseTime, setResponseTime] = useState<number>(0)
 
   // Enhanced coach data with personalized encouragement messages
   const coachData: {
@@ -174,6 +313,21 @@ function DashboardContent() {
 
         setUser(userData)
 
+        // Load user age from localStorage (from assessment)
+        const alphariseUser = localStorage.getItem('alpharise_user')
+        let ageToUse = userAge // default
+        if (alphariseUser) {
+          const parsedUser = JSON.parse(alphariseUser)
+          if (parsedUser.age) {
+            ageToUse = parsedUser.age
+            setUserAge(ageToUse)
+          }
+        }
+
+        // Generate personalized problems based on avatar + age
+        const personalizedProblems = getPersonalizedProblems(userData.avatar_type, ageToUse)
+        setProblemsData(personalizedProblems)
+
         // Load coin stats
         const coinStats = simpleCoinHelpers.getUserStats(username)
         setUserCoinStats(coinStats)
@@ -219,6 +373,49 @@ function DashboardContent() {
 
   // Navigation
   const goToCommunity = () => router.push('/community')
+  
+  // Handle AI Search
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !user) return
+    
+    setIsSearching(true)
+    setShowChat(true)
+    const startTime = Date.now()
+    
+    try {
+      const result = await generateAIResponse(searchQuery, user.avatar_type, userAge, user.username)
+      const endTime = Date.now()
+      
+      setAiResponse(result.response)
+      setResponseSource(result.source)
+      setResponseTime(endTime - startTime)
+      
+      // Debug logging
+      console.log('🤖 AI Coach Response Details:', {
+        query: searchQuery,
+        avatar: user.avatar_type,
+        age: userAge,
+        source: result.source,
+        responseTime: endTime - startTime,
+        responseLength: result.response.length
+      })
+    } catch (error) {
+      console.error('AI Search error:', error)
+      setAiResponse('Sorry, I had trouble processing that. Can you try rephrasing your question?')
+      setResponseSource('local')
+      setResponseTime(Date.now() - startTime)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+  
+  // Handle Enter key
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSearch()
+    }
+  }
 
   // Handle solution selection - Navigate to separate page
   const selectSolution = (categoryId: string) => {
@@ -258,7 +455,144 @@ function DashboardContent() {
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         
-        {/* Welcome Section */}
+        {/* AI Personal Coach Search */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || 'from-purple-500 to-magenta-500'} flex items-center justify-center text-xl`}>
+                {problemsData?.icon || '🤝'}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Ask {coach.name} Anything</h2>
+                <p className="text-sm opacity-70">Your personal coach who understands your exact situation</p>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
+                  <input
+                    type="text"
+                    placeholder="What's on your mind? (e.g., 'I'm nervous about approaching women' or 'How do I last longer in bed?')"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="w-full pl-12 pr-4 py-4 bg-black/60 border border-purple-500/30 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none text-lg"
+                  />
+                </div>
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || isSearching}
+                  className="px-6 py-4 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl font-semibold transition-all transform hover:scale-105 disabled:scale-100 flex items-center gap-2"
+                >
+                  {isSearching ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <span>Thinking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      <span>Ask {coach.name}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              <div className="mt-3 text-xs opacity-60 flex items-center gap-4">
+                <span>💡 Try: "I feel anxious when talking to women"</span>
+                <span>💡 Try: "How do I build confidence?"</span>
+                <span>💡 Try: "I'm struggling with dating apps"</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* AI Response Chat */}
+          {showChat && (
+            <motion.div 
+              className="mt-6 bg-black/40 border border-purple-500/20 rounded-2xl p-6 backdrop-blur-sm"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${coach.color} flex items-center justify-center text-lg flex-shrink-0`}>
+                  {coach.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="font-bold text-white">{coach.name}</h3>
+                    <div className="text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded-full">
+                      Personal Coach
+                    </div>
+                    
+                    {/* Response Source Indicator */}
+                    {responseSource && (
+                      <div className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                        responseSource === 'openai' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : responseSource === 'fallback'
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {responseSource === 'openai' ? '🤖 AI Live' : 
+                         responseSource === 'fallback' ? '⚡ API Backup' : 
+                         '🔧 Local Mode'}
+                      </div>
+                    )}
+                    
+                    {/* Response Time */}
+                    {responseTime > 0 && (
+                      <div className="text-xs text-gray-400 bg-gray-500/20 px-2 py-1 rounded-full">
+                        {responseTime}ms
+                      </div>
+                    )}
+                  </div>
+                  
+                  {isSearching ? (
+                    <div className="flex items-center gap-3 text-purple-400">
+                      <div className="w-4 h-4 border-2 border-purple-400/20 border-t-purple-400 rounded-full animate-spin" />
+                      <span className="text-sm">Analyzing your situation and crafting a personalized response...</span>
+                    </div>
+                  ) : aiResponse ? (
+                    <div className="prose prose-invert max-w-none">
+                      <div className="text-white leading-relaxed whitespace-pre-line">{aiResponse}</div>
+                      
+                      <div className="mt-4 pt-4 border-t border-purple-500/20 flex gap-2">
+                        <button className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm font-semibold transition-colors">
+                          Ask Follow-up
+                        </button>
+                        <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-semibold transition-colors">
+                          Get Action Plan
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowChat(false)
+                            setAiResponse(null)
+                            setSearchQuery('')
+                            setResponseSource(null)
+                            setResponseTime(0)
+                          }}
+                          className="px-4 py-2 bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 rounded-lg text-sm font-semibold transition-colors ml-auto"
+                        >
+                          New Question
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+        
+        {/* Problem Recognition Header */}
         <motion.div 
           className="mb-8"
           initial={{ opacity: 0, y: 30 }}
@@ -266,128 +600,156 @@ function DashboardContent() {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center gap-4 mb-6">
-            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${coach.color} flex items-center justify-center text-2xl shadow-xl`}>
-              {coach.icon}
+            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${problemsData?.color || coach.color} flex items-center justify-center text-2xl shadow-xl`}>
+              {problemsData?.icon || coach.icon}
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-magenta-400 to-pink-400 bg-clip-text text-transparent">
                 Hey {user.username}! 👋
               </h1>
-              <p className="text-lg opacity-70">Your coach {coach.name} • {coach.expertise}</p>
+              <p className="text-lg opacity-70">{problemsData?.ageContext || 'Your Personal Coach'} • Age {userAge}</p>
             </div>
           </div>
 
-          {/* Daily Encouragement Message */}
-          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 mb-6 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-2xl">💪</span>
-              <h2 className="text-xl font-bold text-white">Your Daily Alpha Boost</h2>
-              {userCoinStats?.profile?.streak && (
-                <div className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-semibold">
-                  🔥 {userCoinStats.profile.streak} day streak
-                </div>
-              )}
-            </div>
-            <p className="text-lg mb-4 opacity-90 leading-relaxed">{coach.encouragementMessage}</p>
-            <div className="flex gap-3 mb-4">
-              <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 rounded-lg font-semibold transition-all transform hover:scale-105">
-                I'm Ready! 🚀
-              </button>
-              <button className="px-6 py-3 bg-white/10 hover:bg-purple-500/20 rounded-lg font-semibold transition-colors border border-purple-500/30">
-                Save for Later
-              </button>
-            </div>
-            
-            {/* Coin earning info */}
-            <div className="bg-black/30 rounded-lg p-3 text-sm">
-              <div className="text-cyan-400 font-semibold mb-1">💰 Today's Earning Opportunities:</div>
-              <div className="text-xs opacity-70 space-y-1">
-                <div>• Daily login: ✅ Already earned (+1 coin)</div>
-                <div>• Answer questions: +1 coin per answer</div>
-                <div>• Get helpful votes: +1 coin per vote (from 5th vote)</div>
-                <div>• Best answer: +5 coins bonus (auto at 7+ votes)</div>
+          {/* Problem Recognition */}
+          {problemsData && (
+            <div className={`bg-gradient-to-r ${problemsData.color}/10 border-2 border-red-500/30 rounded-2xl p-6 mb-6 backdrop-blur-sm relative overflow-hidden`}>
+              <div className="absolute top-4 right-4">
+                <AlertCircle className="w-6 h-6 text-red-400" />
               </div>
-            </div>
-          </div>
-
-          {/* Power Move Challenge */}
-          <div className={`bg-gradient-to-r ${coach.powerMoveColor}/10 border border-purple-400/30 rounded-xl p-4 relative overflow-hidden`}>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/5 to-magenta-400/5"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xl">{coach.powerMoveIcon}</span>
-                <h3 className="text-lg font-semibold text-white">{coach.powerMove}</h3>
-                <div className="ml-auto">
-                  <motion.div
-                    className="w-2 h-2 bg-magenta-400 rounded-full"
-                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-                </div>
-              </div>
-              <p className="opacity-90">Complete today's challenge to unlock exclusive content and earn bonus coins!</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Solutions Categories Grid */}
-        <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>📚</span> 
-            <span className="bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text ">
-              Instant Solutions
-            </span>
-          </h2>
-          <p className="text-lg opacity-70 mb-6">Click any category to see step-by-step guides that actually work:</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-            {solutionCategories.map((category, index) => (
-              <motion.div
-                key={category.id}
-                className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-xl overflow-hidden hover:border-magenta-500/40 transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <button
-                  onClick={() => selectSolution(category.id)}
-                  className="w-full p-6 text-left hover:bg-purple-500/5 transition-colors flex items-center justify-between"
-                >
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-2">{category.title}</h3>
-                    <p className="text-sm opacity-70">{category.description}</p>
-                    <div className="mt-3 text-xs text-magenta-400">
-                      {category.solutionCount} solutions available
+              
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🎯</span>
+                  <h2 className="text-xl font-bold text-white">I see your problem...</h2>
+                  {problemsData.urgency === 'high' && (
+                    <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold ml-auto">
+                      🚨 High Priority
                     </div>
+                  )}
+                </div>
+                <h3 className="text-2xl font-bold text-red-400 mb-2">{problemsData.primaryProblem}</h3>
+                <p className="text-lg opacity-90 mb-4">{problemsData.description}</p>
+                
+                {problemsData.ageSpecificNote && (
+                  <div className="bg-black/30 rounded-lg p-3 mb-4">
+                    <div className="text-cyan-400 font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
+                    <div className="text-sm opacity-80">{problemsData.ageSpecificNote}</div>
                   </div>
-                  <div className="ml-4">
-                    <ChevronRight className="w-5 h-5 text-purple-400" />
-                  </div>
-                </button>
-              </motion.div>
-            ))}
-          </div>
+                )}
+              </div>
+              
+              <div className="text-sm opacity-70 mb-4">
+                Based on your assessment answers and age, this is your #1 barrier to success.
+              </div>
+            </div>
+          )}
         </motion.div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Immediate Solutions */}
+        {problemsData?.solutions && (
           <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <span>⚡</span> 
+              <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+                Your Personalized Solutions
+              </span>
+            </h2>
+            <p className="text-lg opacity-70 mb-6">These solutions are specifically designed for your profile and problem:</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {problemsData.solutions.map((solution: any, index: number) => {
+                const typeColors = {
+                  immediate: 'border-red-500/50 bg-red-500/10',
+                  practice: 'border-yellow-500/50 bg-yellow-500/10',
+                  learning: 'border-blue-500/50 bg-blue-500/10',
+                  system: 'border-green-500/50 bg-green-500/10',
+                  technique: 'border-purple-500/50 bg-purple-500/10',
+                  skill: 'border-cyan-500/50 bg-cyan-500/10'
+                }
+                
+                const typeIcons = {
+                  immediate: '🚨',
+                  practice: '🏋️',
+                  learning: '📚',
+                  system: '⚙️',
+                  technique: '🎯',
+                  skill: '💡'
+                }
+
+                return (
+                  <motion.div
+                    key={index}
+                    className={`border-2 rounded-xl p-6 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer ${typeColors[solution.type as keyof typeof typeColors] || 'border-purple-500/50 bg-purple-500/10'}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    whileHover={{ y: -5 }}
+                    onClick={() => {
+                      // Navigate to specific solution
+                      router.push(`/solutions/${solution.type}?problem=${encodeURIComponent(problemsData.primaryProblem)}&username=${user?.username}`)
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{typeIcons[solution.type as keyof typeof typeIcons]}</span>
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-1">{solution.title}</h3>
+                        <div className="text-sm opacity-70 uppercase tracking-wide font-semibold">{solution.type} solution</div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-lg font-semibold text-cyan-400 mb-3">{solution.action}</p>
+                    <p className="opacity-80 mb-4">{solution.description}</p>
+                    
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <Play className="w-4 h-4" />
+                      <span>Start Now</span>
+                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Action Hub */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <motion.div 
+            className="bg-black/30 backdrop-blur-sm border border-green-500/30 rounded-2xl p-6"
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>💬</span> 
-              <span className="text-white">Get Help</span>
+              <span>🎯</span> 
+              <span className="text-white">Take Action</span>
             </h3>
-            <p className="mb-4 opacity-80">Ask questions and learn from men who've solved these problems.</p>
+            <p className="mb-4 opacity-80">Your personalized problem-solving starts here.</p>
+            <button
+              onClick={() => router.push(`/action-plan?avatar=${user?.avatar_type}&age=${userAge}&username=${user?.username}`)}
+              className="w-full py-3 bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700 rounded-lg font-semibold transition-all transform hover:scale-105"
+            >
+              Start Action Plan
+            </button>
+          </motion.div>
+
+          <motion.div 
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <span>💬</span> 
+              <span className="text-white">Get Support</span>
+            </h3>
+            <p className="mb-4 opacity-80">Connect with men solving similar problems.</p>
             <button
               onClick={goToCommunity}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 rounded-lg font-semibold transition-all transform hover:scale-105"
@@ -397,46 +759,33 @@ function DashboardContent() {
           </motion.div>
 
           <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
+            className="bg-black/30 backdrop-blur-sm border border-yellow-500/30 rounded-2xl p-6"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
               <span>📈</span> 
-              <span className="text-white">Your Progress</span>
+              <span className="text-white">Track Progress</span>
             </h3>
             
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-2 gap-4 text-center mb-4">
               <div>
-                <div className="text-xl font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
+                <div className="text-lg font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
                 <div className="text-xs opacity-70">Days Active</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-magenta-400">{userCoinStats?.profile?.totalEarned || user.total_earned}</div>
-                <div className="text-xs opacity-70">Coins Earned</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold text-pink-400">{userCoinStats?.community?.answersGiven || 0}</div>
-                <div className="text-xs opacity-70">Answers Given</div>
+                <div className="text-lg font-bold text-cyan-400">{userCoinStats?.community?.answersGiven || 0}</div>
+                <div className="text-xs opacity-70">Contributions</div>
               </div>
             </div>
             
-            {/* Coin system stats */}
-            {userCoinStats?.community && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <div className="grid grid-cols-2 gap-4 text-center text-xs">
-                  <div>
-                    <div className="font-semibold text-cyan-400">{userCoinStats.community.totalVotesReceived}</div>
-                    <div className="opacity-70">Helpful Votes</div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-yellow-400">{userCoinStats.community.bestAnswersCount}</div>
-                    <div className="opacity-70">Best Answers</div>
-                  </div>
-                </div>
-              </div>
-            )}
+            <button
+              onClick={() => router.push(`/progress?username=${user?.username}`)}
+              className="w-full py-2 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 rounded-lg font-semibold transition-all text-sm"
+            >
+              View Full Progress
+            </button>
           </motion.div>
         </div>
       </div>
