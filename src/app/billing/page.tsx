@@ -99,6 +99,7 @@ export default function BillingPage() {
         'Weekly group calls',
         'Personalized action plans'
       ],
+      limitations: [],
       popular: true
     }
   }
@@ -122,7 +123,7 @@ export default function BillingPage() {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      {plan.popular && (
+      {(plan as any).popular && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
           Most Popular
         </div>
