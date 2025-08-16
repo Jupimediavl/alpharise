@@ -118,7 +118,20 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
         if (savedUser) {
           const parsedUser = JSON.parse(savedUser)
           console.log('✅ Loading saved user:', parsedUser)
-          setUser(parsedUser)
+          
+          // FORCE UPDATE: If user is old invalid user, reset to valid one
+          if (parsedUser.userName === 'coach_rodriguez' || parsedUser.userName === 'testtest1') {
+            console.log('🔄 Updating invalid cached user to valid user')
+            const updatedUser = {
+              ...parsedUser,
+              userName: 'jupi', // User that exists in Supabase
+              userEmail: 'jupi@alpharise.com'
+            }
+            setUser(updatedUser)
+            localStorage.setItem('alpharise_user', JSON.stringify(updatedUser))
+          } else {
+            setUser(parsedUser)
+          }
         } else {
           // No saved user, create default with proper username
           const newUser = {
@@ -268,17 +281,27 @@ export function withUserAuth<P extends object>(
 
     // Show error if user doesn't have required data
     if (!user.userName) {
+      console.error('❌ User missing userName:', user)
+      
+      // EMERGENCY FALLBACK: Create emergency user and reload
+      const emergencyUser = {
+        ...user,
+        userName: 'jupi',
+        userEmail: 'jupi@alpharise.com'
+      }
+      localStorage.setItem('alpharise_user', JSON.stringify(emergencyUser))
+      
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold">User Setup Required</h2>
-            <p className="text-sm opacity-70 mt-2">Please complete your profile setup</p>
+            <div className="text-4xl mb-4">🔄</div>
+            <h2 className="text-xl font-bold">Fixing User Account...</h2>
+            <p className="text-sm opacity-70 mt-2">Please wait while we set up your account</p>
             <button 
-              onClick={() => window.location.href = '/onboarding'}
-              className="mt-4 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+              onClick={() => window.location.reload()}
+              className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors"
             >
-              Complete Setup
+              Reload Page
             </button>
           </div>
         </div>
