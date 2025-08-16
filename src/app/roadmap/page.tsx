@@ -238,7 +238,7 @@ export default function RoadmapPage() {
     core: { name: 'Core Platform', icon: <Zap className="w-4 h-4" />, color: 'purple' },
     ai: { name: 'AI & Coaching', icon: <Brain className="w-4 h-4" />, color: 'blue' },
     community: { name: 'Community', icon: <Users className="w-4 h-4" />, color: 'green' },
-    monetization: { name: 'Monetization', icon: <Coins className="w-4 h-4" />, color: 'yellow' },
+    monetization: { name: 'Monetization', icon: <Coins className="w-4 h-4 text-yellow-400" />, color: 'yellow' },
     growth: { name: 'Growth & Analytics', icon: <BarChart3 className="w-4 h-4" />, color: 'pink' }
   }
 

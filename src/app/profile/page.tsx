@@ -249,21 +249,21 @@ export default function ProfilePage() {
             className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <Coins className="w-6 h-6 text-purple-400" />
+              <Coins className="w-6 h-6 text-yellow-400" />
               <h3 className="text-lg font-semibold text-white">Coins & Economy</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Current Balance</span>
-                <span className="text-white font-bold">{user.coins}</span>
+                <span className="text-yellow-400 font-bold">{user.coins}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Total Earned</span>
-                <span className="text-white font-bold">{user.total_earned}</span>
+                <span className="text-yellow-400 font-bold">{user.total_earned}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-white font-bold">{user.monthly_earnings}</span>
+                <span className="text-yellow-400 font-bold">{user.monthly_earnings}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Discount Earned</span>

@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            icon={<Coins className="w-6 h-6 text-purple-400" />}
+            icon={<Coins className="w-6 h-6 text-yellow-400" />}
             title="Total Coins Earned"
             value={user.total_earned || 0}
             change="+12%"
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-white font-bold">{user.monthly_earnings} coins</span>
+                <span className="text-yellow-400 font-bold">{user.monthly_earnings} coins</span>
               </div>
               
               <div className="flex justify-between items-center">
@@ -324,7 +324,7 @@ export default function AnalyticsPage() {
               
               <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-white font-medium">Earn 100 Coins</span>
+                  <span className="text-yellow-400 font-medium">Earn 100 Coins</span>
                   <span className="text-white font-bold text-sm">{user.total_earned}/100</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
@@ -359,10 +359,10 @@ export default function AnalyticsPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg">
               <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-                <Coins className="w-5 h-5 text-purple-400" />
+                <Coins className="w-5 h-5 text-yellow-400" />
               </div>
               <div className="flex-1">
-                <div className="text-white font-medium">Earned 5 coins</div>
+                <div className="text-yellow-400 font-medium">Earned 5 coins</div>
                 <div className="text-gray-400 text-sm">Answer marked as helpful • 2 hours ago</div>
               </div>
             </div>

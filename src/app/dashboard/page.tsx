@@ -475,7 +475,7 @@ function DashboardContent() {
           <div className="text-sm opacity-70">{currentTime}</div>
           
           {/* Coins Display */}
-          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-purple-500/30">
+          <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-yellow-500/30">
             <span>🪙</span>
             {userCoinStats?.profile?.currentBalance || user?.coins || 0}
           </div>
@@ -944,8 +944,8 @@ function DashboardContent() {
           <h2 className="text-lg font-bold mb-3 text-white">Your Progress</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-purple-600/5 border border-purple-500/15 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
+            <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-yellow-300">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
               <div className="text-xs text-gray-400">Coins</div>
             </div>
             
