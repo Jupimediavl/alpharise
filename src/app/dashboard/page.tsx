@@ -7,7 +7,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
-import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins } from 'lucide-react'
+import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut } from 'lucide-react'
 
 // Types
 interface Solution {
@@ -241,6 +241,7 @@ function DashboardContent() {
   const [showChat, setShowChat] = useState(false)
   const [responseSource, setResponseSource] = useState<'openai' | 'fallback' | 'local' | null>(null)
   const [responseTime, setResponseTime] = useState<number>(0)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
 
   // Enhanced coach data with personalized encouragement messages
   const coachData: {
@@ -461,16 +462,124 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      {/* Simple Header */}
+      {/* Header with User Dropdown */}
       <header className="p-6 flex justify-between items-center border-b border-purple-500/20">
         <div className="text-2xl font-black text-white">
           AlphaRise
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm opacity-70">{currentTime}</div>
+          
+          {/* Coins Display */}
           <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-purple-500/30">
             <span>🪙</span>
-            {user?.coins || 0}
+            {userCoinStats?.profile?.currentBalance || user?.coins || 0}
+          </div>
+
+          {/* User Profile Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="flex items-center gap-3 bg-gray-800/50 hover:bg-gray-700/50 px-4 py-2 rounded-xl border border-gray-600/30 hover:border-purple-500/30 transition-all"
+            >
+              {/* User Avatar */}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              
+              {/* User Info */}
+              <div className="text-left hidden md:block">
+                <div className="text-sm font-semibold text-white">{user?.username || 'User'}</div>
+                <div className="text-xs text-gray-400">{user?.avatar_type || 'Member'}</div>
+              </div>
+              
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserDropdown && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 mt-2 w-64 bg-gray-800/95 backdrop-blur border border-gray-600/30 rounded-xl shadow-2xl z-50"
+              >
+                {/* User Info Header */}
+                <div className="p-4 border-b border-gray-600/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">{user?.username || 'User'}</div>
+                      <div className="text-sm text-gray-400">{user?.email || 'member@alpharise.app'}</div>
+                      <div className="text-xs text-purple-400 capitalize">{user?.avatar_type || 'Member'} • Level {user?.level || 1}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-2">
+                  <button
+                    onClick={() => {
+                      router.push('/profile')
+                      setShowUserDropdown(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
+                  >
+                    <User className="w-5 h-5" />
+                    <span>Profile</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      router.push('/settings')
+                      setShowUserDropdown(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Settings</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      router.push('/analytics')
+                      setShowUserDropdown(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Analytics</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      router.push('/billing')
+                      setShowUserDropdown(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    <span>Billing</span>
+                  </button>
+                </div>
+
+                {/* Logout */}
+                <div className="border-t border-gray-600/30 py-2">
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false)
+                      router.push('/login')
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </header>
@@ -901,24 +1010,36 @@ function DashboardContent() {
                 </h4>
                 <ul className="space-y-2">
                   <li>
-                    <span className="text-gray-500 text-sm flex items-center gap-2">
-                      <span>👤</span> Profile (Soon)
-                    </span>
+                    <button
+                      onClick={() => router.push('/profile')}
+                      className="text-gray-300 hover:text-blue-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>👤</span> Profile
+                    </button>
                   </li>
                   <li>
-                    <span className="text-gray-500 text-sm flex items-center gap-2">
-                      <span>⚙️</span> Settings (Soon)
-                    </span>
+                    <button
+                      onClick={() => router.push('/settings')}
+                      className="text-gray-300 hover:text-green-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>⚙️</span> Settings
+                    </button>
                   </li>
                   <li>
-                    <span className="text-gray-500 text-sm flex items-center gap-2">
-                      <span>📊</span> Analytics (Soon)
-                    </span>
+                    <button
+                      onClick={() => router.push('/analytics')}
+                      className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>📊</span> Analytics
+                    </button>
                   </li>
                   <li>
-                    <span className="text-gray-500 text-sm flex items-center gap-2">
-                      <span>💳</span> Billing (Soon)
-                    </span>
+                    <button
+                      onClick={() => router.push('/billing')}
+                      className="text-gray-300 hover:text-pink-400 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <span>💳</span> Billing
+                    </button>
                   </li>
                 </ul>
               </div>
