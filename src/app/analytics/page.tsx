@@ -85,8 +85,8 @@ export default function AnalyticsPage() {
         </div>
         {change && (
           <div className={`flex items-center gap-1 text-sm ${
-            changeType === 'positive' ? 'text-green-400' : 
-            changeType === 'negative' ? 'text-red-400' : 'text-gray-400'
+            changeType === 'positive' ? 'text-purple-300' : 
+            changeType === 'negative' ? 'text-purple-500' : 'text-gray-400'
           }`}>
             {changeType === 'positive' ? <TrendingUp className="w-4 h-4" /> : 
              changeType === 'negative' ? <TrendingDown className="w-4 h-4" /> : null}
@@ -109,12 +109,12 @@ export default function AnalyticsPage() {
             <span className="text-gray-300 text-sm">{item.date}</span>
             <div className="flex gap-2">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-green-400 text-sm">+{item.earned}</span>
+                <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                <span className="text-white font-bold text-sm">+{item.earned}</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span className="text-red-400 text-sm">-{item.spent}</span>
+                <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                <span className="text-white font-bold text-sm">-{item.spent}</span>
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            icon={<Coins className="w-6 h-6 text-yellow-400" />}
+            icon={<Coins className="w-6 h-6 text-purple-400" />}
             title="Total Coins Earned"
             value={user.total_earned || 0}
             change="+12%"
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
           />
           
           <StatCard
-            icon={<TrendingUp className="w-6 h-6 text-green-400" />}
+            icon={<TrendingUp className="w-6 h-6 text-purple-400" />}
             title="Current Level"
             value={user.level || 1}
             change="Recently leveled up"
@@ -199,7 +199,7 @@ export default function AnalyticsPage() {
           />
           
           <StatCard
-            icon={<Activity className="w-6 h-6 text-blue-400" />}
+            icon={<Activity className="w-6 h-6 text-purple-400" />}
             title="Streak Days"
             value={user.streak || 0}
             change="+3 this week"
@@ -240,25 +240,25 @@ export default function AnalyticsPage() {
                       style={{ width: `${(user.confidence_score / 100) * 100}%` }}
                     />
                   </div>
-                  <span className="text-purple-400 font-semibold">{user.confidence_score}/100</span>
+                  <span className="text-white font-bold">{user.confidence_score}/100</span>
                 </div>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-yellow-400 font-semibold">{user.monthly_earnings} coins</span>
+                <span className="text-white font-bold">{user.monthly_earnings} coins</span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Helpfulness Ratio</span>
-                <span className="text-green-400 font-semibold">
+                <span className="text-white font-bold">
                   {stats?.community?.helpfulnessRatio?.toFixed(1) || '0.0'}
                 </span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Best Answers</span>
-                <span className="text-blue-400 font-semibold">{stats?.community?.bestAnswersCount || 0}</span>
+                <span className="text-white font-bold">{stats?.community?.bestAnswersCount || 0}</span>
               </div>
             </div>
           </div>
@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-blue-400" />
+                  <Calendar className="w-5 h-5 text-purple-400" />
                   <span className="text-gray-300">Daily Logins</span>
                 </div>
                 <span className="text-white font-semibold">{user.streak} days</span>
@@ -280,7 +280,7 @@ export default function AnalyticsPage() {
               
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <MessageCircle className="w-5 h-5 text-green-400" />
+                  <MessageCircle className="w-5 h-5 text-purple-400" />
                   <span className="text-gray-300">Questions Asked</span>
                 </div>
                 <span className="text-white font-semibold">8</span>
@@ -288,7 +288,7 @@ export default function AnalyticsPage() {
               
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Star className="w-5 h-5 text-yellow-400" />
+                  <Star className="w-5 h-5 text-purple-400" />
                   <span className="text-gray-300">Votes Received</span>
                 </div>
                 <span className="text-white font-semibold">{stats?.community?.totalVotesReceived || 0}</span>
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium">Reach Level 5</span>
-                  <span className="text-purple-400 text-sm">{user.level}/5</span>
+                  <span className="text-white font-bold text-sm">{user.level}/5</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
@@ -325,11 +325,11 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium">Earn 100 Coins</span>
-                  <span className="text-yellow-400 text-sm">{user.total_earned}/100</span>
+                  <span className="text-white font-bold text-sm">{user.total_earned}/100</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className="bg-yellow-500 h-2 rounded-full" 
+                    className="bg-purple-400 h-2 rounded-full" 
                     style={{ width: `${Math.min((user.total_earned / 100) * 100, 100)}%` }}
                   />
                 </div>
@@ -339,11 +339,11 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium">30-Day Streak</span>
-                  <span className="text-green-400 text-sm">{user.streak}/30</span>
+                  <span className="text-white font-bold text-sm">{user.streak}/30</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className="bg-green-500 h-2 rounded-full" 
+                    className="bg-purple-300 h-2 rounded-full" 
                     style={{ width: `${(user.streak / 30) * 100}%` }}
                   />
                 </div>
@@ -358,8 +358,8 @@ export default function AnalyticsPage() {
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg">
-              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                <Coins className="w-5 h-5 text-green-400" />
+              <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <Coins className="w-5 h-5 text-purple-400" />
               </div>
               <div className="flex-1">
                 <div className="text-white font-medium">Earned 5 coins</div>
@@ -368,8 +368,8 @@ export default function AnalyticsPage() {
             </div>
             
             <div className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-purple-400" />
               </div>
               <div className="flex-1">
                 <div className="text-white font-medium">Posted an answer</div>

@@ -469,7 +469,7 @@ export default function RoadmapPage() {
             <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="w-6 h-6 text-purple-400" />
               <h2 className="text-2xl font-bold text-white">💡 Future Ideas</h2>
-              <span className="text-purple-400 font-semibold">({filteredFeatures.future.length})</span>
+              <span className="text-white font-bold">({filteredFeatures.future.length})</span>
             </div>
             <div className="grid gap-6">
               {filteredFeatures.future.map((feature) => (

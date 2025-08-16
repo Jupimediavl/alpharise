@@ -818,12 +818,12 @@ function DashboardContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {problemsData.solutions.slice(0, 2).map((solution: any, index: number) => {
                 const typeColors = {
-                  immediate: 'border-red-500/40 bg-red-500/5 hover:bg-red-500/10',
-                  practice: 'border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10',
-                  learning: 'border-blue-500/40 bg-blue-500/5 hover:bg-blue-500/10',
-                  system: 'border-green-500/40 bg-green-500/5 hover:bg-green-500/10',
-                  technique: 'border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10',
-                  skill: 'border-cyan-500/40 bg-cyan-500/5 hover:bg-cyan-500/10'
+                  immediate: 'border-purple-500/30 bg-purple-500/8 hover:bg-purple-500/12',
+                  practice: 'border-purple-500/25 bg-purple-500/6 hover:bg-purple-500/10',
+                  learning: 'border-purple-500/35 bg-purple-500/7 hover:bg-purple-500/11',
+                  system: 'border-purple-500/28 bg-purple-500/5 hover:bg-purple-500/9',
+                  technique: 'border-purple-500/32 bg-purple-500/6 hover:bg-purple-500/10',
+                  skill: 'border-purple-500/26 bg-purple-500/4 hover:bg-purple-500/8'
                 }
                 
                 const typeIcons = {
@@ -853,7 +853,7 @@ function DashboardContent() {
                     
                     <p className="text-sm text-gray-400 mb-3">{solution.action}</p>
                     
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-purple-400">
                       <Play className="w-3 h-3" />
                       <span>Start {solution.type}</span>
                       <ChevronRight className="w-3 h-3 ml-auto" />
@@ -883,14 +883,14 @@ function DashboardContent() {
         >
           <h2 className="text-xl font-bold mb-4 text-white">What do you want to do?</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* AI Coach Button */}
             <button
               onClick={() => (document.querySelector('input[placeholder*="What\'s on your mind"]') as HTMLInputElement)?.focus()}
-              className="group bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 hover:border-blue-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+              className="group bg-gradient-to-br from-purple-600/15 to-purple-800/20 border border-purple-500/25 hover:border-purple-400/40 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-500/15 rounded-full flex items-center justify-center">
                   <span className="text-xl">🤖</span>
                 </div>
                 <div>
@@ -903,10 +903,10 @@ function DashboardContent() {
             {/* Community Button */}
             <button
               onClick={goToCommunity}
-              className="group bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30 hover:border-green-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+              className="group bg-gradient-to-br from-purple-600/10 to-purple-800/15 border border-purple-500/20 hover:border-purple-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
                   <span className="text-xl">💬</span>
                 </div>
                 <div>
@@ -919,31 +919,15 @@ function DashboardContent() {
             {/* Progress Button */}
             <button
               onClick={() => router.push('/analytics')}
-              className="group bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 hover:border-purple-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+              className="group bg-gradient-to-br from-purple-600/10 to-purple-800/15 border border-purple-500/20 hover:border-purple-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
                   <span className="text-xl">📊</span>
                 </div>
                 <div>
                   <h3 className="font-bold text-white">View Progress</h3>
                   <p className="text-xs text-gray-400">Track your growth</p>
-                </div>
-              </div>
-            </button>
-
-            {/* Profile Button */}
-            <button
-              onClick={() => router.push('/profile')}
-              className="group bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 hover:border-orange-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center">
-                  <span className="text-xl">👤</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">My Profile</h3>
-                  <p className="text-xs text-gray-400">Manage account</p>
                 </div>
               </div>
             </button>
@@ -960,23 +944,23 @@ function DashboardContent() {
           <h2 className="text-lg font-bold mb-3 text-white">Your Progress</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-yellow-400">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
+            <div className="bg-purple-600/5 border border-purple-500/15 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
               <div className="text-xs text-gray-400">Coins</div>
             </div>
             
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
+            <div className="bg-purple-600/8 border border-purple-500/20 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.streak || user.streak}</div>
               <div className="text-xs text-gray-400">Day Streak</div>
             </div>
             
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-green-400">{user.level}</div>
+            <div className="bg-purple-600/6 border border-purple-500/18 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{user.level}</div>
               <div className="text-xs text-gray-400">Level</div>
             </div>
             
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-blue-400">{userCoinStats?.community?.answersGiven || 0}</div>
+            <div className="bg-purple-600/4 border border-purple-500/12 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{userCoinStats?.community?.answersGiven || 0}</div>
               <div className="text-xs text-gray-400">Contributions</div>
             </div>
           </div>

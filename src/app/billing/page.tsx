@@ -138,7 +138,7 @@ export default function BillingPage() {
           </span>
         </div>
         {billingCycle === 'yearly' && plan.price.yearly > 0 && (
-          <div className="text-green-400 text-sm">
+          <div className="text-purple-300 text-sm">
             Save ${(plan.price.monthly * 12 - plan.price.yearly).toFixed(2)} per year
           </div>
         )}
@@ -148,14 +148,14 @@ export default function BillingPage() {
       <div className="space-y-3 mb-6">
         {plan.features.map((feature, index) => (
           <div key={index} className="flex items-center gap-3">
-            <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <Check className="w-5 h-5 text-purple-300 flex-shrink-0" />
             <span className="text-gray-300">{feature}</span>
           </div>
         ))}
         
         {plan.limitations && plan.limitations.map((limitation, index) => (
           <div key={index} className="flex items-center gap-3 opacity-60">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-purple-400 flex-shrink-0" />
             <span className="text-gray-400">{limitation}</span>
           </div>
         ))}
@@ -204,10 +204,10 @@ export default function BillingPage() {
           </div>
           
           <div className="flex items-center gap-2 bg-gray-800/50 px-4 py-2 rounded-lg">
-            <Crown className="w-5 h-5 text-yellow-400" />
+            <Crown className="w-5 h-5 text-purple-400" />
             <span className="text-white font-semibold capitalize">{user.subscription_type}</span>
             {user.subscription_type === 'trial' && (
-              <span className="text-orange-400 text-sm">({user.trial_days_left} days left)</span>
+              <span className="text-purple-300 text-sm">({user.trial_days_left} days left)</span>
             )}
           </div>
         </div>
@@ -238,8 +238,8 @@ export default function BillingPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-green-400" />
+              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-purple-400" />
               </div>
               <div>
                 <div className="text-white font-semibold">Next Billing</div>
@@ -253,8 +253,8 @@ export default function BillingPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-yellow-400" />
+              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-purple-400" />
               </div>
               <div>
                 <div className="text-white font-semibold">Monthly Cost</div>
@@ -291,7 +291,7 @@ export default function BillingPage() {
               </button>
               <span className={`${billingCycle === 'yearly' ? 'text-white' : 'text-gray-400'}`}>
                 Yearly
-                <span className="text-green-400 text-sm ml-1">(Save 17%)</span>
+                <span className="text-purple-300 text-sm ml-1">(Save 17%)</span>
               </span>
             </div>
           </div>
@@ -340,7 +340,7 @@ export default function BillingPage() {
                 <div className="text-white font-medium">•••• •••• •••• 4242</div>
                 <div className="text-gray-400 text-sm">Visa ending in 4242 • Expires 12/27</div>
               </div>
-              <div className="text-green-400 text-sm">Active</div>
+              <div className="text-purple-300 text-sm">Active</div>
             </div>
           </motion.div>
         )}
@@ -361,8 +361,8 @@ export default function BillingPage() {
             {billingHistory.map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <Check className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-purple-400" />
                   </div>
                   <div>
                     <div className="text-white font-medium">{transaction.description}</div>
@@ -400,16 +400,16 @@ export default function BillingPage() {
             </div>
             
             <div className="text-center">
-              <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-yellow-400" />
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-white font-semibold mb-2">VIP Access</h3>
               <p className="text-gray-400 text-sm">Priority support and exclusive content</p>
             </div>
             
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Gift className="w-8 h-8 text-green-400" />
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Gift className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-white font-semibold mb-2">4x More Coins</h3>
               <p className="text-gray-400 text-sm">200 coins monthly vs 50 in trial</p>

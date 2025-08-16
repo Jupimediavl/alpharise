@@ -186,7 +186,7 @@ export default function CoinsGuidePage() {
                       <h3 className="text-lg font-semibold text-white">{action.name}</h3>
                       <div className="flex items-center gap-1 bg-purple-500/20 px-3 py-1 rounded-full">
                         <Coins className="w-4 h-4 text-yellow-400" />
-                        <span className="text-purple-400 font-semibold">-{action.coins}</span>
+                        <span className="text-white font-bold">-{action.coins}</span>
                       </div>
                     </div>
                     <p className="text-gray-300 text-sm">{action.description}</p>

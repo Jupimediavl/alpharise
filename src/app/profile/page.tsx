@@ -249,25 +249,25 @@ export default function ProfilePage() {
             className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <Coins className="w-6 h-6 text-yellow-400" />
+              <Coins className="w-6 h-6 text-purple-400" />
               <h3 className="text-lg font-semibold text-white">Coins & Economy</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Current Balance</span>
-                <span className="text-yellow-400 font-semibold">{user.coins}</span>
+                <span className="text-white font-bold">{user.coins}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Total Earned</span>
-                <span className="text-green-400">{user.total_earned}</span>
+                <span className="text-white font-bold">{user.total_earned}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-blue-400">{user.monthly_earnings}</span>
+                <span className="text-white font-bold">{user.monthly_earnings}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Discount Earned</span>
-                <span className="text-purple-400">{user.discount_earned}%</span>
+                <span className="text-white font-bold">{user.discount_earned}%</span>
               </div>
             </div>
           </motion.div>
@@ -286,19 +286,19 @@ export default function ProfilePage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Level</span>
-                <span className="text-purple-400 font-semibold">{user.level}</span>
+                <span className="text-white font-bold">{user.level}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Experience</span>
-                <span className="text-blue-400">{user.experience}</span>
+                <span className="text-white font-bold">{user.experience}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Confidence Score</span>
-                <span className="text-green-400">{user.confidence_score}</span>
+                <span className="text-white font-bold">{user.confidence_score}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Streak</span>
-                <span className="text-orange-400">{user.streak} days</span>
+                <span className="text-white font-bold">{user.streak} days</span>
               </div>
             </div>
           </motion.div>
@@ -311,13 +311,13 @@ export default function ProfilePage() {
             className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <User className="w-6 h-6 text-blue-400" />
+              <User className="w-6 h-6 text-purple-400" />
               <h3 className="text-lg font-semibold text-white">Account</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Member Since</span>
-                <span className="text-blue-400">{new Date(user.created_at).toLocaleDateString()}</span>
+                <span className="text-white font-bold">{new Date(user.created_at).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Subscription</span>
@@ -325,7 +325,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Trial Days Left</span>
-                <span className="text-yellow-400">{user.trial_days_left}</span>
+                <span className="text-white font-bold">{user.trial_days_left}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Last Active</span>
@@ -343,14 +343,14 @@ export default function ProfilePage() {
           className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            <Award className="w-6 h-6 text-yellow-400" />
+            <Award className="w-6 h-6 text-purple-400" />
             <h3 className="text-lg font-semibold text-white">Badges & Achievements</h3>
           </div>
           <div className="flex flex-wrap gap-3">
             {user.badges && user.badges.length > 0 ? (
               user.badges.map((badge, index) => (
-                <div key={index} className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-4 py-2 rounded-lg">
-                  <span className="text-yellow-400 font-medium">{badge}</span>
+                <div key={index} className="bg-gradient-to-r from-purple-500/15 to-purple-600/20 border border-purple-500/25 px-4 py-2 rounded-lg">
+                  <span className="text-purple-300 font-medium">{badge}</span>
                 </div>
               ))
             ) : (
