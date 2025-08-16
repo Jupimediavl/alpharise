@@ -411,8 +411,8 @@ export default function BillingPage() {
               <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Gift className="w-8 h-8 text-purple-400" />
               </div>
-              <h3 className="text-white font-semibold mb-2">4x More Coins</h3>
-              <p className="text-gray-400 text-sm">200 coins monthly vs 50 in trial</p>
+              <h3 className="text-yellow-400 font-semibold mb-2">4x More Coins</h3>
+              <p className="text-gray-400 text-sm"><span className="text-yellow-400 font-semibold">200 coins</span> monthly vs <span className="text-yellow-400 font-semibold">50</span> in trial</p>
             </div>
           </div>
         </motion.div>

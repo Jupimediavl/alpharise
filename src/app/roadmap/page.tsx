@@ -237,9 +237,9 @@ export default function RoadmapPage() {
     all: { name: 'All Features', icon: <Star className="w-4 h-4" />, color: 'gray' },
     core: { name: 'Core Platform', icon: <Zap className="w-4 h-4" />, color: 'purple' },
     ai: { name: 'AI & Coaching', icon: <Brain className="w-4 h-4" />, color: 'blue' },
-    community: { name: 'Community', icon: <Users className="w-4 h-4" />, color: 'green' },
+    community: { name: 'Community', icon: <Users className="w-4 h-4 text-purple-400" />, color: 'purple' },
     monetization: { name: 'Monetization', icon: <Coins className="w-4 h-4 text-yellow-400" />, color: 'yellow' },
-    growth: { name: 'Growth & Analytics', icon: <BarChart3 className="w-4 h-4" />, color: 'pink' }
+    growth: { name: 'Growth & Analytics', icon: <BarChart3 className="w-4 h-4 text-green-400" />, color: 'green' }
   }
 
   const priorityColors = {
@@ -400,19 +400,19 @@ export default function RoadmapPage() {
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-green-400">{features.implemented.length}</div>
+            <div className="text-2xl font-bold text-white">{features.implemented.length}</div>
             <div className="text-sm text-gray-400">Implemented</div>
           </div>
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400">{features.inProgress.length}</div>
+            <div className="text-2xl font-bold text-white">{features.inProgress.length}</div>
             <div className="text-sm text-gray-400">In Progress</div>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">{features.planned.length}</div>
+            <div className="text-2xl font-bold text-white">{features.planned.length}</div>
             <div className="text-sm text-gray-400">Planned</div>
           </div>
           <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400">{features.future.length}</div>
+            <div className="text-2xl font-bold text-white">{features.future.length}</div>
             <div className="text-sm text-gray-400">Future Ideas</div>
           </div>
         </div>

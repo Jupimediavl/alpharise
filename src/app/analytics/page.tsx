@@ -109,11 +109,11 @@ export default function AnalyticsPage() {
             <span className="text-gray-300 text-sm">{item.date}</span>
             <div className="flex gap-2">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
                 <span className="text-white font-bold text-sm">+{item.earned}</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
                 <span className="text-white font-bold text-sm">-{item.spent}</span>
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
           />
           
           <StatCard
-            icon={<TrendingUp className="w-6 h-6 text-purple-400" />}
+            icon={<TrendingUp className="w-6 h-6 text-green-400" />}
             title="Current Level"
             value={user.level || 1}
             change="Recently leveled up"
@@ -199,7 +199,7 @@ export default function AnalyticsPage() {
           />
           
           <StatCard
-            icon={<Activity className="w-6 h-6 text-purple-400" />}
+            icon={<Activity className="w-6 h-6 text-blue-400" />}
             title="Streak Days"
             value={user.streak || 0}
             change="+3 this week"
@@ -236,7 +236,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-20 h-2 bg-gray-600 rounded-full">
                     <div 
-                      className="h-full bg-purple-500 rounded-full" 
+                      className="h-full bg-green-500 rounded-full" 
                       style={{ width: `${(user.confidence_score / 100) * 100}%` }}
                     />
                   </div>
@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-purple-400" />
+                  <Calendar className="w-5 h-5 text-blue-400" />
                   <span className="text-gray-300">Daily Logins</span>
                 </div>
                 <span className="text-white font-semibold">{user.streak} days</span>
@@ -288,7 +288,7 @@ export default function AnalyticsPage() {
               
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Star className="w-5 h-5 text-purple-400" />
+                  <Star className="w-5 h-5 text-green-400" />
                   <span className="text-gray-300">Votes Received</span>
                 </div>
                 <span className="text-white font-semibold">{stats?.community?.totalVotesReceived || 0}</span>
@@ -329,7 +329,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className="bg-purple-400 h-2 rounded-full" 
+                    className="bg-yellow-400 h-2 rounded-full" 
                     style={{ width: `${Math.min((user.total_earned / 100) * 100, 100)}%` }}
                   />
                 </div>
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className="bg-purple-300 h-2 rounded-full" 
+                    className="bg-blue-400 h-2 rounded-full" 
                     style={{ width: `${(user.streak / 30) * 100}%` }}
                   />
                 </div>
@@ -358,7 +358,7 @@ export default function AnalyticsPage() {
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
                 <Coins className="w-5 h-5 text-yellow-400" />
               </div>
               <div className="flex-1">
@@ -378,8 +378,8 @@ export default function AnalyticsPage() {
             </div>
             
             <div className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-blue-400" />
               </div>
               <div className="flex-1">
                 <div className="text-white font-medium">Daily login streak</div>

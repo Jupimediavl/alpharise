@@ -906,7 +906,7 @@ function DashboardContent() {
               className="group bg-gradient-to-br from-purple-600/10 to-purple-800/15 border border-purple-500/20 hover:border-purple-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-500/15 rounded-full flex items-center justify-center">
                   <span className="text-xl">💬</span>
                 </div>
                 <div>
@@ -919,10 +919,10 @@ function DashboardContent() {
             {/* Progress Button */}
             <button
               onClick={() => router.push('/analytics')}
-              className="group bg-gradient-to-br from-purple-600/10 to-purple-800/15 border border-purple-500/20 hover:border-purple-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+              className="group bg-gradient-to-br from-green-600/10 to-green-800/15 border border-green-500/20 hover:border-green-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-500/15 rounded-full flex items-center justify-center">
                   <span className="text-xl">📊</span>
                 </div>
                 <div>
@@ -949,17 +949,17 @@ function DashboardContent() {
               <div className="text-xs text-gray-400">Coins</div>
             </div>
             
-            <div className="bg-purple-600/8 border border-purple-500/20 rounded-lg p-3 text-center">
+            <div className="bg-blue-500/10 border border-blue-500/25 rounded-lg p-3 text-center">
               <div className="text-lg font-bold text-white">{userCoinStats?.profile?.streak || user.streak}</div>
               <div className="text-xs text-gray-400">Day Streak</div>
             </div>
             
-            <div className="bg-purple-600/6 border border-purple-500/18 rounded-lg p-3 text-center">
+            <div className="bg-green-500/10 border border-green-500/25 rounded-lg p-3 text-center">
               <div className="text-lg font-bold text-white">{user.level}</div>
               <div className="text-xs text-gray-400">Level</div>
             </div>
             
-            <div className="bg-purple-600/4 border border-purple-500/12 rounded-lg p-3 text-center">
+            <div className="bg-purple-500/10 border border-purple-500/25 rounded-lg p-3 text-center">
               <div className="text-lg font-bold text-white">{userCoinStats?.community?.answersGiven || 0}</div>
               <div className="text-xs text-gray-400">Contributions</div>
             </div>

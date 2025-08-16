@@ -207,7 +207,7 @@ export default function SettingsPage() {
           className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <Bell className="w-6 h-6 text-purple-400" />
+            <Bell className="w-6 h-6 text-blue-400" />
             <h2 className="text-xl font-semibold text-white">Notifications</h2>
           </div>
           
@@ -327,7 +327,7 @@ export default function SettingsPage() {
           className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <Palette className="w-6 h-6 text-purple-400" />
+            <Palette className="w-6 h-6 text-green-400" />
             <h2 className="text-xl font-semibold text-white">Appearance & Display</h2>
           </div>
           
@@ -392,7 +392,7 @@ export default function SettingsPage() {
           className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <Eye className="w-6 h-6 text-purple-400" />
+            <Eye className="w-6 h-6 text-green-400" />
             <h2 className="text-xl font-semibold text-white">Accessibility</h2>
           </div>
           
@@ -437,7 +437,7 @@ export default function SettingsPage() {
           className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <Globe className="w-6 h-6 text-purple-400" />
+            <Globe className="w-6 h-6 text-blue-400" />
             <h2 className="text-xl font-semibold text-white">Language & Region</h2>
           </div>
           

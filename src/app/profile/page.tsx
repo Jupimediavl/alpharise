@@ -280,25 +280,25 @@ export default function ProfilePage() {
             className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="w-6 h-6 text-purple-400" />
+              <TrendingUp className="w-6 h-6 text-green-400" />
               <h3 className="text-lg font-semibold text-white">Progress</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Level</span>
-                <span className="text-white font-bold">{user.level}</span>
+                <span className="text-green-400 font-bold">{user.level}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Experience</span>
-                <span className="text-white font-bold">{user.experience}</span>
+                <span className="text-green-400 font-bold">{user.experience}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Confidence Score</span>
-                <span className="text-white font-bold">{user.confidence_score}</span>
+                <span className="text-green-400 font-bold">{user.confidence_score}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Streak</span>
-                <span className="text-white font-bold">{user.streak} days</span>
+                <span className="text-blue-400 font-bold">{user.streak} days</span>
               </div>
             </div>
           </motion.div>
