@@ -464,9 +464,12 @@ function DashboardContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header with User Dropdown */}
       <header className="p-6 flex justify-between items-center border-b border-purple-500/20">
-        <div className="text-2xl font-black text-white">
+        <button
+          onClick={() => router.push('/')}
+          className="text-2xl font-black text-white hover:text-purple-400 transition-colors"
+        >
           AlphaRise
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <div className="text-sm opacity-70">{currentTime}</div>
           
@@ -975,14 +978,6 @@ function DashboardContent() {
                 <ul className="space-y-2">
                   <li>
                     <button
-                      onClick={() => router.push('/coins')}
-                      className="text-gray-300 hover:text-yellow-400 transition-colors text-sm flex items-center gap-2"
-                    >
-                      <span>💰</span> Coin Dashboard
-                    </button>
-                  </li>
-                  <li>
-                    <button
                       onClick={() => router.push('/coins-guide')}
                       className="text-gray-300 hover:text-yellow-400 transition-colors text-sm flex items-center gap-2"
                     >
@@ -1078,7 +1073,10 @@ function DashboardContent() {
             {/* Bottom Footer */}
             <div className="mt-12 pt-8 border-t border-gray-700/30">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push('/')}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
                   <div className="text-2xl">🚀</div>
                   <div>
                     <div className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -1086,7 +1084,7 @@ function DashboardContent() {
                     </div>
                     <div className="text-xs text-gray-400">Build confidence. Transform your life.</div>
                   </div>
-                </div>
+                </button>
                 
                 <div className="flex items-center gap-6 text-sm text-gray-400">
                   <span>© 2025 AlphaRise</span>
