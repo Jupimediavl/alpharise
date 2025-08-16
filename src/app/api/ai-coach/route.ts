@@ -133,8 +133,13 @@ The user's name is ${username || 'buddy'}.`
     })
 
     if (!openaiResponse.ok) {
-      console.error('OpenAI API error:', await openaiResponse.text())
-      throw new Error('OpenAI API request failed')
+      const errorText = await openaiResponse.text()
+      console.error('OpenAI API error:', {
+        status: openaiResponse.status,
+        statusText: openaiResponse.statusText,
+        error: errorText
+      })
+      throw new Error(`OpenAI API request failed: ${openaiResponse.status} ${errorText}`)
     }
 
     const openaiData = await openaiResponse.json()
