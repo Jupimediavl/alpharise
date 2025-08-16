@@ -282,7 +282,7 @@ function SignupContent() {
 
       {/* Header */}
       <header className="relative z-10 p-6 flex items-center justify-between">
-        <div className="text-3xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+        <div className="text-3xl font-black text-white">
           AlphaRise
         </div>
         
@@ -411,24 +411,7 @@ function SignupContent() {
                       }}
                     />
                     
-                    {/* Animated Border Glow */}
-                    {userName && !errors.userName && (
-                      <motion.div 
-                        className="absolute inset-0 rounded-xl"
-                        style={{
-                          background: 'linear-gradient(90deg, transparent, rgba(147,51,234,0.3), rgba(219,39,119,0.3), transparent)',
-                          zIndex: -1
-                        }}
-                        animate={{ 
-                          x: [-100, 400],
-                        }}
-                        transition={{ 
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      />
-                    )}
+
                     
                     {validationLoading.userName && (
                       <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
@@ -612,11 +595,10 @@ function SignupContent() {
           >
             {/* Live Counter */}
             <motion.div 
-              className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
+              className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
               whileHover={{ scale: 1.05 }}
-              style={{ boxShadow: '0 0 20px rgba(239, 68, 68, 0.1)' }}
             >
-              <div className="text-red-400 font-bold text-lg mb-2">🔴 Live Now</div>
+              <div className="text-purple-400 font-bold text-lg mb-2">🔴 Live Now</div>
               <motion.div 
                 className="text-2xl font-black text-white mb-1"
                 animate={{ scale: [1, 1.1, 1] }}
@@ -629,11 +611,10 @@ function SignupContent() {
 
             {/* Limited Spots */}
             <motion.div 
-              className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
+              className="bg-cyan-900/20 border border-cyan-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
               whileHover={{ scale: 1.05 }}
-              style={{ boxShadow: '0 0 20px rgba(245, 158, 11, 0.1)' }}
             >
-              <div className="text-yellow-400 font-bold text-lg mb-2">⚡ Limited</div>
+              <div className="text-cyan-400 font-bold text-lg mb-2">⚡ Limited</div>
               <motion.div 
                 className="text-2xl font-black text-white mb-1"
                 animate={{ scale: [1, 1.1, 1] }}
@@ -647,7 +628,7 @@ function SignupContent() {
 
           {/* Benefits Specific to Avatar */}
           <motion.div 
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}

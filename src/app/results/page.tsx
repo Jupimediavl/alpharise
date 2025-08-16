@@ -105,7 +105,7 @@ function ResultsContent() {
             🎯
           </motion.div>
           <motion.h2 
-            className="text-3xl font-bold mb-4"
+            className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
@@ -127,7 +127,7 @@ function ResultsContent() {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <motion.div 
-              className="h-full bg-gradient-to-r from-red-600 to-red-700 rounded-full"
+              className="h-full bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: '100%' }}
               transition={{ duration: 1.5, ease: "easeInOut" }}
@@ -142,7 +142,7 @@ function ResultsContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header */}
       <header className="p-6 text-center">
-        <div className="text-3xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+        <div className="text-3xl font-black text-white">
           AlphaRise
         </div>
       </header>
@@ -165,7 +165,7 @@ function ResultsContent() {
           </motion.div>
 
           <motion.div 
-            className="mb-4 text-sm uppercase tracking-wider text-red-400 font-semibold"
+            className="mb-4 text-sm uppercase tracking-wider text-cyan-400 font-semibold"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -193,12 +193,12 @@ function ResultsContent() {
 
           {/* Program Features */}
           <motion.div 
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-12"
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 mb-12"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <h3 className="text-2xl font-bold mb-6 text-red-400">
+            <h3 className="text-2xl font-bold mb-6 text-cyan-400">
               Your Personalized Program Includes:
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
@@ -210,7 +210,7 @@ function ResultsContent() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 1 + (index * 0.1) }}
                 >
-                  <div className="text-red-400 mt-1">✓</div>
+                  <div className="text-purple-400 mt-1">✓</div>
                   <div className="text-lg">{feature}</div>
                 </motion.div>
               ))}
@@ -225,13 +225,12 @@ function ResultsContent() {
           >
             <motion.button
               onClick={handleStartProgram}
-              className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 rounded-full 
+              className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-full 
                        transition-all duration-300 ease-out
                        shadow-2xl relative overflow-hidden group mb-8"
               whileHover={{ 
                 scale: 1.05, 
-                y: -2,
-                boxShadow: "0 20px 50px rgba(255, 68, 68, 0.4)"
+                y: -2
               }}
               whileTap={{ scale: 0.98 }}
             >
@@ -256,7 +255,9 @@ export default function ResultsPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🎯</div>
-          <h2 className="text-2xl font-bold">Loading your results...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+            Loading your results...
+          </h2>
         </div>
       </div>
     }>

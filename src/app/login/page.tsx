@@ -91,7 +91,7 @@ export default function LoginPage() {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </button>
-        <div className="text-2xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+        <div className="text-2xl font-black text-white">
           AlphaRise
         </div>
       </header>
@@ -106,7 +106,9 @@ export default function LoginPage() {
             transition={{ duration: 0.6 }}
           >
             <div className="text-5xl mb-4">🚀</div>
-            <h1 className="text-3xl font-bold mb-2">Welcome Back, Alpha!</h1>
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+              Welcome Back, Alpha!
+            </h1>
             <p className="text-gray-400">
               Continue your journey to confidence and success
             </p>
@@ -114,7 +116,7 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <motion.div 
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8"
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -127,7 +129,7 @@ export default function LoginPage() {
                   onClick={() => setLoginMethod('username')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                     loginMethod === 'username'
-                      ? 'bg-red-600 text-white'
+                      ? 'bg-gradient-to-r from-purple-600 to-magenta-600 text-white'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -138,7 +140,7 @@ export default function LoginPage() {
                   onClick={() => setLoginMethod('email')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                     loginMethod === 'email'
-                      ? 'bg-red-600 text-white'
+                      ? 'bg-gradient-to-r from-purple-600 to-magenta-600 text-white'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -148,7 +150,7 @@ export default function LoginPage() {
 
               {/* Input Field */}
               <div>
-                <label className="block text-sm font-semibold text-red-400 mb-2">
+                <label className="block text-sm font-semibold text-transparent bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text mb-2">
                   {loginMethod === 'username' ? 'Username' : 'Email Address'}
                 </label>
                 <input 
@@ -156,7 +158,7 @@ export default function LoginPage() {
                   placeholder={loginMethod === 'username' ? 'Enter your username' : 'Enter your email'}
                   value={formData.identifier}
                   onChange={(e) => setFormData({ identifier: e.target.value })}
-                  className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:border-red-500 focus:outline-none transition-colors duration-300"
+                  className="w-full p-4 bg-black/60 border border-purple-500/30 rounded-lg text-white placeholder-white/60 focus:border-magenta-500 focus:outline-none transition-colors duration-300"
                   required
                   disabled={isLoading}
                 />
@@ -180,11 +182,10 @@ export default function LoginPage() {
                 className={`w-full p-4 rounded-lg font-bold text-xl transition-all duration-300 ease-out ${
                   isLoading || !formData.identifier.trim()
                     ? 'bg-gray-600 cursor-not-allowed opacity-50' 
-                    : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
+                    : 'bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700'
                 }`}
                 whileHover={!isLoading && formData.identifier.trim() ? { 
-                  scale: 1.02, 
-                  boxShadow: "0 10px 30px rgba(255, 68, 68, 0.4)" 
+                  scale: 1.02
                 } : {}}
                 whileTap={{ scale: 0.98 }}
               >
@@ -205,7 +206,7 @@ export default function LoginPage() {
                 New to AlphaRise?{' '}
                 <button
                   onClick={() => router.push('/assessment')}
-                  className="text-red-400 hover:text-red-300 font-semibold"
+                  className="text-transparent bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text font-semibold hover:from-purple-300 hover:to-magenta-300"
                 >
                   Take the assessment
                 </button>
@@ -213,8 +214,8 @@ export default function LoginPage() {
             </div>
 
             {/* Demo Accounts */}
-            <div className="mt-8 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-              <h3 className="text-sm font-semibold mb-3 text-center text-yellow-400">
+            <div className="mt-8 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
+              <h3 className="text-sm font-semibold mb-3 text-center text-transparent bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text">
                 🎮 Try Demo Accounts
               </h3>
               <div className="grid grid-cols-1 gap-2">
@@ -226,14 +227,14 @@ export default function LoginPage() {
                   <button
                     key={demo.username}
                     onClick={() => setFormData({ identifier: demo.username })}
-                    className="p-3 bg-gray-600/50 hover:bg-gray-600 rounded-lg transition-colors text-left"
+                    className="p-3 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg transition-colors text-left border border-purple-500/20"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-blue-400">{demo.username}</div>
+                        <div className="text-sm font-semibold text-purple-400">{demo.username}</div>
                         <div className="text-xs text-gray-400">{demo.type}</div>
                       </div>
-                      <div className="text-xs text-yellow-400 font-semibold">
+                      <div className="text-xs text-transparent bg-gradient-to-r from-pink-400 to-pink-400 bg-clip-text font-semibold">
                         {demo.coins} AlphaCoins
                       </div>
                     </div>

@@ -6,13 +6,14 @@ import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser } from '@/lib/supabase'
-import { ChevronRight } from 'lucide-react'
+import { simpleCoinHelpers } from '@/lib/simple-coin-system'
+import { ChevronRight, Zap, Target } from 'lucide-react'
 
 // Solution Categories Structure
 const solutionCategories = [
   {
     id: 'sexual-performance',
-    title: '🕐 Sexual Performance',
+    title: '🔥 Sexual Performance',
     description: 'Last longer and perform with confidence',
     solutionCount: 5
   },
@@ -36,7 +37,7 @@ const solutionCategories = [
   },
   {
     id: 'first-dates',
-    title: '🍷 First Dates',
+    title: '🷷 First Dates',
     description: 'Plan, execute, and close successfully',
     solutionCount: 6
   },
@@ -78,61 +79,74 @@ function DashboardContent() {
   const [user, setUser] = useState<DbUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
+  const [userCoinStats, setUserCoinStats] = useState<any>(null)
 
-  // Coach data focused on real help
+  // Enhanced coach data with personalized encouragement messages
   const coachData: {
     [key: string]: {
       name: string
       icon: string
       color: string
       expertise: string
-      todayAction: string
-      quickWin: string
+      encouragementMessage: string
+      powerMove: string
+      powerMoveIcon: string
+      powerMoveColor: string
     }
   } = {
     marcus: {
       name: 'Marcus',
       icon: '🧠',
-      color: 'from-blue-500 to-purple-600',
+      color: 'from-purple-500 to-pink-500',
       expertise: 'Confidence & Mindset Coach',
-      todayAction: 'Practice confident posture for 2 minutes',
-      quickWin: 'Make eye contact with 3 people today'
+      encouragementMessage: "Marcus, your analytical mind is actually your secret weapon. Today, I want you to use that overthinking superpower FOR you, not against you. Channel that mental energy into planning your next confident move. You've got this! 🚀",
+      powerMove: "Mind Control Challenge",
+      powerMoveIcon: "🎯",
+      powerMoveColor: "from-purple-400 to-magenta-500"
     },
     alex: {
       name: 'Alex',
-      icon: '💪',
-      color: 'from-red-500 to-orange-600',
-      expertise: 'Performance & Intimacy Coach',
-      todayAction: 'Practice the 4-7-8 breathing technique',
-      quickWin: 'Do 10 kegel exercises right now'
+      icon: '📚',
+      color: 'from-purple-600 to-pink-400',
+      expertise: 'Knowledge & Growth Coach',
+      encouragementMessage: "Alex, your hunger for knowledge is what separates you from guys who stay stuck. Every expert was once a beginner, and you're already ahead because you're here, learning and growing. Today is another step toward mastery! 📚✨",
+      powerMove: "Learning Sprint",
+      powerMoveIcon: "⚡",
+      powerMoveColor: "from-purple-400 to-pink-500"
     },
     ryan: {
       name: 'Ryan',
-      icon: '🗣️',
-      color: 'from-green-500 to-emerald-600',
-      expertise: 'Social Skills & Dating Coach',
-      todayAction: 'Start one conversation with a stranger',
-      quickWin: 'Smile and say "hi" to someone new'
+      icon: '💎',
+      color: 'from-magenta-500 to-pink-500',
+      expertise: 'Potential & Consistency Coach',
+      encouragementMessage: "Ryan, I see that fire in you - those moments when your natural charisma breaks through. Today we're turning those flashes of brilliance into your default setting. Your potential is limitless! 💎🔥",
+      powerMove: "Consistency Streak",
+      powerMoveIcon: "🔥",
+      powerMoveColor: "from-magenta-400 to-pink-500"
     },
     jake: {
       name: 'Jake',
       icon: '⚡',
-      color: 'from-yellow-500 to-orange-600',
-      expertise: 'Dating & Approach Coach',
-      todayAction: 'Practice your introduction in the mirror',
-      quickWin: 'Write down 3 conversation starters'
+      color: 'from-purple-500 to-magenta-600',
+      expertise: 'Performance & Excellence Coach',
+      encouragementMessage: "Jake, your drive for excellence is what champions are made of. Instead of letting performance pressure hold you back, we're channeling it into unstoppable confidence. Today, you dominate! ⚡💪",
+      powerMove: "Performance Peak",
+      powerMoveIcon: "🚀",
+      powerMoveColor: "from-purple-400 to-magenta-500"
     },
     ethan: {
       name: 'Ethan',
       icon: '❤️',
-      color: 'from-purple-500 to-pink-600',
-      expertise: 'Relationship & Connection Coach',
-      todayAction: 'Practice active listening with someone',
-      quickWin: 'Ask someone "How are you feeling?" instead of "How are you?"'
+      color: 'from-pink-500 to-purple-600',
+      expertise: 'Connection & Emotional Coach',
+      encouragementMessage: "Ethan, your emotional intelligence is rare and powerful. While other guys struggle to connect, you naturally understand people. Today, we combine that emotional depth with magnetic confidence! ❤️✨",
+      powerMove: "Connection Catalyst",
+      powerMoveIcon: "💫",
+      powerMoveColor: "from-pink-400 to-purple-500"
     }
   }
 
-  // Load user data
+  // Load user data and coin stats
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -159,6 +173,18 @@ function DashboardContent() {
         }
 
         setUser(userData)
+
+        // Load coin stats
+        const coinStats = simpleCoinHelpers.getUserStats(username)
+        setUserCoinStats(coinStats)
+
+        // Process daily login reward
+        const dailyReward = simpleCoinHelpers.dailyLogin(username)
+        if (dailyReward) {
+          console.log('🎉 Daily login reward:', dailyReward)
+          // Update user coins in session
+          userData.coins = (userData.coins || 0) + dailyReward.amount
+        }
 
         sessionStorage.setItem('alpharise_user', JSON.stringify({
           username: userData.username,
@@ -204,7 +230,9 @@ function DashboardContent() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🚀</div>
-          <h2 className="text-2xl font-bold">Loading your dashboard...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+            Loading your dashboard...
+          </h2>
         </div>
       </div>
     )
@@ -215,15 +243,15 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Simple Header */}
-      <header className="p-6 flex justify-between items-center border-b border-white/10">
-        <div className="text-2xl font-black bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+      <header className="p-6 flex justify-between items-center border-b border-purple-500/20">
+        <div className="text-2xl font-black text-white">
           AlphaRise
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm opacity-70">{currentTime}</div>
-          <div className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-purple-500/30">
             <span>🪙</span>
-            {user.coins}
+            {user?.coins || 0}
           </div>
         </div>
       </header>
@@ -242,37 +270,63 @@ function DashboardContent() {
               {coach.icon}
             </div>
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-magenta-400 to-pink-400 bg-clip-text text-transparent">
                 Hey {user.username}! 👋
               </h1>
               <p className="text-lg opacity-70">Your coach {coach.name} • {coach.expertise}</p>
             </div>
           </div>
 
-          {/* Today's Action */}
-          <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl p-6 mb-6">
+          {/* Daily Encouragement Message */}
+          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 mb-6 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-2xl">🎯</span>
-              <h2 className="text-xl font-bold">Today's Action</h2>
+              <span className="text-2xl">💪</span>
+              <h2 className="text-xl font-bold text-white">Your Daily Alpha Boost</h2>
+              {userCoinStats?.profile?.streak && (
+                <div className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-semibold">
+                  🔥 {userCoinStats.profile.streak} day streak
+                </div>
+              )}
             </div>
-            <p className="text-lg mb-4 opacity-90">{coach.todayAction}</p>
-            <div className="flex gap-3">
-              <button className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors">
-                Start Now
+            <p className="text-lg mb-4 opacity-90 leading-relaxed">{coach.encouragementMessage}</p>
+            <div className="flex gap-3 mb-4">
+              <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 rounded-lg font-semibold transition-all transform hover:scale-105">
+                I'm Ready! 🚀
               </button>
-              <button className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors">
-                Mark Complete ✓
+              <button className="px-6 py-3 bg-white/10 hover:bg-purple-500/20 rounded-lg font-semibold transition-colors border border-purple-500/30">
+                Save for Later
               </button>
+            </div>
+            
+            {/* Coin earning info */}
+            <div className="bg-black/30 rounded-lg p-3 text-sm">
+              <div className="text-cyan-400 font-semibold mb-1">💰 Today's Earning Opportunities:</div>
+              <div className="text-xs opacity-70 space-y-1">
+                <div>• Daily login: ✅ Already earned (+1 coin)</div>
+                <div>• Answer questions: +1 coin per answer</div>
+                <div>• Get helpful votes: +1 coin per vote (from 5th vote)</div>
+                <div>• Best answer: +5 coins bonus (auto at 7+ votes)</div>
+              </div>
             </div>
           </div>
 
-          {/* Quick Win */}
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-xl">⚡</span>
-              <h3 className="text-lg font-semibold text-green-400">Quick Win</h3>
+          {/* Power Move Challenge */}
+          <div className={`bg-gradient-to-r ${coach.powerMoveColor}/10 border border-purple-400/30 rounded-xl p-4 relative overflow-hidden`}>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/5 to-magenta-400/5"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xl">{coach.powerMoveIcon}</span>
+                <h3 className="text-lg font-semibold text-white">{coach.powerMove}</h3>
+                <div className="ml-auto">
+                  <motion.div
+                    className="w-2 h-2 bg-magenta-400 rounded-full"
+                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+              </div>
+              <p className="opacity-90">Complete today's challenge to unlock exclusive content and earn bonus coins!</p>
             </div>
-            <p className="opacity-90">{coach.quickWin}</p>
           </div>
         </motion.div>
 
@@ -284,7 +338,10 @@ function DashboardContent() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>📚</span> Instant Solutions
+            <span>📚</span> 
+            <span className="bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text ">
+              Instant Solutions
+            </span>
           </h2>
           <p className="text-lg opacity-70 mb-6">Click any category to see step-by-step guides that actually work:</p>
           
@@ -292,24 +349,25 @@ function DashboardContent() {
             {solutionCategories.map((category, index) => (
               <motion.div
                 key={category.id}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors"
+                className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-xl overflow-hidden hover:border-magenta-500/40 transition-all duration-300"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
               >
                 <button
                   onClick={() => selectSolution(category.id)}
-                  className="w-full p-6 text-left hover:bg-white/5 transition-colors flex items-center justify-between"
+                  className="w-full p-6 text-left hover:bg-purple-500/5 transition-colors flex items-center justify-between"
                 >
                   <div className="flex-1">
                     <h3 className="text-lg font-bold mb-2">{category.title}</h3>
                     <p className="text-sm opacity-70">{category.description}</p>
-                    <div className="mt-3 text-xs text-blue-400">
+                    <div className="mt-3 text-xs text-magenta-400">
                       {category.solutionCount} solutions available
                     </div>
                   </div>
                   <div className="ml-4">
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-5 h-5 text-purple-400" />
                   </div>
                 </button>
               </motion.div>
@@ -320,47 +378,65 @@ function DashboardContent() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <motion.div 
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>💬</span> Get Help
+              <span>💬</span> 
+              <span className="text-white">Get Help</span>
             </h3>
             <p className="mb-4 opacity-80">Ask questions and learn from men who've solved these problems.</p>
             <button
               onClick={goToCommunity}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 rounded-lg font-semibold transition-all transform hover:scale-105"
             >
               Join Community
             </button>
           </motion.div>
 
           <motion.div 
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
+            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span>📈</span> Your Progress
+              <span>📈</span> 
+              <span className="text-white">Your Progress</span>
             </h3>
             
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-xl font-bold text-green-400">{user.streak}</div>
+                <div className="text-xl font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
                 <div className="text-xs opacity-70">Days Active</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-blue-400">{user.total_earned}</div>
+                <div className="text-xl font-bold text-magenta-400">{userCoinStats?.profile?.totalEarned || user.total_earned}</div>
                 <div className="text-xs opacity-70">Coins Earned</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-purple-400">{user.confidence_score}%</div>
-                <div className="text-xs opacity-70">Confidence</div>
+                <div className="text-xl font-bold text-pink-400">{userCoinStats?.community?.answersGiven || 0}</div>
+                <div className="text-xs opacity-70">Answers Given</div>
               </div>
             </div>
+            
+            {/* Coin system stats */}
+            {userCoinStats?.community && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="grid grid-cols-2 gap-4 text-center text-xs">
+                  <div>
+                    <div className="font-semibold text-cyan-400">{userCoinStats.community.totalVotesReceived}</div>
+                    <div className="opacity-70">Helpful Votes</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-yellow-400">{userCoinStats.community.bestAnswersCount}</div>
+                    <div className="opacity-70">Best Answers</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -374,7 +450,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🚀</div>
-          <h2 className="text-2xl font-bold">Loading your dashboard...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
+            Loading your dashboard...
+          </h2>
         </div>
       </div>
     }>
