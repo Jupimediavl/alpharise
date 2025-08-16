@@ -242,6 +242,7 @@ function DashboardContent() {
   const [responseSource, setResponseSource] = useState<'openai' | 'fallback' | 'local' | null>(null)
   const [responseTime, setResponseTime] = useState<number>(0)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [showProblemDetails, setShowProblemDetails] = useState(false)
 
   // Enhanced coach data with personalized encouragement messages
   const coachData: {
@@ -726,85 +727,103 @@ function DashboardContent() {
           )}
         </motion.div>
         
-        {/* Problem Recognition Header */}
+        {/* Welcome Header */}
         <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: 30 }}
+          className="mb-6"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
           <div className="flex items-center gap-4 mb-6">
-            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${problemsData?.color || coach.color} flex items-center justify-center text-2xl shadow-xl`}>
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || coach.color} flex items-center justify-center text-xl shadow-lg`}>
               {problemsData?.icon || coach.icon}
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-magenta-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold text-white">
                 Hey {user.username}! 👋
               </h1>
-              <p className="text-lg opacity-70">{problemsData?.ageContext || 'Your Personal Coach'} • Age {userAge}</p>
+              <p className="text-gray-400">{problemsData?.ageContext || 'Your Personal Coach'} • Age {userAge}</p>
             </div>
           </div>
+        </motion.div>
 
-          {/* Problem Recognition */}
-          {problemsData && (
-            <div className={`bg-gradient-to-r ${problemsData.color}/10 border-2 border-red-500/30 rounded-2xl p-6 mb-6 backdrop-blur-sm relative overflow-hidden`}>
-              <div className="absolute top-4 right-4">
-                <AlertCircle className="w-6 h-6 text-red-400" />
-              </div>
-              
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">🎯</span>
-                  <h2 className="text-xl font-bold text-white">I see your problem...</h2>
+        {/* Compact Problem Card */}
+        {problemsData && (
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div 
+              className={`bg-gradient-to-r ${problemsData.color}/10 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm cursor-pointer hover:border-red-500/50 transition-all group`}
+              onClick={() => setShowProblemDetails(!showProblemDetails)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🎯</span>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-400">{problemsData.primaryProblem}</h3>
+                    <p className="text-sm text-gray-400">{problemsData.description}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
                   {problemsData.urgency === 'high' && (
-                    <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold ml-auto">
+                    <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold">
                       🚨 High Priority
                     </div>
                   )}
+                  <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform group-hover:translate-x-1 ${showProblemDetails ? 'rotate-90' : ''}`} />
                 </div>
-                <h3 className="text-2xl font-bold text-red-400 mb-2">{problemsData.primaryProblem}</h3>
-                <p className="text-lg opacity-90 mb-4">{problemsData.description}</p>
-                
-                {problemsData.ageSpecificNote && (
-                  <div className="bg-black/30 rounded-lg p-3 mb-4">
-                    <div className="text-cyan-400 font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
-                    <div className="text-sm opacity-80">{problemsData.ageSpecificNote}</div>
-                  </div>
-                )}
               </div>
               
-              <div className="text-sm opacity-70 mb-4">
-                Based on your assessment answers and age, this is your #1 barrier to success.
-              </div>
+              {/* Expandable Details */}
+              {showProblemDetails && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="mt-4 pt-4 border-t border-red-500/20"
+                >
+                  {problemsData.ageSpecificNote && (
+                    <div className="bg-black/30 rounded-lg p-3 mb-3">
+                      <div className="text-cyan-400 font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
+                      <div className="text-sm text-gray-300">{problemsData.ageSpecificNote}</div>
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    Based on your assessment answers and age, this is your #1 barrier to success.
+                  </div>
+                </motion.div>
+              )}
             </div>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
-        {/* Immediate Solutions */}
+        {/* Quick Solutions Preview */}
         {problemsData?.solutions && (
           <motion.div 
             className="mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <span>⚡</span> 
-              <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-                Your Personalized Solutions
-              </span>
+              <span className="text-white">Quick Solutions</span>
+              <span className="text-sm text-gray-400 font-normal">Choose your approach</span>
             </h2>
-            <p className="text-lg opacity-70 mb-6">These solutions are specifically designed for your profile and problem:</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {problemsData.solutions.map((solution: any, index: number) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {problemsData.solutions.slice(0, 2).map((solution: any, index: number) => {
                 const typeColors = {
-                  immediate: 'border-red-500/50 bg-red-500/10',
-                  practice: 'border-yellow-500/50 bg-yellow-500/10',
-                  learning: 'border-blue-500/50 bg-blue-500/10',
-                  system: 'border-green-500/50 bg-green-500/10',
-                  technique: 'border-purple-500/50 bg-purple-500/10',
-                  skill: 'border-cyan-500/50 bg-cyan-500/10'
+                  immediate: 'border-red-500/40 bg-red-500/5 hover:bg-red-500/10',
+                  practice: 'border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10',
+                  learning: 'border-blue-500/40 bg-blue-500/5 hover:bg-blue-500/10',
+                  system: 'border-green-500/40 bg-green-500/5 hover:bg-green-500/10',
+                  technique: 'border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10',
+                  skill: 'border-cyan-500/40 bg-cyan-500/5 hover:bg-cyan-500/10'
                 }
                 
                 const typeIcons = {
@@ -817,111 +836,151 @@ function DashboardContent() {
                 }
 
                 return (
-                  <motion.div
+                  <motion.button
                     key={index}
-                    className={`border-2 rounded-xl p-6 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer ${typeColors[solution.type as keyof typeof typeColors] || 'border-purple-500/50 bg-purple-500/10'}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    className={`text-left border rounded-xl p-4 transition-all duration-200 hover:scale-[1.02] ${typeColors[solution.type as keyof typeof typeColors] || 'border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10'}`}
+                    initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4, delay: index * 0.1 }}
-                    whileHover={{ y: -5 }}
                     onClick={() => {
-                      // Navigate to specific solution
                       router.push(`/solutions/${solution.type}?problem=${encodeURIComponent(problemsData.primaryProblem)}&username=${user?.username}`)
                     }}
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-2xl">{typeIcons[solution.type as keyof typeof typeIcons]}</span>
-                      <div>
-                        <h3 className="text-xl font-bold text-white mb-1">{solution.title}</h3>
-                        <div className="text-sm opacity-70 uppercase tracking-wide font-semibold">{solution.type} solution</div>
-                      </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xl">{typeIcons[solution.type as keyof typeof typeIcons]}</span>
+                      <h3 className="font-bold text-white">{solution.title}</h3>
                     </div>
                     
-                    <p className="text-lg font-semibold text-cyan-400 mb-3">{solution.action}</p>
-                    <p className="opacity-80 mb-4">{solution.description}</p>
+                    <p className="text-sm text-gray-400 mb-3">{solution.action}</p>
                     
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <Play className="w-4 h-4" />
-                      <span>Start Now</span>
-                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+                      <Play className="w-3 h-3" />
+                      <span>Start {solution.type}</span>
+                      <ChevronRight className="w-3 h-3 ml-auto" />
                     </div>
-                  </motion.div>
+                  </motion.button>
                 )
               })}
             </div>
+            
+            {problemsData.solutions.length > 2 && (
+              <button 
+                onClick={() => router.push(`/solutions?username=${user?.username}`)}
+                className="w-full mt-4 py-3 border border-gray-600 text-gray-300 rounded-xl hover:bg-gray-800/50 transition-colors text-sm"
+              >
+                View All {problemsData.solutions.length} Solutions →
+              </button>
+            )}
           </motion.div>
         )}
 
-        {/* Action Hub */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-green-500/30 rounded-2xl p-6"
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>🎯</span> 
-              <span className="text-white">Take Action</span>
-            </h3>
-            <p className="mb-4 opacity-80">Your personalized problem-solving starts here.</p>
+        {/* Main Action Buttons */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <h2 className="text-xl font-bold mb-4 text-white">What do you want to do?</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* AI Coach Button */}
             <button
-              onClick={() => router.push(`/action-plan?avatar=${user?.avatar_type}&age=${userAge}&username=${user?.username}`)}
-              className="w-full py-3 bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700 rounded-lg font-semibold transition-all transform hover:scale-105"
+              onClick={() => (document.querySelector('input[placeholder*="What\'s on your mind"]') as HTMLInputElement)?.focus()}
+              className="group bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 hover:border-blue-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
-              Start Action Plan
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl">🤖</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Ask AI Coach</h3>
+                  <p className="text-xs text-gray-400">Get instant advice</p>
+                </div>
+              </div>
             </button>
-          </motion.div>
 
-          <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>💬</span> 
-              <span className="text-white">Get Support</span>
-            </h3>
-            <p className="mb-4 opacity-80">Connect with men solving similar problems.</p>
+            {/* Community Button */}
             <button
               onClick={goToCommunity}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 rounded-lg font-semibold transition-all transform hover:scale-105"
+              className="group bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30 hover:border-green-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
             >
-              Join Community
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl">💬</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Join Community</h3>
+                  <p className="text-xs text-gray-400">Connect & learn</p>
+                </div>
+              </div>
             </button>
-          </motion.div>
 
-          <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-yellow-500/30 rounded-2xl p-6"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>📈</span> 
-              <span className="text-white">Track Progress</span>
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4 text-center mb-4">
-              <div>
-                <div className="text-lg font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
-                <div className="text-xs opacity-70">Days Active</div>
+            {/* Progress Button */}
+            <button
+              onClick={() => router.push('/analytics')}
+              className="group bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 hover:border-purple-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl">📊</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">View Progress</h3>
+                  <p className="text-xs text-gray-400">Track your growth</p>
+                </div>
               </div>
-              <div>
-                <div className="text-lg font-bold text-cyan-400">{userCoinStats?.community?.answersGiven || 0}</div>
-                <div className="text-xs opacity-70">Contributions</div>
+            </button>
+
+            {/* Profile Button */}
+            <button
+              onClick={() => router.push('/profile')}
+              className="group bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 hover:border-orange-400/50 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl">👤</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">My Profile</h3>
+                  <p className="text-xs text-gray-400">Manage account</p>
+                </div>
               </div>
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <h2 className="text-lg font-bold mb-3 text-white">Your Progress</h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-yellow-400">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
+              <div className="text-xs text-gray-400">Coins</div>
             </div>
             
-            <button
-              onClick={() => router.push(`/progress?username=${user?.username}`)}
-              className="w-full py-2 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 rounded-lg font-semibold transition-all text-sm"
-            >
-              View Full Progress
-            </button>
-          </motion.div>
-        </div>
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-purple-400">{userCoinStats?.profile?.streak || user.streak}</div>
+              <div className="text-xs text-gray-400">Day Streak</div>
+            </div>
+            
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-green-400">{user.level}</div>
+              <div className="text-xs text-gray-400">Level</div>
+            </div>
+            
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-blue-400">{userCoinStats?.community?.answersGiven || 0}</div>
+              <div className="text-xs text-gray-400">Contributions</div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Footer Navigation */}
         <footer className="mt-16 border-t border-gray-700/50 pt-12 pb-8">
