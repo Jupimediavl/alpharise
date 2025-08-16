@@ -1093,7 +1093,7 @@ function DashboardContent() {
                     <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded-full">
                       <Coins className="w-3 h-3 text-yellow-400" />
                       <span className="text-yellow-400 font-semibold text-xs">
-                        {userCoinStats?.profile?.currentBalance || 0}
+                        {userCoinStats?.profile?.currentBalance || user?.coins || 0}
                       </span>
                     </div>
                   </div>
