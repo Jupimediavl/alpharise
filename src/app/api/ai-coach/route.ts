@@ -67,11 +67,17 @@ function getAgeContext(age: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  let avatarType = 'marcus' // Default value
+  let username = 'buddy' // Default value
+  
   try {
-    const { query, avatarType, userAge, username } = await request.json()
+    const requestData = await request.json()
+    const { query, avatarType: requestAvatarType, userAge, username: requestUsername } = requestData
+    avatarType = requestAvatarType || 'marcus'
+    username = requestUsername || 'buddy'
 
-    if (!query || !avatarType) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!query) {
+      return NextResponse.json({ error: 'Missing query field' }, { status: 400 })
     }
 
     const avatar = avatarPersonalities[avatarType] || avatarPersonalities.marcus

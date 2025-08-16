@@ -9,8 +9,30 @@ import { SupabaseUserManager, DbUser } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
 import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle } from 'lucide-react'
 
+// Types
+interface Solution {
+  title: string
+  action: string
+  type: string
+  description: string
+}
+
+interface BaseProblem {
+  primaryProblem: string
+  description: string
+  icon: string
+  color: string
+  urgency: string
+  solutions: Solution[]
+}
+
+interface PersonalizedProblem extends BaseProblem {
+  ageContext?: string
+  ageSpecificNote?: string
+}
+
 // Problem-Solution Matrix based on Avatar + Age
-const getPersonalizedProblems = (avatarType: string, userAge: number) => {
+const getPersonalizedProblems = (avatarType: string, userAge: number): PersonalizedProblem => {
   const baseProblems = {
     marcus: {
       primaryProblem: "Overthinking is killing your confidence",
@@ -119,7 +141,7 @@ const getPersonalizedProblems = (avatarType: string, userAge: number) => {
     }
   }
 
-  let problems = baseProblems[avatarType as keyof typeof baseProblems] || baseProblems.marcus
+  let problems: PersonalizedProblem = baseProblems[avatarType as keyof typeof baseProblems] || baseProblems.marcus
   
   // Age-based modifications
   if (userAge >= 18 && userAge <= 22) {
