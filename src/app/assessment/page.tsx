@@ -97,8 +97,9 @@ export default function AssessmentPage() {
     ]
   ]
 
-  const calculateAvatar = () => {
-    const scores: Record<string, number> = { marcus: 0, jake: 0, alex: 0, ryan: 0, ethan: 0 }
+  const calculateUserTypeAndCoach = () => {
+    // First calculate scores using the existing logic but renamed
+    const problemScores: Record<string, number> = { marcus: 0, jake: 0, alex: 0, ryan: 0, ethan: 0 }
     
     answers.forEach((answerIndex, questionIndex) => {
       const questionScoring = scoring[questionIndex]
@@ -106,9 +107,9 @@ export default function AssessmentPage() {
         const answerScoring = questionScoring[answerIndex]
         
         // Safely iterate through the scoring object
-        for (const [avatar, points] of Object.entries(answerScoring)) {
-          if (scores[avatar] !== undefined) {
-            scores[avatar] += points
+        for (const [problemType, points] of Object.entries(answerScoring)) {
+          if (problemScores[problemType] !== undefined) {
+            problemScores[problemType] += points
           }
         }
       }
@@ -118,43 +119,69 @@ export default function AssessmentPage() {
     if (userAge !== null) {
       if (userAge >= 18 && userAge <= 22) {
         // Young adults - boost Alex (inexperienced) and Ryan (nervous energy)
-        scores.alex += 2
-        scores.ryan += 1
-        console.log('🎯 Young adult bonus: +2 Alex, +1 Ryan')
+        problemScores.alex += 2
+        problemScores.ryan += 1
+        console.log('🎯 Young adult bonus: +2 Rookie, +1 Up&Down')
       } else if (userAge >= 23 && userAge <= 27) {
         // Mid twenties - boost Ryan (building confidence) and Marcus (overthinking)
-        scores.ryan += 2
-        scores.marcus += 1
-        console.log('🎯 Mid-twenties bonus: +2 Ryan, +1 Marcus')
+        problemScores.ryan += 2
+        problemScores.marcus += 1
+        console.log('🎯 Mid-twenties bonus: +2 Up&Down, +1 Overthinker')
       } else if (userAge >= 28 && userAge <= 35) {
         // Late twenties/early thirties - boost Marcus (performance anxiety) and Ethan (serious)
-        scores.marcus += 2
-        scores.ethan += 1
-        console.log('🎯 Late twenties bonus: +2 Marcus, +1 Ethan')
+        problemScores.marcus += 2
+        problemScores.ethan += 1
+        console.log('🎯 Late twenties bonus: +2 Overthinker, +1 Surface Guy')
       } else if (userAge >= 36) {
         // Mature men - boost Ethan (relationship-focused) and Jake (physical concerns)
-        scores.ethan += 2
-        scores.jake += 1
-        console.log('🎯 Mature adult bonus: +2 Ethan, +1 Jake')
+        problemScores.ethan += 2
+        problemScores.jake += 1
+        console.log('🎯 Mature adult bonus: +2 Surface Guy, +1 Nervous Guy')
       }
     }
 
-    // Find the avatar with highest score
-    let winningAvatar = 'marcus'
+    // Map old avatar scores to new user types
+    const userTypeScores = {
+      overthinker: problemScores.marcus,    // Marcus → Overthinker
+      nervous: problemScores.jake,          // Jake → Nervous Guy  
+      rookie: problemScores.alex,           // Alex → Rookie
+      updown: problemScores.ryan,           // Ryan → Up & Down
+      surface: problemScores.ethan          // Ethan → Surface Guy
+    }
+
+    // Find the user type with highest score
+    let userType = 'overthinker'
     let highestScore = 0
     
-    for (const [avatar, score] of Object.entries(scores)) {
+    for (const [type, score] of Object.entries(userTypeScores)) {
       if (score > highestScore) {
         highestScore = score
-        winningAvatar = avatar
+        userType = type
       }
     }
 
-    console.log('Avatar scores (with age):', scores)
-    console.log('User age:', userAge)
-    console.log('Winning avatar:', winningAvatar)
+    // Map user types to their appropriate coaches (opposites)
+    const userTypeToCoach = {
+      overthinker: 'logan',    // Overthinker gets Logan (Straight Shooter)
+      nervous: 'chase',        // Nervous Guy gets Chase (Cool Cat)
+      rookie: 'mason',         // Rookie gets Mason (Patient Pro) 
+      updown: 'blake',         // Up & Down gets Blake (Reliable Guy)
+      surface: 'knox'          // Surface Guy gets Knox (Authentic One)
+    }
 
-    return winningAvatar
+    const assignedCoach = userTypeToCoach[userType as keyof typeof userTypeToCoach]
+
+    console.log('Problem scores:', problemScores)
+    console.log('User type scores:', userTypeScores)
+    console.log('User age:', userAge)
+    console.log('Detected user type:', userType)
+    console.log('Assigned coach:', assignedCoach)
+
+    return {
+      userType,
+      coach: assignedCoach,
+      scores: userTypeScores
+    }
   }
 
   // All 10 questions
@@ -315,9 +342,9 @@ export default function AssessmentPage() {
       setCurrentQuestion(prev => prev + 1)
       setSelectedAnswer(answers[currentQuestion + 1] ?? null)
     } else {
-      // Last question - calculate avatar and redirect
-      const avatarType = calculateAvatar()
-      router.push(`/results?avatar=${avatarType}`)
+      // Last question - calculate user type and coach, then redirect
+      const result = calculateUserTypeAndCoach()
+      router.push(`/results?userType=${result.userType}&coach=${result.coach}`)
     }
   }
 
@@ -380,7 +407,7 @@ export default function AssessmentPage() {
             </h2>
             
             <p className="text-lg opacity-70 mb-8 leading-relaxed">
-              This assessment contains mature content and is designed for adults only. We also use your age to provide more personalized coaching recommendations.
+              This assessment contains mature content and is designed for adults only. We also use your age to match you with the right coach for your specific challenges.
             </p>
 
             {showAgeError && (

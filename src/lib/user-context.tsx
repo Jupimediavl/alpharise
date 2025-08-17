@@ -44,42 +44,42 @@ interface AlphaRiseContextType {
   setUserData: (userData: User) => void
 }
 
-// Avatar data
+// NEW COACH SYSTEM - Coaches who are the SOLUTION to user problems
 const avatars: Record<string, Avatar> = {
-  marcus: {
-    name: 'marcus',
-    displayName: 'Marcus "The Confidence Coach"',
-    image: '/avatars/marcus.jpg',
-    description: 'Former shy guy turned confidence expert',
-    specialties: ['confidence building', 'social skills', 'mindset']
+  logan: {
+    name: 'logan',
+    displayName: 'Logan "The Straight Shooter"',
+    image: '/avatars/logan.jpg',
+    description: 'Helps overthinkers get out of their heads and into action',
+    specialties: ['decision making', 'instant confidence', 'cutting through mental fog']
   },
-  jake: {
-    name: 'jake',
-    displayName: 'Jake "The Dating Strategist"',
-    image: '/avatars/jake.jpg',
-    description: 'Dating app optimization and real-world game',
-    specialties: ['dating apps', 'conversation', 'attraction']
+  chase: {
+    name: 'chase',
+    displayName: 'Chase "The Cool Cat"',
+    image: '/avatars/chase.jpg',
+    description: 'Transforms performance anxiety into unshakeable confidence',
+    specialties: ['performance confidence', 'anxiety management', 'staying cool under pressure']
   },
-  alex: {
-    name: 'alex',
-    displayName: 'Alex "The Performance Coach"',
-    image: '/avatars/alex.jpg',
-    description: 'Helping men overcome performance anxiety',
-    specialties: ['performance anxiety', 'lasting longer', 'bedroom confidence']
+  mason: {
+    name: 'mason',
+    displayName: 'Mason "The Patient Pro"',
+    image: '/avatars/mason.jpg',
+    description: 'Builds skills step-by-step for complete beginners',
+    specialties: ['fundamentals', 'step-by-step learning', 'patient skill building']
   },
-  ryan: {
-    name: 'ryan',
-    displayName: 'Ryan "The Approach Master"',
-    image: '/avatars/ryan.jpg',
-    description: 'Approach anxiety specialist and social dynamics expert',
-    specialties: ['approach anxiety', 'rejection recovery', 'social dynamics']
+  blake: {
+    name: 'blake',
+    displayName: 'Blake "The Reliable Guy"',
+    image: '/avatars/blake.jpg',
+    description: 'Turns inconsistent confidence into reliable results',
+    specialties: ['consistency building', 'systems creation', 'reliable confidence']
   },
-  ethan: {
-    name: 'ethan',
-    displayName: 'Ethan "The Relationship Builder"',
-    image: '/avatars/ethan.jpg',
-    description: 'Building deep connections and meaningful relationships',
-    specialties: ['emotional intimacy', 'relationship building', 'communication']
+  knox: {
+    name: 'knox',
+    displayName: 'Knox "The Authentic One"',
+    image: '/avatars/knox.jpg',
+    description: 'Combines emotional intelligence with magnetic confidence',
+    specialties: ['authentic connection', 'emotional intelligence', 'deep relationships']
   }
 }
 
@@ -87,7 +87,7 @@ const avatars: Record<string, Avatar> = {
 const defaultUser: User = {
   userName: '',
   userEmail: '',
-  avatarType: 'marcus',
+  avatarType: 'logan',
   coins: 200,
   streak: 1,
   level: 1,
@@ -119,13 +119,15 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
           const parsedUser = JSON.parse(savedUser)
           console.log('✅ Loading saved user:', parsedUser)
           
-          // FORCE UPDATE: If user is old invalid user, reset to valid one
-          if (parsedUser.userName === 'coach_rodriguez' || parsedUser.userName === 'testtest1') {
-            console.log('🔄 Updating invalid cached user to valid user')
+          // FORCE UPDATE: If user has old avatar type or invalid user, reset to valid one
+          if (parsedUser.userName === 'coach_rodriguez' || parsedUser.userName === 'testtest1' || 
+              ['marcus', 'jake', 'alex', 'ryan', 'ethan'].includes(parsedUser.avatarType)) {
+            console.log('🔄 Updating user with old avatar system to new coach system')
             const updatedUser = {
               ...parsedUser,
               userName: 'jupi', // User that exists in Supabase
-              userEmail: 'jupi@alpharise.com'
+              userEmail: 'jupi@alpharise.com',
+              avatarType: 'logan' // Default new coach
             }
             setUser(updatedUser)
             localStorage.setItem('alpharise_user', JSON.stringify(updatedUser))

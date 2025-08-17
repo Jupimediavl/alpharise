@@ -9,12 +9,22 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPAB
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Test connection on initialization
+if (typeof window !== 'undefined') {
+  console.log('🔌 Supabase config:', { 
+    url: supabaseUrl, 
+    keyPrefix: supabaseAnonKey.substring(0, 20) + '...' 
+  })
+}
+
 // Database Types
 export interface DbUser {
   id: string
   username: string
   email: string
-  avatar_type: 'marcus' | 'jake' | 'alex' | 'ryan' | 'ethan'
+  avatar_type: 'marcus' | 'jake' | 'alex' | 'ryan' // Actual valid DB values
+  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' // Assessment result
+  coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox' // Assigned coach
   coins: number
   streak: number
   level: number
@@ -84,6 +94,15 @@ export interface DbCoinTransaction {
   created_at: string
 }
 
+export interface DbCoach {
+  id: string
+  name: string
+  description: string
+  icon: string
+  features: string[]
+  created_at: string
+}
+
 // User Management - FIXED VERSION
 export class SupabaseUserManager {
   
@@ -123,6 +142,8 @@ export class SupabaseUserManager {
         username: userData.username,
         email: userData.email,
         avatar_type: userData.avatar_type || 'marcus',
+        user_type: userData.user_type || 'overthinker',
+        coach: userData.coach || 'logan',
         coins: userData.coins || 200,
         streak: userData.streak || 1,
         level: userData.level || 1,
@@ -138,7 +159,20 @@ export class SupabaseUserManager {
         updated_at: new Date().toISOString(),
         last_active: new Date().toISOString()
       }
+      
+      // Validate required fields
+      if (!newUserData.username || !newUserData.email) {
+        console.error('❌ Missing required fields:', { username: newUserData.username, email: newUserData.email })
+        return null
+      }
 
+      console.log('📝 Attempting to create user with data:', newUserData)
+      console.log('📊 Assessment values received:', {
+        user_type: userData.user_type,
+        coach: userData.coach,
+        avatar_type: userData.avatar_type
+      })
+      
       const { data, error } = await supabase
         .from('users')
         .insert(newUserData)
@@ -146,9 +180,17 @@ export class SupabaseUserManager {
         .single()
       
       if (error) {
-        console.error('Error creating user:', error)
+        console.error('❌ Error creating user:', error)
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         return null
       }
+      
+      console.log('✅ User created successfully:', data)
       
       return data
     } catch (error) {
@@ -726,6 +768,51 @@ export class SupabaseQuestionManager {
   }
 }
 
+// Coach Management
+export class SupabaseCoachManager {
+  
+  // Get coach by ID
+  static async getCoachById(coachId: string): Promise<DbCoach | null> {
+    try {
+      const { data, error } = await supabase
+        .from('coaches')
+        .select('*')
+        .eq('id', coachId)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error getting coach:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error in getCoachById:', error)
+      return null
+    }
+  }
+
+  // Get all coaches
+  static async getAllCoaches(): Promise<DbCoach[]> {
+    try {
+      const { data, error } = await supabase
+        .from('coaches')
+        .select('*')
+        .order('created_at', { ascending: true })
+      
+      if (error) {
+        console.error('Error getting coaches:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllCoaches:', error)
+      return []
+    }
+  }
+}
+
 // Enhanced Coin Management with Anti-Abuse
 export class SupabaseCoinManager {
   
@@ -863,11 +950,13 @@ export class SupabaseCoinManager {
 
 // Utility functions - FIXED VERSION
 export const supabaseHelpers = {
-  initializeUser: async (username: string, email: string, avatarType: string) => {
+  initializeUser: async (username: string, email: string, avatarType: string, userType?: string, coach?: string) => {
     return await SupabaseUserManager.upsertUser({
       username,
       email,
       avatar_type: avatarType as any,
+      user_type: userType as any,
+      coach: coach as any,
       coins: 200,
       streak: 1,
       level: 1,
@@ -896,5 +985,13 @@ export const supabaseHelpers = {
     )
 
     return questionsWithAnswers
+  },
+
+  getCoachById: async (coachId: string) => {
+    return await SupabaseCoachManager.getCoachById(coachId)
+  },
+
+  getAllCoaches: async () => {
+    return await SupabaseCoachManager.getAllCoaches()
   }
 }

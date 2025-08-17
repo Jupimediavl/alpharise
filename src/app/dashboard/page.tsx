@@ -5,7 +5,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser } from '@/lib/supabase'
+import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, supabaseHelpers } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
 import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut } from 'lucide-react'
 
@@ -212,11 +212,11 @@ const generateAIResponse = async (query: string, avatarType: string, userAge: nu
     
     // Local fallback if API is completely down
     const fallbackMessages = {
-      marcus: `Hey ${username}, I'm having some technical issues right now, but I hear you. Let's think this through together - your analytical mind is actually a superpower. Whatever you're dealing with regarding "${query}" is completely normal. Can you try asking me again in a moment?`,
-      alex: `Hey ${username}! Don't worry, this is totally normal - I'm just having a small technical hiccup. About "${query}" - let me break this down for you once my systems are back up. You're learning faster than you think!`,
-      ryan: `${username}, you've got this spark in me! I'm just having a quick system restart, but I'm excited to help you with "${query}". Time to level up - try asking me again in a second!`,
-      jake: `Alright ${username}, here's the game plan - I'm optimizing my systems right now, but I'll be back to help you with "${query}" in just a moment. Time to perform like a champion!`,
-      ethan: `${username}, your feelings about "${query}" are completely valid. I'm having a small technical moment, but let's focus on genuine connection - try reaching out again in just a second. Authentic confidence is your greatest strength!`
+      marcus: `Hey ${username}, Logan here! I'm having some technical issues right now, but I hear you. Let's think this through together - your analytical mind is actually a superpower. Whatever you're dealing with regarding "${query}" is completely normal. Can you try asking me again in a moment?`,
+      alex: `Hey ${username}! Mason here - don't worry, this is totally normal. I'm just having a small technical hiccup. About "${query}" - let me break this down for you once my systems are back up. You're learning faster than you think!`,
+      ryan: `${username}, Blake here! You've got this spark in you! I'm just having a quick system restart, but I'm excited to help you with "${query}". Time to level up - try asking me again in a second!`,
+      jake: `Alright ${username}, Chase here! Here's the game plan - I'm optimizing my systems right now, but I'll be back to help you with "${query}" in just a moment. Time to perform like a champion!`,
+      ethan: `${username}, Knox here! Your feelings about "${query}" are completely valid. I'm having a small technical moment, but let's focus on genuine connection - try reaching out again in just a second. Authentic confidence is your greatest strength!`
     }
     
     return {
@@ -231,6 +231,8 @@ function DashboardContent() {
   const router = useRouter()
   const [user, setUser] = useState<DbUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [coaches, setCoaches] = useState<DbCoach[]>([])
+  const [currentCoach, setCurrentCoach] = useState<DbCoach | null>(null)
   const [currentTime, setCurrentTime] = useState('')
   const [userCoinStats, setUserCoinStats] = useState<any>(null)
   const [userAge, setUserAge] = useState<number>(25) // Default age
@@ -243,6 +245,15 @@ function DashboardContent() {
   const [responseTime, setResponseTime] = useState<number>(0)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showProblemDetails, setShowProblemDetails] = useState(false)
+
+  // Map new coach names to legacy coach configurations
+  const coachMapping: Record<string, string> = {
+    'logan': 'marcus',    // Logan (Overthinker) -> Marcus config
+    'chase': 'jake',      // Chase (Nervous) -> Jake config  
+    'mason': 'alex',      // Mason (Rookie) -> Alex config
+    'blake': 'ryan',      // Blake (Up&Down) -> Ryan config
+    'knox': 'ethan'       // Knox (Surface) -> Ethan config
+  }
 
   // Enhanced coach data with personalized encouragement messages
   const coachData: {
@@ -258,51 +269,51 @@ function DashboardContent() {
     }
   } = {
     marcus: {
-      name: 'Marcus',
-      icon: '🧠',
+      name: 'Logan "The Straight Shooter"',
+      icon: '🎯',
       color: 'from-purple-500 to-pink-500',
       expertise: 'Confidence & Mindset Coach',
-      encouragementMessage: "Marcus, your analytical mind is actually your secret weapon. Today, I want you to use that overthinking superpower FOR you, not against you. Channel that mental energy into planning your next confident move. You've got this! 🚀",
+      encouragementMessage: "Logan here! Your analytical mind is actually your secret weapon. Today, I want you to use that overthinking superpower FOR you, not against you. Channel that mental energy into planning your next confident move. You've got this! 🚀",
       powerMove: "Mind Control Challenge",
       powerMoveIcon: "🎯",
       powerMoveColor: "from-purple-400 to-magenta-500"
     },
     alex: {
-      name: 'Alex',
-      icon: '📚',
+      name: 'Mason "The Patient Pro"',
+      icon: '🧑‍🏫',
       color: 'from-purple-600 to-pink-400',
       expertise: 'Knowledge & Growth Coach',
-      encouragementMessage: "Alex, your hunger for knowledge is what separates you from guys who stay stuck. Every expert was once a beginner, and you're already ahead because you're here, learning and growing. Today is another step toward mastery! 📚✨",
+      encouragementMessage: "Mason here! Your hunger for knowledge is what separates you from guys who stay stuck. Every expert was once a beginner, and you're already ahead because you're here, learning and growing. Today is another step toward mastery! 📚✨",
       powerMove: "Learning Sprint",
       powerMoveIcon: "⚡",
       powerMoveColor: "from-purple-400 to-pink-500"
     },
     ryan: {
-      name: 'Ryan',
-      icon: '💎',
+      name: 'Blake "The Reliable Guy"',
+      icon: '⚡',
       color: 'from-magenta-500 to-pink-500',
       expertise: 'Potential & Consistency Coach',
-      encouragementMessage: "Ryan, I see that fire in you - those moments when your natural charisma breaks through. Today we're turning those flashes of brilliance into your default setting. Your potential is limitless! 💎🔥",
+      encouragementMessage: "Blake here! I see that fire in you - those moments when your natural charisma breaks through. Today we're turning those flashes of brilliance into your default setting. Your potential is limitless! 💎🔥",
       powerMove: "Consistency Streak",
       powerMoveIcon: "🔥",
       powerMoveColor: "from-magenta-400 to-pink-500"
     },
     jake: {
-      name: 'Jake',
-      icon: '⚡',
+      name: 'Chase "The Cool Cat"',
+      icon: '😎',
       color: 'from-purple-500 to-magenta-600',
       expertise: 'Performance & Excellence Coach',
-      encouragementMessage: "Jake, your drive for excellence is what champions are made of. Instead of letting performance pressure hold you back, we're channeling it into unstoppable confidence. Today, you dominate! ⚡💪",
+      encouragementMessage: "Chase here! Your drive for excellence is what champions are made of. Instead of letting performance pressure hold you back, we're channeling it into unstoppable confidence. Today, you dominate! ⚡💪",
       powerMove: "Performance Peak",
       powerMoveIcon: "🚀",
       powerMoveColor: "from-purple-400 to-magenta-500"
     },
     ethan: {
-      name: 'Ethan',
+      name: 'Knox "The Authentic One"',
       icon: '❤️',
       color: 'from-pink-500 to-purple-600',
       expertise: 'Connection & Emotional Coach',
-      encouragementMessage: "Ethan, your emotional intelligence is rare and powerful. While other guys struggle to connect, you naturally understand people. Today, we combine that emotional depth with magnetic confidence! ❤️✨",
+      encouragementMessage: "Knox here! Your emotional intelligence is rare and powerful. While other guys struggle to connect, you naturally understand people. Today, we combine that emotional depth with magnetic confidence! ❤️✨",
       powerMove: "Connection Catalyst",
       powerMoveIcon: "💫",
       powerMoveColor: "from-pink-400 to-purple-500"
@@ -337,6 +348,16 @@ function DashboardContent() {
 
         setUser(userData)
 
+        // Load coaches from database
+        const allCoaches = await supabaseHelpers.getAllCoaches()
+        setCoaches(allCoaches)
+        
+        // Find current user's coach
+        if (userData.coach) {
+          const userCoach = await supabaseHelpers.getCoachById(userData.coach)
+          setCurrentCoach(userCoach)
+        }
+
         // Load user age from localStorage (from assessment)
         const alphariseUser = localStorage.getItem('alpharise_user')
         let ageToUse = userAge // default
@@ -348,8 +369,9 @@ function DashboardContent() {
           }
         }
 
-        // Generate personalized problems based on avatar + age
-        const personalizedProblems = getPersonalizedProblems(userData.avatar_type, ageToUse)
+        // Generate personalized problems based on coach + age
+        const mappedCoachForProblems = userData.coach ? coachMapping[userData.coach] || 'marcus' : 'marcus'
+        const personalizedProblems = getPersonalizedProblems(mappedCoachForProblems, ageToUse)
         setProblemsData(personalizedProblems)
 
         // Load coin stats
@@ -367,7 +389,8 @@ function DashboardContent() {
         sessionStorage.setItem('alpharise_user', JSON.stringify({
           username: userData.username,
           email: userData.email,
-          avatar_type: userData.avatar_type,
+          coach: userData.coach,
+          user_type: userData.user_type,
           coins: userData.coins,
           last_loaded: new Date().toISOString()
         }))
@@ -407,7 +430,8 @@ function DashboardContent() {
     const startTime = Date.now()
     
     try {
-      const result = await generateAIResponse(searchQuery, user.avatar_type, userAge, user.username)
+      const mappedCoachForAI = user.coach ? coachMapping[user.coach] || 'marcus' : 'marcus'
+      const result = await generateAIResponse(searchQuery, mappedCoachForAI, userAge, user.username)
       const endTime = Date.now()
       
       setAiResponse(result.response)
@@ -417,7 +441,8 @@ function DashboardContent() {
       // Debug logging
       console.log('🤖 AI Coach Response Details:', {
         query: searchQuery,
-        avatar: user.avatar_type,
+        coach: user.coach,
+        mappedLegacyCoach: mappedCoachForAI,
         age: userAge,
         source: result.source,
         responseTime: endTime - startTime,
@@ -459,7 +484,12 @@ function DashboardContent() {
     )
   }
 
-  const coach = coachData[user.avatar_type] || coachData.marcus
+  // Use coach data directly from database
+  const coach = currentCoach || {
+    name: 'Coach',
+    icon: '👤',
+    description: 'Your personal coach'
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
@@ -494,7 +524,7 @@ function DashboardContent() {
               {/* User Info */}
               <div className="text-left hidden md:block">
                 <div className="text-sm font-semibold text-white">{user?.username || 'User'}</div>
-                <div className="text-xs text-gray-400">{user?.avatar_type || 'Member'}</div>
+                <div className="text-xs text-gray-400">{user?.coach || 'Member'}</div>
               </div>
               
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
@@ -517,7 +547,7 @@ function DashboardContent() {
                     <div>
                       <div className="font-semibold text-white">{user?.username || 'User'}</div>
                       <div className="text-sm text-gray-400">{user?.email || 'member@alpharise.app'}</div>
-                      <div className="text-xs text-purple-400 capitalize">{user?.avatar_type || 'Member'} • Level {user?.level || 1}</div>
+                      <div className="text-xs text-purple-400 capitalize">{user?.coach || 'Member'} • Level {user?.level || 1}</div>
                     </div>
                   </div>
                 </div>

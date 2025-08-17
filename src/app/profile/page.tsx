@@ -15,7 +15,7 @@ export default function ProfilePage() {
   const [editForm, setEditForm] = useState({
     username: '',
     email: '',
-    avatar_type: 'marcus' as 'marcus' | 'jake' | 'alex' | 'ryan' | 'ethan'
+    coach: 'logan' as 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
   })
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function ProfilePage() {
           setEditForm({
             username: userData.username,
             email: userData.email,
-            avatar_type: userData.avatar_type
+            coach: userData.coach || 'logan' // Use coach field instead
           })
         } else {
           router.push('/login')
@@ -54,7 +54,7 @@ export default function ProfilePage() {
         ...user,
         username: editForm.username,
         email: editForm.email,
-        avatar_type: editForm.avatar_type
+        coach: editForm.coach
       })
       
       if (updated) {
@@ -70,12 +70,13 @@ export default function ProfilePage() {
     }
   }
 
-  const avatarOptions = {
-    marcus: { name: 'Marcus', emoji: '🧠', description: 'The Analytical Strategist' },
-    alex: { name: 'Alex', emoji: '📚', description: 'The Learning Mentor' },
-    ryan: { name: 'Ryan', emoji: '💎', description: 'The Motivational Coach' },
-    jake: { name: 'Jake', emoji: '⚡', description: 'The Performance Expert' },
-    ethan: { name: 'Ethan', emoji: '❤️', description: 'The Connection Specialist' }
+  // NEW COACH SYSTEM - Coaches who are the SOLUTION to user problems
+  const coachOptions = {
+    logan: { name: 'Logan', emoji: '🎯', description: 'The Straight Shooter', helpsWith: 'Overthinkers' },
+    chase: { name: 'Chase', emoji: '😎', description: 'The Cool Cat', helpsWith: 'Nervous Guys' },
+    mason: { name: 'Mason', emoji: '🧑‍🏫', description: 'The Patient Pro', helpsWith: 'Rookies' },
+    blake: { name: 'Blake', emoji: '⚡', description: 'The Reliable Guy', helpsWith: 'Up & Down Guys' },
+    knox: { name: 'Knox', emoji: '❤️', description: 'The Authentic One', helpsWith: 'Surface Guys' }
   }
 
   if (isLoading) {
@@ -134,7 +135,7 @@ export default function ProfilePage() {
                   setEditForm({
                     username: user.username,
                     email: user.email,
-                    avatar_type: user.avatar_type
+                    coach: user.coach || 'logan'
                   })
                 }}
                 className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors"
@@ -158,7 +159,7 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-3xl">
-                {avatarOptions[user.avatar_type]?.emoji || '👤'}
+                {coachOptions[user.coach || 'logan']?.emoji || '👤'}
               </div>
               {isEditing && (
                 <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors">
@@ -218,21 +219,23 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6"
           >
-            <h3 className="text-xl font-semibold text-white mb-4">Choose Your Avatar Coach</h3>
+            <h3 className="text-xl font-semibold text-white mb-4">Choose Your Personal Coach</h3>
+            <p className="text-gray-400 mb-6">Your coach is designed to help solve your specific challenges</p>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {Object.entries(avatarOptions).map(([key, avatar]) => (
+              {Object.entries(coachOptions).map(([key, coach]) => (
                 <button
                   key={key}
-                  onClick={() => setEditForm({...editForm, avatar_type: key as any})}
+                  onClick={() => setEditForm({...editForm, coach: key as any})}
                   className={`p-4 rounded-xl border-2 transition-all ${
-                    editForm.avatar_type === key
+                    editForm.coach === key
                       ? 'border-purple-500 bg-purple-500/20'
                       : 'border-gray-600 hover:border-gray-500'
                   }`}
                 >
-                  <div className="text-3xl mb-2">{avatar.emoji}</div>
-                  <div className="text-sm font-semibold text-white">{avatar.name}</div>
-                  <div className="text-xs text-gray-400">{avatar.description}</div>
+                  <div className="text-3xl mb-2">{coach.emoji}</div>
+                  <div className="text-sm font-semibold text-white">{coach.name}</div>
+                  <div className="text-xs text-gray-400 mb-1">{coach.description}</div>
+                  <div className="text-xs text-purple-300">Helps: {coach.helpsWith}</div>
                 </button>
               ))}
             </div>

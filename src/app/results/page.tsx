@@ -8,82 +8,131 @@ import { useEffect, useState, Suspense } from 'react'
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [avatarType, setAvatarType] = useState('marcus')
+  const [userType, setUserType] = useState('overthinker')
+  const [coach, setCoach] = useState('logan')
   const [isLoading, setIsLoading] = useState(true)
 
-  const avatarData = {
-    marcus: {
-      name: 'Marcus "The Overthinker"',
-      icon: '🧠',
-      description: 'Marcus always thinks 3 steps ahead... sometimes too many steps. You have a brilliant mind that sometimes works against you. Your analytical nature means you see every possible outcome - including the ones that scare you. But Marcus, this same intelligence, when properly channeled, becomes your greatest asset.',
-      features: [
-        'Mind control techniques to stop overthinking',
-        'Confidence-building exercises for anxious moments', 
-        'Practical tools for staying present during intimacy',
-        'Transforming analytical skills into social advantages'
-      ],
-      color: 'from-blue-500 to-purple-600'
+  // NEW SYSTEM: Show user their PROBLEM and their assigned COACH who will help
+  const userTypeData = {
+    overthinker: {
+      problem: 'Overthinking',
+      problemIcon: '🧠',
+      description: 'You have a brilliant analytical mind, but it sometimes works against you in social situations. You see every possible outcome - including the scary ones.',
+      color: 'from-purple-500 to-pink-500'
     },
-    jake: {
-      name: 'Jake "The Performer"',
-      icon: '⚡',
-      description: 'Jake wants to be the best at everything he does. You\'re focused on excellence and want to perform at your best. Your drive for results is admirable, but performance pressure sometimes gets in the way. We\'ll help you channel that ambition into lasting confidence, Jake.',
-      features: [
-        'Proven techniques for lasting longer naturally',
-        'Performance anxiety elimination methods',
-        'Physical confidence training',
-        'Mindset shifts from pressure to pleasure'
-      ],
-      color: 'from-yellow-500 to-orange-600'
+    nervous: {
+      problem: 'Performance Anxiety',
+      problemIcon: '⚡',
+      description: 'You want to excel and perform your best, but performance pressure sometimes gets in the way of natural confidence.',
+      color: 'from-blue-500 to-purple-500'
     },
-    alex: {
-      name: 'Alex "The Student"',
-      icon: '📚',
-      description: 'Alex knows that knowledge is power. You\'re honest about where you are and ready to learn - that puts you ahead of most guys already, Alex. Your willingness to grow is your biggest strength. We\'ll give you the comprehensive education you never got.',
-      features: [
-        'Complete intimacy education from basics to advanced',
-        'Step-by-step confidence building',
-        'Real-world practice scenarios',
-        'Knowledge that builds natural competence'
-      ],
-      color: 'from-green-500 to-emerald-600'
+    rookie: {
+      problem: 'Feeling Behind',
+      problemIcon: '📚',
+      description: 'You\'re honest about where you are and ready to learn. This self-awareness actually puts you ahead of most guys.',
+      color: 'from-green-500 to-blue-500'
     },
-    ryan: {
-      name: 'Ryan "The Rising King"',
-      icon: '💎',
-      description: 'Ryan has that natural charm when he\'s in his element. You have incredible potential that shines through sometimes, but you need consistency. Those moments of natural confidence show what\'s possible. We\'ll help you access that state whenever you want, Ryan.',
-      features: [
-        'Consistency training for reliable confidence',
-        'Social dynamics and attraction mastery',
-        'Authentic self-expression techniques',
-        'Building magnetic presence'
-      ],
-      color: 'from-purple-500 to-pink-600'
+    updown: {
+      problem: 'Inconsistent Confidence',
+      problemIcon: '💎',
+      description: 'You have incredible potential that shines through sometimes, but you need consistency to access that confidence reliably.',
+      color: 'from-yellow-500 to-orange-500'
     },
-    ethan: {
-      name: 'Ethan "The Connection Master"',
-      icon: '❤️',
-      description: 'Ethan believes the best relationships start with the heart. You understand that the best intimacy comes from genuine connection. Your emotional intelligence is rare and valuable, Ethan. We\'ll help you combine deep connection with confident physical expression.',
-      features: [
-        'Emotional intelligence and communication mastery',
-        'Building deep intimacy and connection',
-        'Balancing emotional and physical confidence',
-        'Creating meaningful relationships'
-      ],
-      color: 'from-red-500 to-rose-600'
+    surface: {
+      problem: 'Shallow Connections',
+      problemIcon: '❤️',
+      description: 'You understand that real intimacy comes from genuine connection. Your emotional intelligence is rare and valuable.',
+      color: 'from-pink-500 to-purple-500'
     }
   }
 
-  const currentAvatar = avatarData[avatarType as keyof typeof avatarData] || avatarData.marcus
+  const coachData = {
+    logan: {
+      name: 'Logan',
+      title: 'The Straight Shooter',
+      icon: '🎯',
+      helpsWith: 'Overthinkers',
+      approach: 'Gets you out of your head and into action with direct, no-nonsense techniques',
+      features: [
+        'Instant decision-making techniques to stop analysis paralysis',
+        'Mind control methods to cut through mental fog',
+        'Confidence-building exercises for anxious moments',
+        'Transforming analytical skills into social advantages'
+      ],
+      color: 'from-purple-500 to-pink-500'
+    },
+    chase: {
+      name: 'Chase',
+      title: 'The Cool Cat',
+      icon: '😎',
+      helpsWith: 'Nervous Guys',
+      approach: 'Transforms performance anxiety into unshakeable confidence with calm, steady techniques',
+      features: [
+        'Performance anxiety elimination methods',
+        'Staying cool under pressure techniques',
+        'Physical confidence training',
+        'Mindset shifts from pressure to natural flow'
+      ],
+      color: 'from-blue-500 to-purple-500'
+    },
+    mason: {
+      name: 'Mason',
+      title: 'The Patient Pro',
+      icon: '🧑‍🏫',
+      helpsWith: 'Rookies',
+      approach: 'Builds comprehensive skills step-by-step with patient, thorough education',
+      features: [
+        'Complete confidence education from basics to advanced',
+        'Step-by-step skill building without judgment',
+        'Real-world practice scenarios',
+        'Knowledge that builds natural competence'
+      ],
+      color: 'from-green-500 to-blue-500'
+    },
+    blake: {
+      name: 'Blake',
+      title: 'The Reliable Guy',
+      icon: '⚡',
+      helpsWith: 'Up & Down Guys',
+      approach: 'Creates systems and habits that turn potential into consistent, reliable results',
+      features: [
+        'Consistency training for reliable confidence',
+        'System building for sustained success',
+        'Momentum management techniques',
+        'Making your good days your normal days'
+      ],
+      color: 'from-yellow-500 to-orange-500'
+    },
+    knox: {
+      name: 'Knox',
+      title: 'The Authentic One',
+      icon: '❤️',
+      helpsWith: 'Surface Guys',
+      approach: 'Combines emotional intelligence with confident expression for authentic connections',
+      features: [
+        'Emotional intelligence and communication mastery',
+        'Building deep, meaningful connections',
+        'Authentic confidence without losing empathy',
+        'Creating relationships that actually matter'
+      ],
+      color: 'from-pink-500 to-purple-500'
+    }
+  }
+
+  const currentUserType = userTypeData[userType as keyof typeof userTypeData] || userTypeData.overthinker
+  const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
 
   const handleStartProgram = () => {
-    router.push('/signup')
+    router.push(`/signup?userType=${userType}&coach=${coach}`)
   }
 
   useEffect(() => {
-    // Safely get avatar type on client side
-    const avatar = searchParams.get('avatar') || 'marcus'
-    setAvatarType(avatar)
+    // Get user type and coach from URL params (from assessment)
+    const urlUserType = searchParams.get('userType') || 'overthinker'
+    const urlCoach = searchParams.get('coach') || 'logan'
+    
+    setUserType(urlUserType)
+    setCoach(urlCoach)
     
     // Simulate loading/processing time
     const timer = setTimeout(() => {
@@ -161,7 +210,7 @@ function ResultsContent() {
             animate={{ scale: 1 }}
             transition={{ duration: 0.6, type: "spring", bounce: 0.5 }}
           >
-            {currentAvatar.icon}
+            {currentCoach.icon}
           </motion.div>
 
           <motion.div 
@@ -170,26 +219,44 @@ function ResultsContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Your Alpha Type Is...
+            Your Problem & Coach Match
           </motion.div>
 
           <motion.h1 
-            className={`text-4xl md:text-5xl font-black mb-8 bg-gradient-to-r ${currentAvatar.color} bg-clip-text text-transparent`}
+            className="text-3xl md:text-4xl font-black mb-4 text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            {currentAvatar.name}
+            Your Challenge: {currentUserType.problem} {currentUserType.problemIcon}
           </motion.h1>
 
-          <motion.p 
+          <motion.div 
             className="text-xl leading-relaxed opacity-90 mb-12 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            {currentAvatar.description}
-          </motion.p>
+            <div className="space-y-6">
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
+                  {currentUserType.problemIcon} Your Core Challenge
+                </h3>
+                <p className="text-lg">{currentUserType.description}</p>
+              </div>
+              
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-green-400 mb-3 flex items-center gap-2">
+                  {currentCoach.icon} Your Solution Coach
+                </h3>
+                <div className="text-2xl font-bold mb-2">
+                  {currentCoach.name} - {currentCoach.title}
+                </div>
+                <p className="text-lg mb-3">Specializes in helping {currentCoach.helpsWith}</p>
+                <p className="text-base opacity-90">{currentCoach.approach}</p>
+              </div>
+            </div>
+          </motion.div>
 
           {/* Program Features */}
           <motion.div 
@@ -199,10 +266,10 @@ function ResultsContent() {
             transition={{ duration: 0.6, delay: 0.8 }}
           >
             <h3 className="text-2xl font-bold mb-6 text-cyan-400">
-              Your Personalized Program Includes:
+              What {currentCoach.name} Will Teach You:
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-              {currentAvatar.features.map((feature, index) => (
+              {currentCoach.features.map((feature, index) => (
                 <motion.div 
                   key={index}
                   className="flex items-start gap-3"
@@ -234,13 +301,13 @@ function ResultsContent() {
               }}
               whileTap={{ scale: 0.98 }}
             >
-              <span className="relative z-10">START MY TRANSFORMATION</span>
+              <span className="relative z-10">START TRAINING WITH {currentCoach.name.toUpperCase()}</span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
             </motion.button>
 
             <p className="text-sm opacity-60">
-              Join thousands of men who've already transformed their confidence
+              Join thousands of {currentCoach.helpsWith.toLowerCase()} who've transformed with {currentCoach.name}
             </p>
           </motion.div>
         </motion.div>

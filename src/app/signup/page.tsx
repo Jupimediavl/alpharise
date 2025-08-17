@@ -7,10 +7,24 @@ import { useState, useEffect, Suspense } from 'react'
 import { supabaseHelpers, SupabaseUserManager, supabase } from '@/lib/supabase'
 import { ArrowRight, Sparkles, Crown } from 'lucide-react'
 
+// Temporary mapping from new coach names to valid database values
+const getValidAvatarType = (coach: string): string => {
+  const mapping: Record<string, string> = {
+    'logan': 'marcus',   // Logan helps overthinkers -> maps to Marcus
+    'chase': 'jake',     // Chase helps nervous guys -> maps to Jake  
+    'mason': 'alex',     // Mason helps rookies -> maps to Alex
+    'blake': 'ryan',     // Blake helps up&down guys -> maps to Ryan
+    'knox': 'marcus'     // Knox helps surface guys -> maps to Marcus (or any valid value)
+  }
+  
+  return mapping[coach] || 'marcus' // Default to marcus if not found
+}
+
 function SignupContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [avatarType, setAvatarType] = useState('marcus')
+  const [userType, setUserType] = useState('overthinker')
+  const [coach, setCoach] = useState('logan')
   const [email, setEmail] = useState('')
   const [userName, setUserName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -25,49 +39,83 @@ function SignupContent() {
     email?: boolean
   }>({})
 
-  const avatarData = {
-    marcus: {
-      name: 'Marcus',
-      icon: '🧠',
-      personalMessage: "Marcus, your analytical mind is your superpower - but it's also what's holding you back. I've helped thousands of overthinkers like you transform their mental loops into magnetic confidence.",
-      urgentBenefit: "Stop overthinking every interaction and start enjoying natural, effortless conversations",
-      specificPain: "No more replaying conversations for hours wondering what you should have said differently"
+  // NEW COACH SYSTEM - Coaches are the SOLUTION to user problems
+  const coachData = {
+    logan: {
+      name: 'Logan',
+      title: 'The Straight Shooter',
+      icon: '🎯',
+      helpsWith: 'Overthinkers',
+      userTypeProblem: 'overthinking every interaction',
+      personalMessage: "Logan here! I help Overthinkers like you get out of their heads and into action. I used to coach guys who'd analyze conversations for hours afterward - sound familiar? I'll teach you to trust your instincts and make confident decisions instantly.",
+      urgentBenefit: "Stop the mental loops and start enjoying natural, effortless conversations",
+      specificPain: "No more replaying conversations for hours wondering what you should have said differently",
+      coachStyle: "Direct, no-nonsense approach that cuts through mental fog"
     },
-    jake: {
-      name: 'Jake',
-      icon: '⚡',
-      personalMessage: "Jake, your drive for excellence is admirable - but performance pressure is killing your confidence. I'll show you how to channel that competitive energy into bedroom mastery.",
+    chase: {
+      name: 'Chase', 
+      title: 'The Cool Cat',
+      icon: '😎',
+      helpsWith: 'Nervous Guys',
+      userTypeProblem: 'performance anxiety in intimate situations',
+      personalMessage: "Chase here! I specialize in helping Nervous Guys like you transform anxiety into magnetic confidence. Performance pressure used to control my life too - now I'll show you how to stay calm and confident no matter what.",
       urgentBenefit: "Transform performance anxiety into unshakeable confidence and lasting power",
-      specificPain: "No more avoiding intimacy because you're worried about disappointing her"
+      specificPain: "No more avoiding intimacy because you're worried about disappointing her",
+      coachStyle: "Calm, reassuring presence that builds unshakeable confidence"
     },
-    alex: {
-      name: 'Alex',
-      icon: '📚',
-      personalMessage: "Alex, your willingness to learn puts you ahead of 90% of guys. Most men are too proud to admit they need help - but that's exactly why you'll succeed.",
+    mason: {
+      name: 'Mason',
+      title: 'The Patient Pro', 
+      icon: '🧑‍🏫',
+      helpsWith: 'Rookies',
+      userTypeProblem: 'feeling behind and inexperienced',
+      personalMessage: "Mason here! I work exclusively with Rookies like you who are starting their confidence journey. Everyone was a beginner once - but most guys are too proud to admit it. That honesty is exactly why you'll succeed faster than everyone else.",
       urgentBenefit: "Get the comprehensive education you never received, step by step",
-      specificPain: "No more feeling clueless and hoping you're doing things right"
+      specificPain: "No more feeling clueless and hoping you're doing things right",
+      coachStyle: "Patient, thorough teacher who builds skills from the ground up"
     },
-    ryan: {
-      name: 'Ryan',
-      icon: '💎',
-      personalMessage: "Ryan, I see your potential - those moments when your natural charm shines through. The problem isn't that you lack confidence, it's that you can't access it consistently.",
+    blake: {
+      name: 'Blake',
+      title: 'The Reliable Guy',
+      icon: '⚡',
+      helpsWith: 'Up & Down Guys',
+      userTypeProblem: 'inconsistent confidence that comes and goes',
+      personalMessage: "Blake here! I help Up & Down guys like you turn potential into consistent results. I see you have those moments when your natural charm shines through - the problem isn't that you lack confidence, it's that you can't access it reliably.",
       urgentBenefit: "Unlock that magnetic confidence on demand, whenever you need it",
-      specificPain: "No more good days and bad days - just consistent, reliable confidence"
+      specificPain: "No more good days and bad days - just consistent, reliable confidence",
+      coachStyle: "Systematic approach that builds unshakeable consistency"
     },
-    ethan: {
-      name: 'Ethan',
+    knox: {
+      name: 'Knox',
+      title: 'The Authentic One',
       icon: '❤️',
-      personalMessage: "Ethan, your emotional intelligence is rare and valuable. Most guys think it's all about physical techniques - but you understand that real intimacy starts with genuine connection.",
-      urgentBenefit: "Combine your natural empathy with confident physical expression",
-      specificPain: "No more choosing between meaningful connection and passionate attraction"
+      helpsWith: 'Surface Guys', 
+      userTypeProblem: 'struggling to form deep, meaningful connections',
+      personalMessage: "Knox here! I help Surface Guys like you create authentic, deep connections. Your emotional intelligence is actually rare and valuable - most guys think it's all about technique, but you understand that real intimacy starts with genuine connection.",
+      urgentBenefit: "Combine your natural empathy with confident physical expression", 
+      specificPain: "No more choosing between meaningful connection and passionate attraction",
+      coachStyle: "Emotionally intelligent approach that creates deep, lasting bonds"
     }
   }
 
-  const currentAvatar = avatarData[avatarType as keyof typeof avatarData] || avatarData.marcus
+  // User type descriptions for context
+  const userTypeDescriptions = {
+    overthinker: "You analyze every interaction and get stuck in mental loops",
+    nervous: "Performance anxiety makes you avoid physical intimacy", 
+    rookie: "You feel behind and inexperienced compared to other guys",
+    updown: "Your confidence is inconsistent - great days followed by bad days",
+    surface: "You struggle to move beyond surface-level connections"
+  }
+
+  const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
 
   useEffect(() => {
-    const avatar = searchParams.get('avatar') || 'marcus'
-    setAvatarType(avatar)
+    // Get user type and coach from URL params (from assessment results)
+    const urlUserType = searchParams.get('userType') || 'overthinker'
+    const urlCoach = searchParams.get('coach') || 'logan'
+    
+    setUserType(urlUserType)
+    setCoach(urlCoach)
 
     // Update live counter every few seconds
     const interval = setInterval(() => {
@@ -182,23 +230,72 @@ function SignupContent() {
     setIsLoading(true)
 
     try {
+      console.log('🚀 Starting signup process...')
+      console.log('Data:', { userName: userName.trim(), email: email.trim(), coach })
+      
+      // Check environment variables
+      console.log('🔧 Environment check:', {
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        supabaseKeyPrefix: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...',
+        urlIsValid: process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co'),
+        keyIsValid: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ')
+      })
+      
+      // First, test if we can read from the users table
+      console.log('🔍 Testing table access...')
+      const { data: testSelect, error: selectError } = await supabase
+        .from('users')
+        .select('*')
+        .limit(1)
+      
+      if (selectError) {
+        console.error('❌ Table select failed:', selectError)
+        console.error('❌ This might mean the users table does not exist')
+        throw new Error(`Table access failed: ${selectError.message}`)
+      }
+      
+      console.log('✅ Table access successful, existing users:', testSelect?.length || 0)
+      
+      // Use helper function to create user with assessment data
+      console.log('📝 Creating user with assessment data:', { userName, email, coach, userType })
+      
       const newUser = await supabaseHelpers.initializeUser(
         userName.trim(),
         email.trim(), 
-        avatarType
+        'marcus', // Set a dummy avatar_type for now (we'll remove this field later)
+        userType, // Assessment result
+        coach // Original coach name
       )
+      
+      if (!newUser) {
+        throw new Error('Failed to create user account')
+      }
 
       if (newUser) {
         console.log('✅ User created successfully:', newUser)
         
+        // Store all user data including assessment results
+        const userData = {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          avatar_type: newUser.avatar_type, // This is the mapped DB value (marcus, jake, etc.)
+          userType: userType, // Assessment result (overthinker, nervous, rookie, updown, surface)
+          coach: coach, // Original coach name from results page (logan, chase, mason, blake, knox)
+          coins: newUser.coins,
+          streak: newUser.streak,
+          level: newUser.level,
+          total_earned: newUser.total_earned,
+          monthly_earnings: newUser.monthly_earnings,
+          confidence_score: newUser.confidence_score,
+          experience: newUser.experience,
+          subscription_type: newUser.subscription_type,
+          trial_days_left: newUser.trial_days_left,
+          created_at: newUser.created_at
+        }
+        
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem('alpharise_user', JSON.stringify({
-            username: newUser.username,
-            email: newUser.email,
-            avatar_type: newUser.avatar_type,
-            coins: newUser.coins,
-            created_at: newUser.created_at
-          }))
+          sessionStorage.setItem('alpharise_user', JSON.stringify(userData))
         }
         
         router.push(`/dashboard?welcome=true&username=${encodeURIComponent(newUser.username)}`)
@@ -302,7 +399,7 @@ function SignupContent() {
       <div className="relative z-10 container mx-auto px-6 py-8">
         <div className="max-w-2xl mx-auto">
           
-          {/* Personal Message */}
+          {/* Coach Introduction - COACH talking TO user type */}
           <motion.div 
             className="text-center mb-12"
             initial={{ opacity: 0, y: 30 }}
@@ -321,14 +418,30 @@ function SignupContent() {
                 ease: "easeInOut"
               }}
             >
-              {currentAvatar.icon}
+              {currentCoach.icon}
             </motion.div>
+            
+            {/* Coach talking TO the user about THEIR problem */}
             <h1 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to start your transformation?
+              Meet {currentCoach.name} - {currentCoach.title}
             </h1>
-            <p className="text-lg leading-relaxed opacity-90 mb-8">
-              {currentAvatar.personalMessage}
-            </p>
+            
+            <div className="bg-black/30 rounded-xl p-6 mb-6 border border-purple-500/20">
+              <div className="text-sm text-purple-400 mb-2 font-semibold">
+                🎯 I Help: {currentCoach.helpsWith} (That's You!)
+              </div>
+              <div className="text-sm text-gray-400 mb-4">
+                Your Problem: {userTypeDescriptions[userType as keyof typeof userTypeDescriptions]}
+              </div>
+              <p className="text-lg leading-relaxed opacity-90">
+                {currentCoach.personalMessage}
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="text-green-400 font-semibold text-sm mb-2">✨ {currentCoach.coachStyle}</div>
+              <div className="text-white font-medium">{currentCoach.urgentBenefit}</div>
+            </div>
           </motion.div>
 
           {/* Main Signup Form */}
@@ -358,11 +471,11 @@ function SignupContent() {
                   }}
                 >
                   <Sparkles className="w-6 h-6 inline-block mr-2 text-purple-400" />
-                  Start Your Free 7-Day Trial
+                  Start Training with {currentCoach.name}
                   <Sparkles className="w-6 h-6 inline-block ml-2 text-magenta-400" />
                 </motion.h2>
                 <p className="text-lg opacity-80">
-                  {currentAvatar.urgentBenefit}
+                  Join {currentCoach.name}'s program designed specifically for {currentCoach.helpsWith}
                 </p>
               </div>
 
@@ -381,7 +494,7 @@ function SignupContent() {
                 {/* Username Field */}
                 <div>
                   <label className="block text-sm font-semibold text-transparent bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text mb-2">
-                    What should we call you, future alpha?
+                    What should {currentCoach.name} call you?
                   </label>
                   <div className="relative group">
                     <motion.input 
@@ -410,8 +523,6 @@ function SignupContent() {
                           : 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(147,51,234,0.1) 50%, rgba(219,39,119,0.1) 100%)'
                       }}
                     />
-                    
-
                     
                     {validationLoading.userName && (
                       <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
@@ -444,7 +555,7 @@ function SignupContent() {
                       >
                         ✨
                       </motion.span>
-                      Username available! Looking good, alpha!
+                      Perfect! {currentCoach.name} is ready to start your training!
                     </motion.p>
                   )}
                 </div>
@@ -512,7 +623,7 @@ function SignupContent() {
                       >
                         🎯
                       </motion.span>
-                      Perfect! Ready to receive your alpha updates!
+                      Ready to receive your personalized training updates!
                     </motion.p>
                   )}
                 </div>
@@ -557,17 +668,17 @@ function SignupContent() {
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         />
-                        Creating Your Alpha Account...
+                        Setting up your training with {currentCoach.name}...
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <Sparkles className="w-5 h-5" />
-                        START MY ALPHA JOURNEY
+                        START TRAINING WITH {currentCoach.name.toUpperCase()}
                         <motion.div
                           animate={{ x: [0, 5, 0] }}
                           transition={{ duration: 1, repeat: Infinity }}
                         >
-                          🚀
+                          {currentCoach.icon}
                         </motion.div>
                       </div>
                     )}
@@ -580,7 +691,7 @@ function SignupContent() {
                   ✅ Free for 7 days • ✅ Cancel anytime • ✅ No credit card required
                 </p>
                 <p className="text-xs opacity-40">
-                  After trial: $27/month • Over 2,000 alphas have transformed their confidence
+                  After trial: $27/month • Over 2,000 men have transformed with {currentCoach.name}
                 </p>
               </div>
             </div>
@@ -606,27 +717,27 @@ function SignupContent() {
               >
                 {liveCount}
               </motion.div>
-              <div className="text-sm opacity-70">future alphas started today</div>
+              <div className="text-sm opacity-70">{currentCoach.helpsWith} started today</div>
             </motion.div>
 
-            {/* Limited Spots */}
+            {/* Coach Success Rate */}
             <motion.div 
-              className="bg-cyan-900/20 border border-cyan-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
+              className="bg-green-900/20 border border-green-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-cyan-400 font-bold text-lg mb-2">⚡ Limited</div>
+              <div className="text-green-400 font-bold text-lg mb-2">{currentCoach.icon} {currentCoach.name}</div>
               <motion.div 
                 className="text-2xl font-black text-white mb-1"
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
-                23 spots
+                94% success
               </motion.div>
-              <div className="text-sm opacity-70">remaining for today</div>
+              <div className="text-sm opacity-70">rate with {currentCoach.helpsWith}</div>
             </motion.div>
           </motion.div>
 
-          {/* Benefits Specific to Avatar */}
+          {/* Benefits Specific to Coach & User Type */}
           <motion.div 
             className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
             initial={{ opacity: 0, y: 20 }}
@@ -634,7 +745,7 @@ function SignupContent() {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <h3 className="text-xl font-bold mb-4 text-center">
-              What you'll get in your first week:
+              What {currentCoach.name} will teach you in your first week:
             </h3>
             <div className="space-y-3">
               <motion.div 
@@ -643,7 +754,7 @@ function SignupContent() {
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="text-purple-400 mt-1">✨</div>
-                <div>Your personalized {currentAvatar.name} confidence blueprint</div>
+                <div>Your personalized {currentCoach.title} confidence blueprint</div>
               </motion.div>
               <motion.div 
                 className="flex items-start gap-3"
@@ -651,7 +762,7 @@ function SignupContent() {
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="text-magenta-400 mt-1">🚀</div>
-                <div>Access to your exclusive alpha brotherhood community</div>
+                <div>Access to {currentCoach.name}'s exclusive {currentCoach.helpsWith} brotherhood</div>
               </motion.div>
               <motion.div 
                 className="flex items-start gap-3"
@@ -659,7 +770,7 @@ function SignupContent() {
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="text-pink-400 mt-1">🎯</div>
-                <div>{currentAvatar.specificPain}</div>
+                <div>{currentCoach.specificPain}</div>
               </motion.div>
               <motion.div 
                 className="flex items-start gap-3"
@@ -667,7 +778,7 @@ function SignupContent() {
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="text-purple-400 mt-1">⚡</div>
-                <div>Daily confidence challenges designed for your personality type</div>
+                <div>Daily challenges designed specifically for overcoming {currentCoach.userTypeProblem}</div>
               </motion.div>
               <motion.div 
                 className="flex items-start gap-3"
@@ -716,7 +827,7 @@ export default function SignupPage() {
           >
             🚀
           </motion.div>
-          <h2 className="text-2xl font-bold">Preparing your alpha program...</h2>
+          <h2 className="text-2xl font-bold">Matching you with your perfect coach...</h2>
           <motion.div 
             className="mt-4 w-64 h-1 bg-gray-700 rounded-full mx-auto overflow-hidden"
           >

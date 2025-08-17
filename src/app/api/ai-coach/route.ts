@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing query field' }, { status: 400 })
     }
 
-    const avatar = avatarPersonalities[avatarType] || avatarPersonalities.marcus
+    const avatar = avatarPersonalities[avatarType] || avatarPersonalities.logan
     const ageContext = getAgeContext(userAge || 25)
 
     // OpenAI API call
@@ -159,7 +159,7 @@ The user's name is ${username || 'buddy'}.`
     console.error('AI Coach API Error:', error)
     
     // Fallback response
-    const avatar = avatarPersonalities[avatarType] || avatarPersonalities.marcus
+    const avatar = avatarPersonalities[avatarType] || avatarPersonalities.logan
     const fallbackResponse = `Hey ${username || 'buddy'}! I'm having a moment here and can't process that right now, but I hear you. ${avatar.catchphrases[0]} - can you try asking me again in a moment? In the meantime, remember that whatever you're dealing with is totally normal and we'll figure it out together.`
     
     return NextResponse.json({ 
