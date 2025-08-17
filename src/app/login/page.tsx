@@ -58,7 +58,9 @@ export default function LoginPage() {
           sessionStorage.setItem('alpharise_user', JSON.stringify({
             username: user.username,
             email: user.email,
-            avatar_type: user.avatar_type,
+            user_type: user.user_type,
+            coach: user.coach,
+            age: user.age,
             coins: user.coins,
             created_at: user.created_at,
             level: user.level,

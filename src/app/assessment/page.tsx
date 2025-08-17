@@ -171,15 +171,51 @@ export default function AssessmentPage() {
 
     const assignedCoach = userTypeToCoach[userType as keyof typeof userTypeToCoach]
 
+    // Calculate initial confidence score (for users who need our help)
+    // Base score starts at 25 (indicating room for growth)
+    let confidenceScore = 25
+    
+    // Add points based on user type strength, but capped low
+    confidenceScore += Math.min(highestScore, 8) // Max 8 bonus points from answers
+    
+    // Age-based confidence adjustments (smaller ranges)
+    if (userAge !== null) {
+      if (userAge >= 18 && userAge <= 22) {
+        confidenceScore -= 5 // Young adults need more support
+      } else if (userAge >= 23 && userAge <= 27) {
+        confidenceScore -= 2 // Mid twenties still developing
+      } else if (userAge >= 28 && userAge <= 35) {
+        confidenceScore += 2 // Some life experience
+      } else if (userAge >= 36) {
+        confidenceScore += 4 // More mature but still learning
+      }
+    }
+    
+    // Small adjustments based on readiness/commitment
+    answers.forEach((answerIndex, questionIndex) => {
+      // Questions about readiness and commitment (last 3 questions)
+      if (questionIndex >= 7) {
+        if (answerIndex >= 3) confidenceScore += 2 // High readiness
+        else if (answerIndex >= 1) confidenceScore += 1 // Medium readiness
+        // Low readiness gets no bonus
+      }
+    })
+    
+    // Ensure score stays within beginner bounds (15-40)
+    // Everyone who takes this assessment needs improvement!
+    confidenceScore = Math.max(15, Math.min(40, confidenceScore))
+    
     console.log('Problem scores:', problemScores)
     console.log('User type scores:', userTypeScores)
     console.log('User age:', userAge)
+    console.log('Calculated confidence score:', confidenceScore)
     console.log('Detected user type:', userType)
     console.log('Assigned coach:', assignedCoach)
 
     return {
       userType,
       coach: assignedCoach,
+      confidenceScore,
       scores: userTypeScores
     }
   }
@@ -344,7 +380,7 @@ export default function AssessmentPage() {
     } else {
       // Last question - calculate user type and coach, then redirect
       const result = calculateUserTypeAndCoach()
-      router.push(`/results?userType=${result.userType}&coach=${result.coach}`)
+      router.push(`/results?userType=${result.userType}&coach=${result.coach}&age=${userAge}&confidenceScore=${result.confidenceScore}`)
     }
   }
 

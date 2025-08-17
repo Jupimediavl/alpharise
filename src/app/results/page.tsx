@@ -11,6 +11,8 @@ function ResultsContent() {
   const [userType, setUserType] = useState('overthinker')
   const [coach, setCoach] = useState('logan')
   const [isLoading, setIsLoading] = useState(true)
+  const [personalizedAnalysis, setPersonalizedAnalysis] = useState<string>('')
+  const [analysisLoading, setAnalysisLoading] = useState(false)
 
   // NEW SYSTEM: Show user their PROBLEM and their assigned COACH who will help
   const userTypeData = {
@@ -123,16 +125,56 @@ function ResultsContent() {
   const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
 
   const handleStartProgram = () => {
-    router.push(`/signup?userType=${userType}&coach=${coach}`)
+    const age = searchParams.get('age') || '25'
+    const confidenceScore = searchParams.get('confidenceScore') || '25'
+    router.push(`/signup?userType=${userType}&coach=${coach}&age=${age}&confidenceScore=${confidenceScore}`)
+  }
+
+  // Fetch personalized analysis from OpenAI
+  const fetchPersonalizedAnalysis = async (userType: string, coach: string, age: string, confidenceScore: string) => {
+    setAnalysisLoading(true)
+    try {
+      const response = await fetch('/api/personalized-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userType,
+          coach,
+          age: parseInt(age),
+          confidenceScore: parseInt(confidenceScore),
+          username: 'future alpha' // Could get actual username from session if available
+        })
+      })
+
+      const data = await response.json()
+      if (data.success && data.analysis) {
+        setPersonalizedAnalysis(data.analysis)
+      } else {
+        // Fallback to static content
+        setPersonalizedAnalysis('')
+      }
+    } catch (error) {
+      console.error('Error fetching personalized analysis:', error)
+      setPersonalizedAnalysis('')
+    } finally {
+      setAnalysisLoading(false)
+    }
   }
 
   useEffect(() => {
     // Get user type and coach from URL params (from assessment)
     const urlUserType = searchParams.get('userType') || 'overthinker'
     const urlCoach = searchParams.get('coach') || 'logan'
+    const age = searchParams.get('age') || '25'
+    const confidenceScore = searchParams.get('confidenceScore') || '25'
     
     setUserType(urlUserType)
     setCoach(urlCoach)
+    
+    // Fetch personalized analysis
+    fetchPersonalizedAnalysis(urlUserType, urlCoach, age, confidenceScore)
     
     // Simulate loading/processing time
     const timer = setTimeout(() => {
@@ -231,31 +273,56 @@ function ResultsContent() {
             Your Challenge: {currentUserType.problem} {currentUserType.problemIcon}
           </motion.h1>
 
+          {/* Personalized Analysis Section */}
           <motion.div 
             className="text-xl leading-relaxed opacity-90 mb-12 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <div className="space-y-6">
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
-                  {currentUserType.problemIcon} Your Core Challenge
-                </h3>
-                <p className="text-lg">{currentUserType.description}</p>
-              </div>
-              
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-green-400 mb-3 flex items-center gap-2">
-                  {currentCoach.icon} Your Solution Coach
-                </h3>
-                <div className="text-2xl font-bold mb-2">
-                  {currentCoach.name} - {currentCoach.title}
+            {analysisLoading ? (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-8">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <motion.div
+                    className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <span className="text-blue-400 font-semibold">Coach {currentCoach.name} is analyzing your results...</span>
                 </div>
-                <p className="text-lg mb-3">Specializes in helping {currentCoach.helpsWith}</p>
-                <p className="text-base opacity-90">{currentCoach.approach}</p>
+                <p className="text-base opacity-70">Creating your personalized confidence profile</p>
               </div>
-            </div>
+            ) : personalizedAnalysis ? (
+              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-8">
+                <h3 className="text-2xl font-bold text-purple-400 mb-4 flex items-center gap-2">
+                  {currentCoach.icon} Personal Analysis from Coach {currentCoach.name}
+                </h3>
+                <div className="text-lg text-left leading-relaxed whitespace-pre-line">
+                  {personalizedAnalysis}
+                </div>
+              </div>
+            ) : (
+              // Fallback to static content if AI analysis fails
+              <div className="space-y-6">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
+                    {currentUserType.problemIcon} Your Core Challenge
+                  </h3>
+                  <p className="text-lg">{currentUserType.description}</p>
+                </div>
+                
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-green-400 mb-3 flex items-center gap-2">
+                    {currentCoach.icon} Your Solution Coach
+                  </h3>
+                  <div className="text-2xl font-bold mb-2">
+                    {currentCoach.name} - {currentCoach.title}
+                  </div>
+                  <p className="text-lg mb-3">Specializes in helping {currentCoach.helpsWith}</p>
+                  <p className="text-base opacity-90">{currentCoach.approach}</p>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Program Features */}

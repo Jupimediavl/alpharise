@@ -328,14 +328,7 @@ function DashboardContent() {
         
         let username = searchParams.get('username')
         if (!username) {
-          const sessionData = sessionStorage.getItem('alpharise_user')
-          if (sessionData) {
-            const parsedData = JSON.parse(sessionData)
-            username = parsedData.username
-          }
-        }
-
-        if (!username) {
+          // If no username in URL, redirect to signup
           router.push('/signup')
           return
         }
@@ -358,16 +351,9 @@ function DashboardContent() {
           setCurrentCoach(userCoach)
         }
 
-        // Load user age from localStorage (from assessment)
-        const alphariseUser = localStorage.getItem('alpharise_user')
-        let ageToUse = userAge // default
-        if (alphariseUser) {
-          const parsedUser = JSON.parse(alphariseUser)
-          if (parsedUser.age) {
-            ageToUse = parsedUser.age
-            setUserAge(ageToUse)
-          }
-        }
+        // Use age from database
+        const ageToUse = userData.age || 25
+        setUserAge(ageToUse)
 
         // Generate personalized problems based on coach + age
         const mappedCoachForProblems = userData.coach ? coachMapping[userData.coach] || 'marcus' : 'marcus'
@@ -386,14 +372,7 @@ function DashboardContent() {
           userData.coins = (userData.coins || 0) + dailyReward.amount
         }
 
-        sessionStorage.setItem('alpharise_user', JSON.stringify({
-          username: userData.username,
-          email: userData.email,
-          coach: userData.coach,
-          user_type: userData.user_type,
-          coins: userData.coins,
-          last_loaded: new Date().toISOString()
-        }))
+        // No need for sessionStorage - everything comes from database
 
       } catch (error) {
         console.error('Error loading user data:', error)

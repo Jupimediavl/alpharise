@@ -25,6 +25,8 @@ function SignupContent() {
   const router = useRouter()
   const [userType, setUserType] = useState('overthinker')
   const [coach, setCoach] = useState('logan')
+  const [age, setAge] = useState(25) // Will be set from URL params
+  const [confidenceScore, setConfidenceScore] = useState(25) // Will be set from URL params
   const [email, setEmail] = useState('')
   const [userName, setUserName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -110,12 +112,16 @@ function SignupContent() {
   const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
 
   useEffect(() => {
-    // Get user type and coach from URL params (from assessment results)
+    // Get user type, coach, age, and confidence score from URL params (from assessment results)
     const urlUserType = searchParams.get('userType') || 'overthinker'
     const urlCoach = searchParams.get('coach') || 'logan'
+    const urlAge = parseInt(searchParams.get('age') || '25')
+    const urlConfidenceScore = parseInt(searchParams.get('confidenceScore') || '25')
     
     setUserType(urlUserType)
     setCoach(urlCoach)
+    setAge(urlAge)
+    setConfidenceScore(urlConfidenceScore)
 
     // Update live counter every few seconds
     const interval = setInterval(() => {
@@ -262,9 +268,10 @@ function SignupContent() {
       const newUser = await supabaseHelpers.initializeUser(
         userName.trim(),
         email.trim(), 
-        'marcus', // Set a dummy avatar_type for now (we'll remove this field later)
         userType, // Assessment result
-        coach // Original coach name
+        coach, // Original coach name
+        age, // User age
+        confidenceScore // Calculated confidence score from assessment
       )
       
       if (!newUser) {
@@ -274,29 +281,7 @@ function SignupContent() {
       if (newUser) {
         console.log('✅ User created successfully:', newUser)
         
-        // Store all user data including assessment results
-        const userData = {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-          avatar_type: newUser.avatar_type, // This is the mapped DB value (marcus, jake, etc.)
-          userType: userType, // Assessment result (overthinker, nervous, rookie, updown, surface)
-          coach: coach, // Original coach name from results page (logan, chase, mason, blake, knox)
-          coins: newUser.coins,
-          streak: newUser.streak,
-          level: newUser.level,
-          total_earned: newUser.total_earned,
-          monthly_earnings: newUser.monthly_earnings,
-          confidence_score: newUser.confidence_score,
-          experience: newUser.experience,
-          subscription_type: newUser.subscription_type,
-          trial_days_left: newUser.trial_days_left,
-          created_at: newUser.created_at
-        }
-        
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('alpharise_user', JSON.stringify(userData))
-        }
+        // No need to store locally - everything comes from database now
         
         router.push(`/dashboard?welcome=true&username=${encodeURIComponent(newUser.username)}`)
       } else {
@@ -627,6 +612,7 @@ function SignupContent() {
                     </motion.p>
                   )}
                 </div>
+
                 
                 <motion.button 
                   type="submit"

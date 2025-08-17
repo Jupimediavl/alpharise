@@ -22,9 +22,9 @@ export interface DbUser {
   id: string
   username: string
   email: string
-  avatar_type: 'marcus' | 'jake' | 'alex' | 'ryan' // Actual valid DB values
   user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' // Assessment result
   coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox' // Assigned coach
+  age: number // User age from assessment
   coins: number
   streak: number
   level: number
@@ -116,7 +116,6 @@ export class SupabaseUserManager {
           // Update existing user - only update specific fields
           const updateData = {
             email: userData.email || existingUser.email,
-            avatar_type: userData.avatar_type || existingUser.avatar_type,
             updated_at: new Date().toISOString(),
             last_active: new Date().toISOString()
           }
@@ -141,9 +140,9 @@ export class SupabaseUserManager {
       const newUserData = {
         username: userData.username,
         email: userData.email,
-        avatar_type: userData.avatar_type || 'marcus',
         user_type: userData.user_type || 'overthinker',
         coach: userData.coach || 'logan',
+        age: userData.age || 25,
         coins: userData.coins || 200,
         streak: userData.streak || 1,
         level: userData.level || 1,
@@ -152,7 +151,7 @@ export class SupabaseUserManager {
         discount_earned: userData.discount_earned || 0,
         subscription_type: userData.subscription_type || 'trial',
         trial_days_left: userData.trial_days_left || 7,
-        confidence_score: userData.confidence_score || 34,
+        confidence_score: userData.confidence_score || 25,
         experience: userData.experience || 150,
         badges: userData.badges || [],
         created_at: new Date().toISOString(),
@@ -169,8 +168,7 @@ export class SupabaseUserManager {
       console.log('📝 Attempting to create user with data:', newUserData)
       console.log('📊 Assessment values received:', {
         user_type: userData.user_type,
-        coach: userData.coach,
-        avatar_type: userData.avatar_type
+        coach: userData.coach
       })
       
       const { data, error } = await supabase
@@ -950,13 +948,14 @@ export class SupabaseCoinManager {
 
 // Utility functions - FIXED VERSION
 export const supabaseHelpers = {
-  initializeUser: async (username: string, email: string, avatarType: string, userType?: string, coach?: string) => {
+  initializeUser: async (username: string, email: string, userType?: string, coach?: string, age?: number, confidenceScore?: number) => {
     return await SupabaseUserManager.upsertUser({
       username,
       email,
-      avatar_type: avatarType as any,
       user_type: userType as any,
       coach: coach as any,
+      age: age || 25,
+      confidence_score: confidenceScore || 25,
       coins: 200,
       streak: 1,
       level: 1,
@@ -993,5 +992,45 @@ export const supabaseHelpers = {
 
   getAllCoaches: async () => {
     return await SupabaseCoachManager.getAllCoaches()
+  },
+
+  // Update confidence score (for lesson completion rewards)
+  updateConfidenceScore: async (userId: string, pointsToAdd: number) => {
+    try {
+      const { data: currentUser, error: getUserError } = await supabase
+        .from('users')
+        .select('confidence_score')
+        .eq('id', userId)
+        .single()
+
+      if (getUserError) {
+        console.error('Error getting current user:', getUserError)
+        return null
+      }
+
+      const currentScore = currentUser.confidence_score || 25
+      const newScore = Math.min(100, currentScore + pointsToAdd) // Cap at 100
+
+      const { data, error } = await supabase
+        .from('users')
+        .update({ 
+          confidence_score: newScore,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating confidence score:', error)
+        return null
+      }
+
+      console.log(`✅ Confidence score updated: ${currentScore} → ${newScore} (+${pointsToAdd})`)
+      return data
+    } catch (error) {
+      console.error('Error in updateConfidenceScore:', error)
+      return null
+    }
   }
 }

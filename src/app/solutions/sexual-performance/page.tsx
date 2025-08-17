@@ -358,7 +358,10 @@ function SexualPerformancePage() {
     )
   }
 
-  const avatarInfo = avatarPersonalization[user.avatar_type as keyof typeof avatarPersonalization] || avatarPersonalization.alex
+  // Map coach to legacy avatar for personalization (temporary compatibility)
+  const coachToAvatar = { logan: 'marcus', chase: 'jake', mason: 'alex', blake: 'ryan', knox: 'ethan' }
+  const mappedAvatar = user.coach ? coachToAvatar[user.coach as keyof typeof coachToAvatar] || 'alex' : 'alex'
+  const avatarInfo = avatarPersonalization[mappedAvatar as keyof typeof avatarPersonalization] || avatarPersonalization.alex
   const solutionsList = Object.entries(sexualPerformanceSolutions)
 
   return (
