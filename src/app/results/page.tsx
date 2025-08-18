@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useEffect, useState, Suspense } from 'react'
 import { SupabasePricingManager } from '@/lib/supabase'
+import Image from 'next/image'
 
 function ResultsContent() {
   const searchParams = useSearchParams()
@@ -30,7 +31,7 @@ function ResultsContent() {
   const userTypeData = {
     overthinker: {
       problem: 'Overthinking',
-      problemIcon: '🧠',
+      problemIcon: '',
       description: 'You have a brilliant analytical mind, but it sometimes works against you in social situations. You see every possible outcome - including the scary ones.',
       color: 'from-purple-500 to-pink-500'
     },
@@ -64,7 +65,8 @@ function ResultsContent() {
     logan: {
       name: 'Logan',
       title: 'The Straight Shooter',
-      icon: '🎯',
+      icon: '',
+      avatar: '/avatars/logan.png',
       helpsWith: 'Overthinkers',
       approach: 'Gets you out of your head and into action with direct, no-nonsense techniques',
       features: [
@@ -79,6 +81,7 @@ function ResultsContent() {
       name: 'Chase',
       title: 'The Cool Cat',
       icon: '😎',
+      avatar: '/avatars/chase.png',
       helpsWith: 'Nervous Guys',
       approach: 'Transforms performance anxiety into unshakeable confidence with calm, steady techniques',
       features: [
@@ -93,6 +96,7 @@ function ResultsContent() {
       name: 'Mason',
       title: 'The Patient Pro',
       icon: '🧑‍🏫',
+      avatar: '/avatars/mason.png',
       helpsWith: 'Rookies',
       approach: 'Builds comprehensive skills step-by-step with patient, thorough education',
       features: [
@@ -107,6 +111,7 @@ function ResultsContent() {
       name: 'Blake',
       title: 'The Reliable Guy',
       icon: '⚡',
+      avatar: '/avatars/blake.png',
       helpsWith: 'Up & Down Guys',
       approach: 'Creates systems and habits that turn potential into consistent, reliable results',
       features: [
@@ -121,6 +126,7 @@ function ResultsContent() {
       name: 'Knox',
       title: 'The Authentic One',
       icon: '❤️',
+      avatar: '/avatars/knox.png',
       helpsWith: 'Surface Guys',
       approach: 'Combines emotional intelligence with confident expression for authentic connections',
       features: [
@@ -229,7 +235,6 @@ function ResultsContent() {
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           >
-            🎯
           </motion.div>
           <motion.h2 
             className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent"
@@ -304,13 +309,32 @@ function ResultsContent() {
           </motion.div>
 
           <motion.h1 
-            className="text-4xl md:text-5xl font-black mb-8 text-white"
+            className="text-4xl md:text-5xl font-black mb-4 text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
             YOUR CONFIDENCE ANALYSIS
           </motion.h1>
+
+          {/* Scarcity Banner */}
+          <motion.div
+            className="mb-8 bg-gradient-to-r from-red-600/30 to-orange-600/30 border-2 border-red-500/60 rounded-xl p-4 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <span className="text-2xl">⚡</span>
+              <div className="text-xl font-black text-red-300">
+                SPECIAL PRICING ENDS SOON
+              </div>
+              <span className="text-2xl">⚡</span>
+            </div>
+            <div className="text-red-200 font-semibold">
+              ${pricingData.trialPrice} Trial Available for LIMITED TIME Only - Don't Miss Out!
+            </div>
+          </motion.div>
 
           {/* Confidence Score - Big and Prominent */}
           <motion.div 
@@ -360,15 +384,18 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white">
-                START FREE TRIAL NOW
+                🔥 CLAIM ${pricingData.trialPrice} TRIAL - LIMITED TIME
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
             </motion.button>
             
-            <div className="mt-3 space-y-1">
+            <div className="mt-3 space-y-2">
               <div className="text-sm text-green-400 font-semibold">
-                {pricingData.trialDays}-Day Trial for ${pricingData.trialPrice} • Then ${pricingData.mainPrice}/month
+                🔥 {pricingData.trialDays}-Day Trial for ${pricingData.trialPrice} • Then ${pricingData.mainPrice}/month
+              </div>
+              <div className="text-xs text-yellow-300 font-medium bg-yellow-900/30 px-3 py-1 rounded-full inline-block">
+                ⚡ Limited Time Offer - Act Fast!
               </div>
               <div className="text-xs text-gray-400">
                 Or continue reading to learn more about your personalized plan
@@ -394,8 +421,8 @@ function ResultsContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <div className="text-center mb-6">
-              <div className="text-6xl mb-4">{currentCoach.icon}</div>
+            {/* Header */}
+            <div className="text-center mb-8">
               <div className="text-2xl md:text-3xl font-bold text-white mb-2">
                 You've been assigned Coach {currentCoach.name}
               </div>
@@ -403,25 +430,55 @@ function ResultsContent() {
                 "{currentCoach.title}"
               </div>
             </div>
-            
-            <div className="text-lg text-white text-center mb-6">
-              Coach {currentCoach.name} specializes in helping guys with {currentUserType.problem.toLowerCase()}. 
-              Here's exactly how he'll transform you:
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-              {currentCoach.features.map((feature, index) => (
-                <motion.div 
-                  key={index}
-                  className="flex items-start gap-3 text-left"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.9 + (index * 0.1) }}
+
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              
+              {/* Left Column - Content */}
+              <div className="space-y-6">
+                <div className="text-lg text-white">
+                  Coach {currentCoach.name} specializes in helping guys with <span className="text-blue-400 font-semibold">{currentUserType.problem.toLowerCase()}</span>. 
+                  Here's exactly how he'll transform you:
+                </div>
+                
+                <div className="space-y-4">
+                  {currentCoach.features.map((feature, index) => (
+                    <motion.div 
+                      key={index}
+                      className="flex items-start gap-3 text-left"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.9 + (index * 0.1) }}
+                    >
+                      <div className="text-blue-400 mt-1 text-lg">•</div>
+                      <div className="text-white">{feature}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column - Avatar */}
+              <div className="flex justify-center lg:justify-end">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, delay: 1.0 }}
+                  className="relative"
                 >
-                  <div className="text-blue-400 mt-1 text-xl">🎯</div>
-                  <div className="text-white">{feature}</div>
+                  <div className="w-64 h-64 lg:w-80 lg:h-80 relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-xl"></div>
+                    <Image
+                      src={currentCoach.avatar}
+                      alt={`Coach ${currentCoach.name} - ${currentCoach.title}`}
+                      width={320}
+                      height={320}
+                      className="relative z-10 w-full h-full object-contain"
+                      priority
+                    />
+                  </div>
                 </motion.div>
-              ))}
+              </div>
+
             </div>
           </motion.div>
 
@@ -445,51 +502,148 @@ function ResultsContent() {
                 <p className="text-base opacity-70">Creating your personalized confidence profile</p>
               </div>
             ) : personalizedAnalysis ? (
-              <div className="bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border-2 border-purple-500/40 rounded-2xl p-8 text-center">
-                <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-6 tracking-wider">
-                  PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
-                </div>
-                <div className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-3xl mx-auto">
-                  {personalizedAnalysis.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="mb-6">
-                      {paragraph.trim()}
-                    </p>
-                  ))}
+              <div className="relative bg-gradient-to-br from-purple-600/20 via-magenta-600/25 to-pink-600/20 border-2 border-magenta-400/60 rounded-3xl p-10 text-center overflow-hidden shadow-2xl">
+                {/* Background glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl"></div>
+                
+                {/* Animated border glow */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 opacity-20 animate-pulse"></div>
+                
+                <div className="relative z-10">
+                  {/* Header with enhanced styling */}
+                  <motion.div 
+                    className="mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
+                      🔥 Exclusive Analysis
+                    </div>
+                    <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
+                      PERSONAL ANALYSIS FROM<br/>COACH {currentCoach.name.toUpperCase()}
+                    </div>
+                  </motion.div>
+                  
+                  {/* Content with enhanced typography */}
+                  <motion.div 
+                    className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-4xl mx-auto"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                  >
+                    {personalizedAnalysis.split('\n\n').map((paragraph, index) => (
+                      <p key={index} className="mb-6 text-shadow-sm">
+                        {paragraph.trim()}
+                      </p>
+                    ))}
+                  </motion.div>
+                  
+                  {/* Decorative elements */}
+                  <div className="absolute top-6 left-6 w-3 h-3 bg-magenta-400 rounded-full animate-ping"></div>
+                  <div className="absolute top-8 right-8 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                  <div className="absolute bottom-8 left-8 w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
                 </div>
               </div>
             ) : (
               // Fallback to static content if AI analysis fails
-              <div className="bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border-2 border-purple-500/40 rounded-2xl p-8 text-center">
-                <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-6 tracking-wider">
-                  PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
-                </div>
-                <div className="text-xl text-white max-w-2xl mx-auto">
-                  You're dealing with {currentUserType.problem.toLowerCase()}, which is exactly my specialty. 
-                  At your confidence level, you've got serious potential - we just need to unlock it. 
-                  <strong className="text-magenta-400">AlphaRise will transform you into the confident man you're meant to be.</strong>
+              <div className="relative bg-gradient-to-br from-purple-600/20 via-magenta-600/25 to-pink-600/20 border-2 border-magenta-400/60 rounded-3xl p-10 text-center overflow-hidden shadow-2xl">
+                {/* Background glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl"></div>
+                
+                {/* Animated border glow */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 opacity-20 animate-pulse"></div>
+                
+                <div className="relative z-10">
+                  {/* Header with enhanced styling */}
+                  <motion.div 
+                    className="mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
+                      🔥 Exclusive Analysis
+                    </div>
+                    <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
+                      PERSONAL ANALYSIS FROM<br/>COACH {currentCoach.name.toUpperCase()}
+                    </div>
+                  </motion.div>
+                  
+                  {/* Content with enhanced typography */}
+                  <motion.div 
+                    className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-4xl mx-auto"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                  >
+                    <p className="mb-6 text-shadow-sm">
+                      You're dealing with {currentUserType.problem.toLowerCase()}, which is exactly my specialty. 
+                      At your confidence level, you've got serious potential - we just need to unlock it. 
+                      <strong className="text-magenta-200">AlphaRise will transform you into the confident man you're meant to be.</strong>
+                    </p>
+                  </motion.div>
+                  
+                  {/* Decorative elements */}
+                  <div className="absolute top-6 left-6 w-3 h-3 bg-magenta-400 rounded-full animate-ping"></div>
+                  <div className="absolute top-8 right-8 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                  <div className="absolute bottom-8 left-8 w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
                 </div>
               </div>
             )}
           </motion.div>
 
-          {/* Urgency & FOMO Section */}
-          <motion.div 
-            className="bg-gradient-to-r from-purple-900/30 to-magenta-900/30 border-2 border-purple-500/50 rounded-2xl p-8 mb-8"
-            initial={{ opacity: 0, y: 30 }}
+          {/* CTA After Personal Analysis */}
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
           >
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-4">
-                DON'T WAIT ANOTHER DAY
+            <div className="mb-6">
+              <div className="text-2xl md:text-3xl text-white mb-4 font-bold">
+                Ready to Start Your Transformation?
               </div>
-              <div className="text-xl md:text-2xl text-white mb-6">
-                Every day you wait is another day of <strong className="text-purple-400">missed opportunities</strong>, 
-                <strong className="text-purple-400"> rejected approaches</strong>, and <strong className="text-purple-400">confidence that stays stuck</strong>.
+              <div className="text-lg text-gray-300 mb-2">
+                Don't let another day pass with a confidence score of <span className="text-purple-400 font-bold">{searchParams.get('confidenceScore') || '25'}</span>
+              </div>
+            </div>
+            
+            <motion.button
+              onClick={handleStartProgram}
+              className="px-14 py-5 text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-xl 
+                       transition-all duration-300 ease-out shadow-xl relative overflow-hidden group border-2 border-magenta-400/50
+                       hover:scale-105 active:scale-95"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 0 40px rgba(236, 72, 153, 0.5)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="relative z-10 text-white drop-shadow-md">
+                ⚡ SECURE YOUR TRANSFORMATION - ONLY ${pricingData.trialPrice}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
+                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-600"></div>
+            </motion.button>
+            
+            <div className="mt-4 space-y-3">
+              <div className="text-lg font-bold text-green-400">
+                🔥 {pricingData.trialDays}-Day Trial • Only ${pricingData.trialPrice}
+              </div>
+              <div className="text-sm bg-red-900/40 text-red-200 px-4 py-2 rounded-lg border border-red-500/50 font-medium">
+                ⚠️ WARNING: This price won't last long
+              </div>
+              <div className="text-sm text-gray-400">
+                Then ${pricingData.mainPrice}/month • Transform with Coach {currentCoach.name}
+              </div>
+              <div className="flex items-center justify-center gap-4 text-sm text-green-400 mt-3">
+                <span>✓ Instant Access</span>
+                <span>✓ Personal Coach</span>
+                <span>✓ Cancel Anytime</span>
               </div>
             </div>
           </motion.div>
-
 
           {/* Final Urgency Push */}
           <motion.div 
@@ -499,31 +653,117 @@ function ResultsContent() {
             transition={{ duration: 0.6, delay: 1.4 }}
           >
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-black text-magenta-400 mb-4">
-                THE CHOICE IS YOURS
+              <div className="text-3xl md:text-4xl font-black text-red-400 mb-2">
+                ⏰ CRITICAL DECISION TIME ⏰
               </div>
-              <div className="text-xl text-white mb-6">
-                Right now, you have TWO paths:
+              <div className="text-xl md:text-2xl text-white mb-2 font-bold">
+                This Moment Will Define Your Next 5 Years
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-gray-500/20 border border-gray-500/50 rounded-xl p-6">
-                  <div className="text-xl font-bold text-gray-400 mb-3">STAY THE SAME</div>
-                  <ul className="text-left space-y-2 text-white">
-                    <li>• Keep getting rejected</li>
-                    <li>• Watch opportunities slip away</li>
-                    <li>• Feel like a fraud around confident people</li>
-                    <li>• Wonder "what if" for the rest of your life</li>
+              <div className="text-lg text-gray-300 mb-8">
+                <span className="text-red-400 font-bold">WARNING:</span> Only one of these paths leads to the life you actually want...
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                {/* OPTION 1 - Dark/Depressing */}
+                <motion.div 
+                  className="relative bg-gray-800/40 border-2 border-red-500/60 rounded-2xl p-8 transform"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  {/* Danger badge */}
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                    ⚠️ DANGER ZONE
+                  </div>
+                  
+                  <div className="text-2xl font-black text-red-400 mb-4 mt-2">PATH 1: STAY STUCK</div>
+                  <div className="text-base text-gray-300 mb-4 italic">
+                    "I'll figure it out eventually..." (You won't)
+                  </div>
+                  <ul className="text-left space-y-3 text-gray-200">
+                    <li className="flex items-start gap-3">
+                      <span className="text-red-400 text-xl">💔</span>
+                      <span>Watch confident guys get the girls you want</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="text-red-400 text-xl">😞</span>
+                      <span>Keep getting rejected because nothing changed</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="text-red-400 text-xl">⏳</span>
+                      <span>Waste another year feeling invisible and frustrated</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="text-red-400 text-xl">🥀</span>
+                      <span>Live with regrets: "What if I had tried AlphaRise?"</span>
+                    </li>
                   </ul>
-                </div>
-                <div className="bg-purple-500/20 border border-purple-500/50 rounded-xl p-6">
-                  <div className="text-xl font-bold text-magenta-400 mb-3">TRANSFORM WITH ALPHARISE</div>
-                  <ul className="text-left space-y-2 text-white">
-                    <li>• Command respect wherever you go</li>
-                    <li>• Attract the people you actually want</li>
-                    <li>• Feel genuinely confident in any situation</li>
-                    <li>• Become the man you were meant to be</li>
-                  </ul>
-                </div>
+                  
+                  <div className="mt-6 p-4 bg-red-900/30 rounded-lg border border-red-500/30">
+                    <div className="text-red-300 font-bold text-lg">Result After 1 Year:</div>
+                    <div className="text-red-200">Still {searchParams.get('confidenceScore') || '25'}/100 • Still alone • Still wondering "what if"</div>
+                  </div>
+                </motion.div>
+
+                {/* OPTION 2 - Bright/Attractive */}
+                <motion.div 
+                  className="relative bg-gradient-to-br from-purple-600/30 via-magenta-600/25 to-pink-600/30 border-2 border-magenta-400/80 rounded-2xl p-8 transform shadow-2xl"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  {/* Success badge with glow */}
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse">
+                    🔥 SUCCESS PATH
+                  </div>
+                  
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl rounded-2xl"></div>
+                  
+                  <div className="relative z-10">
+                    <div className="text-2xl font-black bg-gradient-to-r from-magenta-300 to-pink-300 bg-clip-text text-transparent mb-4 mt-2">
+                      PATH 2: ALPHARISE TRANSFORMATION
+                    </div>
+                    <div className="text-base text-magenta-200 mb-4 italic font-semibold">
+                      "I chose to become unstoppable..." (The smart choice)
+                    </div>
+                    <ul className="text-left space-y-3 text-white">
+                      <li className="flex items-start gap-3">
+                        <span className="text-magenta-400 text-xl">👑</span>
+                        <span><strong>Command respect</strong> - people notice when you enter a room</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-pink-400 text-xl">😍</span>
+                        <span><strong>Attract amazing people</strong> who are drawn to your confidence</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-magenta-400 text-xl">⚡</span>
+                        <span><strong>Unshakeable confidence</strong> in every situation</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-pink-400 text-xl">🚀</span>
+                        <span><strong>Become the Alpha</strong> you were always meant to be</span>
+                      </li>
+                    </ul>
+                    
+                    <div className="mt-6 p-4 bg-gradient-to-r from-magenta-900/40 to-pink-900/40 rounded-lg border border-magenta-400/50">
+                      <div className="text-magenta-200 font-bold text-lg">Result After 30 Days:</div>
+                      <div className="text-white font-semibold">85+/100 Confidence • Dating Success • Living Your Best Life</div>
+                    </div>
+                    
+                    {/* Urgency indicator */}
+                    <div className="mt-4 text-center">
+                      <div className="inline-block bg-yellow-500/20 border border-yellow-500/60 rounded-full px-4 py-2">
+                        <span className="text-yellow-300 text-sm font-bold">⚡ Limited Time: ${pricingData.trialPrice} Trial</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative elements */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-magenta-400 rounded-full animate-ping"></div>
+                  <div className="absolute bottom-4 left-4 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                </motion.div>
               </div>
             </div>
           </motion.div>
@@ -557,16 +797,21 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white drop-shadow-lg">
-                START YOUR FREE TRIAL
+                🚨 LAST CHANCE - GET ${pricingData.trialPrice} TRIAL NOW
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
             </motion.button>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-lg font-bold text-green-400">
-                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
+                🚨 {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
               </p>
+              <div className="bg-red-600/20 border border-red-500/60 rounded-lg p-3">
+                <p className="text-red-300 font-bold text-sm">
+                  ⏰ URGENT: Price Increases Soon - Lock In ${pricingData.trialPrice} Now!
+                </p>
+              </div>
               <p className="text-base text-magenta-400 font-semibold">
                 Start Training with Coach {currentCoach.name} Today
               </p>
@@ -591,7 +836,7 @@ export default function ResultsPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🎯</div>
+          <div className="text-6xl mb-4">⚡</div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 bg-clip-text text-transparent">
             Loading your results...
           </h2>

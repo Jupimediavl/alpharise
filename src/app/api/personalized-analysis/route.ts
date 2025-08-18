@@ -49,32 +49,32 @@ const coachPersonalities: Record<string, any> = {
   }
 }
 
-// User type insights for personalization
+// User type PAIN POINTS for sales-focused messaging
 const userTypeInsights: Record<string, any> = {
   overthinker: {
-    core_issue: "you think way too much and get stuck in your head",
-    strengths: "sharp mind, you notice details, you're thoughtful",
-    growth_areas: "taking action even when you're not 100% sure"
+    core_issue: "overthinking is DESTROYING your opportunities while other guys take action and get results",
+    pain_reality: "missing chances with women because you analyze instead of approach, watching confident guys get what you want",
+    transformation: "instant decision-making that turns analysis paralysis into unstoppable action"
   },
   nervous: {
-    core_issue: "performing under pressure stresses you out and kills your confidence",
-    strengths: "you want to be good at things, you have high standards",
-    growth_areas: "handling pressure and building steady confidence"
+    core_issue: "performance anxiety is CRUSHING your potential and making you invisible when it matters most",
+    pain_reality: "freezing up in important moments while others shine, feeling like a fraud who can't perform under pressure",
+    transformation: "unshakeable confidence that thrives under pressure and commands respect"
   },
   rookie: {
-    core_issue: "you feel like you're behind or missing experience",
-    strengths: "you're honest, you want to learn, you know yourself",
-    growth_areas: "building the basics and your confidence"
+    core_issue: "feeling behind is keeping you STUCK while everyone else moves forward without you",
+    pain_reality: "watching guys with less potential get more success, feeling lost while others seem to know the secret",
+    transformation: "rapid skill building that catches you up and pushes you ahead of your competition"
   },
   updown: {
-    core_issue: "your confidence goes up and down, you're not consistent",
-    strengths: "you have natural potential, sometimes you're brilliant",
-    growth_areas: "being consistent and having confidence that lasts"
+    core_issue: "inconsistent confidence is WASTING your natural potential and keeping you mediocre",
+    pain_reality: "having great days followed by crushing lows, never knowing which version of yourself will show up",
+    transformation: "rock-solid consistency that makes your best days your normal days"
   },
   surface: {
-    core_issue: "it's hard for you to make deep, real connections",
-    strengths: "you understand emotions, you want to be authentic",
-    growth_areas: "expressing confidence while keeping your depth"
+    core_issue: "shallow connections are leaving you LONELY despite being surrounded by people",
+    pain_reality: "having conversations that go nowhere, feeling disconnected even when you're with others",
+    transformation: "deep authentic connections that create meaningful relationships and lasting attraction"
   }
 }
 
@@ -123,15 +123,10 @@ export async function POST(request: NextRequest) {
     const ageContext = getAgePersonalization(age)
     const confidenceContext = getConfidenceInsight(confidenceScore)
 
-    // Create a concise, hope-focused prompt for personalized analysis
-    const analysisPrompt = `I just completed a confidence assessment and got matched with you as my coach. Here are my results:
+    // Create a SALES-FOCUSED prompt that targets pain points and drives immediate action
+    const analysisPrompt = `I'm ${age} years old with a ${confidenceScore}/100 confidence score. My core problem: ${userTypeData.core_issue}
 
-My challenge: ${userTypeData.core_issue}
-My age: ${age}
-My confidence score: ${confidenceScore}/100
-My assigned coach: ${coachData.name} (${coachData.title})
-
-Give me a short, powerful analysis that shows me exactly why AlphaRise is the solution I need to transform my life.`
+I need you to be BRUTALLY HONEST about what's happening to my life right now because of this problem, and make me realize I CANNOT wait another day to fix this. Make me feel the pain of staying the same.`
 
     // OpenAI API call
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -152,23 +147,25 @@ SPECIALIZATION: ${coachData.specializes}
 APPROACH: ${coachData.approach}
 
 CONTEXT ABOUT THIS USER:
-- Core Issue: ${userTypeData.core_issue}
-- Strengths: ${userTypeData.strengths}
-- Growth Areas: ${userTypeData.growth_areas}
-- Age Context: ${ageContext}
-- Confidence Context: ${confidenceContext}
+- CORE PROBLEM: ${userTypeData.core_issue}
+- PAIN REALITY: ${userTypeData.pain_reality}
+- TRANSFORMATION PROMISE: ${userTypeData.transformation}
+- Age: ${age} years old
+- Current confidence: ${confidenceScore}/100 (MAJOR PROBLEM)
 
-INSTRUCTIONS:
-1. Write as ${coachData.name} in first person, speaking directly to the user
-2. Maximum 2-3 sentences (40-60 words total)
-3. Use NATURAL, everyday language - talk like a real friend, not a robot
-4. Avoid technical terms - use simple words that anyone would use
-5. Mention their problem briefly, then show them AlphaRise is the solution
-6. Make them feel like AlphaRise will completely change their life
-7. Speak with confidence and enthusiasm, like a real coach who truly believes in them
-8. Use natural expressions: "look", "here's the thing", "I promise you", "you're gonna see"
+CRITICAL INSTRUCTIONS:
+1. Write as ${coachData.name} - NO introductions, NO "Hey future Alpha" - jump STRAIGHT into the pain
+2. 60-80 words total - make every word COUNT for conversion
+3. Start with BRUTAL REALITY - what's happening to their life RIGHT NOW because of their problem
+4. Use EMOTIONAL TRIGGERS: "missing out", "watching others", "another day wasted", "tired of being..."
+5. Create URGENCY: "every day you wait", "right now", "today", "this moment"
+6. End with TRANSFORMATION PROMISE: "AlphaRise changes everything", "complete transformation", "the man you're meant to be"
+7. Use POWER WORDS: devastating, crushing, transform, dominate, unstoppable, breakthrough
+8. Make them feel the PAIN of staying the same vs the PLEASURE of transformation
+9. NO generic advice - TARGET their specific problem with laser precision
+10. Make this feel like their LAST CHANCE to change
 
-The user's name is ${username}. Talk naturally, like a real coach who truly gets what they're going through.`
+This message must make them feel DESPERATE to click that button and start the trial IMMEDIATELY.`
           },
           {
             role: 'user', 
@@ -214,7 +211,7 @@ The user's name is ${username}. Talk naturally, like a real coach who truly gets
     const fallbackAge = requestData?.age || 25
     
     const coachData = coachPersonalities[fallbackCoach] || coachPersonalities.logan
-    const fallbackAnalysis = `${fallbackUsername}, look - your confidence challenges end now. At ${fallbackAge} with your level of self-awareness, AlphaRise is gonna transform you into the confident alpha you're meant to be. Get ready to become unstoppable.`
+    const fallbackAnalysis = `Right now, you're watching confident guys get everything you want while you stay stuck at ${confidenceScore}/100. Every day you wait is another opportunity missed, another regret added. AlphaRise ends this cycle TODAY - complete transformation from invisible to unstoppable. This is your moment.`
     
     return NextResponse.json({ 
       analysis: fallbackAnalysis,
