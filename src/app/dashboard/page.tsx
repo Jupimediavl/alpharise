@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, supabaseHelpers } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
 import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut } from 'lucide-react'
+import ChatDrawer from '@/components/ChatDrawer'
 
 // Types
 interface Solution {
@@ -237,14 +238,17 @@ function DashboardContent() {
   const [userCoinStats, setUserCoinStats] = useState<any>(null)
   const [userAge, setUserAge] = useState<number>(25) // Default age
   const [problemsData, setProblemsData] = useState<any>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [aiResponse, setAiResponse] = useState<string | null>(null)
-  const [showChat, setShowChat] = useState(false)
-  const [responseSource, setResponseSource] = useState<'openai' | 'fallback' | 'local' | null>(null)
-  const [responseTime, setResponseTime] = useState<number>(0)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showProblemDetails, setShowProblemDetails] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  
+  // State for old search functionality (kept for compatibility)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [aiResponse, setAiResponse] = useState('')
+  const [responseSource, setResponseSource] = useState<'openai' | 'fallback' | 'local'>('openai')
+  const [responseTime, setResponseTime] = useState(0)
 
   // Map new coach names to legacy coach configurations
   const coachMapping: Record<string, string> = {
@@ -385,17 +389,42 @@ function DashboardContent() {
     loadUserData()
   }, [searchParams, router])
 
-  // Update time
+  // Update time (client-side only to avoid hydration mismatch)
   useEffect(() => {
     const updateTime = () => {
       const now = new Date()
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       setCurrentTime(timeStr)
     }
-    updateTime()
-    const timeInterval = setInterval(updateTime, 1000)
-    return () => clearInterval(timeInterval)
+    // Only run on client side to avoid hydration mismatch
+    if (typeof window !== 'undefined') {
+      updateTime()
+      const timeInterval = setInterval(updateTime, 1000)
+      return () => clearInterval(timeInterval)
+    }
   }, [])
+
+  // Handle chat message sending
+  const handleChatMessage = async (message: string): Promise<string | null> => {
+    if (!user) return null
+
+    try {
+      const mappedCoachForAI = user.coach ? coachMapping[user.coach] || 'marcus' : 'marcus'
+      const result = await generateAIResponse(message, mappedCoachForAI, userAge, user.username)
+      
+      console.log('🤖 Chat Response:', {
+        query: message,
+        coach: user.coach,
+        response: result.response?.substring(0, 100) + '...',
+        source: result.source
+      })
+      
+      return result.response
+    } catch (error) {
+      console.error('❌ Chat error:', error)
+      return 'Sorry, I encountered an error. Please try again.'
+    }
+  }
 
   // Navigation
   const goToCommunity = () => router.push('/community')
@@ -481,7 +510,7 @@ function DashboardContent() {
           AlphaRise
         </button>
         <div className="flex items-center gap-4">
-          <div className="text-sm opacity-70">{currentTime}</div>
+          <div className="text-sm opacity-70">{currentTime || '--:--'}</div>
           
           {/* Coins Display */}
           <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-yellow-500/30">
@@ -607,145 +636,38 @@ function DashboardContent() {
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         
-        {/* AI Personal Coach Search */}
+        {/* Chat with Coach */}
         <motion.div 
           className="mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden">
+          <motion.button
+            onClick={() => setIsChatOpen(true)}
+            className="w-full bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 backdrop-blur-sm hover:from-purple-500/30 hover:to-magenta-500/30 hover:border-purple-500/50 transition-all group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full overflow-hidden group-hover:scale-110 transition-transform">
                 <img
                   src={`/avatars/${user?.coach || 'logan'}.png`}
                   alt={`Coach ${user?.coach || 'logan'}`}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Ask {coach.name} Anything</h2>
-                <p className="text-sm opacity-70">Your personal coach who understands your exact situation</p>
+              <div className="flex-1 text-left">
+                <h2 className="text-xl font-bold text-white mb-1">Chat with {coach.name}</h2>
+                <p className="text-gray-300 mb-2">Your personal coach who understands your exact situation</p>
+                <div className="flex items-center gap-2 text-purple-400">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="font-semibold">Start a conversation</span>
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             </div>
-            
-            <div className="relative">
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
-                  <input
-                    type="text"
-                    placeholder="What's on your mind? (e.g., 'I'm nervous about approaching women' or 'How do I last longer in bed?')"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    className="w-full pl-12 pr-4 py-4 bg-black/60 border border-purple-500/30 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none text-lg"
-                  />
-                </div>
-                <button
-                  onClick={handleSearch}
-                  disabled={!searchQuery.trim() || isSearching}
-                  className="px-6 py-4 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl font-semibold transition-all transform hover:scale-105 disabled:scale-100 flex items-center gap-2"
-                >
-                  {isSearching ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                      <span>Thinking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5" />
-                      <span>Ask {coach.name}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              
-              <div className="mt-3 text-xs opacity-60 flex items-center gap-4">
-                <span>💡 Try: "I feel anxious when talking to women"</span>
-                <span>💡 Try: "How do I build confidence?"</span>
-                <span>💡 Try: "I'm struggling with dating apps"</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* AI Response Chat */}
-          {showChat && (
-            <motion.div 
-              className="mt-6 bg-black/40 border border-purple-500/20 rounded-2xl p-6 backdrop-blur-sm"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${'color' in coach ? coach.color || 'from-purple-500 to-magenta-500' : 'from-purple-500 to-magenta-500'} flex items-center justify-center text-lg flex-shrink-0`}>
-                  {coach.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="font-bold text-white">{coach.name}</h3>
-                    <div className="text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded-full">
-                      Personal Coach
-                    </div>
-                    
-                    {/* Response Source Indicator */}
-                    {responseSource && (
-                      <div className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                        responseSource === 'openai' 
-                          ? 'bg-green-500/20 text-green-400' 
-                          : responseSource === 'fallback'
-                          ? 'bg-yellow-500/20 text-yellow-400'
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {responseSource === 'openai' ? '🤖 AI Live' : 
-                         responseSource === 'fallback' ? '⚡ API Backup' : 
-                         '🔧 Local Mode'}
-                      </div>
-                    )}
-                    
-                    {/* Response Time */}
-                    {responseTime > 0 && (
-                      <div className="text-xs text-gray-400 bg-gray-500/20 px-2 py-1 rounded-full">
-                        {responseTime}ms
-                      </div>
-                    )}
-                  </div>
-                  
-                  {isSearching ? (
-                    <div className="flex items-center gap-3 text-purple-400">
-                      <div className="w-4 h-4 border-2 border-purple-400/20 border-t-purple-400 rounded-full animate-spin" />
-                      <span className="text-sm">Analyzing your situation and crafting a personalized response...</span>
-                    </div>
-                  ) : aiResponse ? (
-                    <div className="prose prose-invert max-w-none">
-                      <div className="text-white leading-relaxed whitespace-pre-line">{aiResponse}</div>
-                      
-                      <div className="mt-4 pt-4 border-t border-purple-500/20 flex gap-2">
-                        <button className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm font-semibold transition-colors">
-                          Ask Follow-up
-                        </button>
-                        <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-semibold transition-colors">
-                          Get Action Plan
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setShowChat(false)
-                            setAiResponse(null)
-                            setSearchQuery('')
-                            setResponseSource(null)
-                            setResponseTime(0)
-                          }}
-                          className="px-4 py-2 bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 rounded-lg text-sm font-semibold transition-colors ml-auto"
-                        >
-                          New Question
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </motion.div>
-          )}
+          </motion.button>
         </motion.div>
         
         {/* Welcome Header */}
@@ -1153,6 +1075,22 @@ function DashboardContent() {
           </div>
         </footer>
       </div>
+
+      {/* Chat Drawer */}
+      {user && (
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          user={{
+            id: user.username || user.id,
+            username: user.username,
+            coach: user.coach,
+            age: userAge,
+            userType: user.user_type
+          }}
+          onSendMessage={handleChatMessage}
+        />
+      )}
     </div>
   )
 }

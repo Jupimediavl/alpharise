@@ -1347,3 +1347,301 @@ export const supabaseHelpers = {
     }
   }
 }
+
+// Chat Conversations Types and Management
+export interface DbChatMessage {
+  id: string
+  user_id: string
+  username: string
+  coach_type: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
+  message_type: 'user' | 'coach'
+  content: string
+  session_id: string
+  timestamp: string
+  created_at: string
+  user_age?: number
+  user_type?: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  is_read: boolean
+  is_favorite: boolean
+  ai_model?: string
+  response_time_ms?: number
+  token_count?: number
+}
+
+export interface ChatSession {
+  session_id: string
+  messages: DbChatMessage[]
+  created_at: string
+  last_message_at: string
+  message_count: number
+}
+
+// Chat Management System
+export class SupabaseChatManager {
+  
+  // Save a new chat message
+  static async saveMessage(messageData: {
+    user_id: string
+    username: string
+    coach_type: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
+    message_type: 'user' | 'coach'
+    content: string
+    session_id?: string
+    user_age?: number
+    user_type?: string
+    ai_model?: string
+    response_time_ms?: number
+    token_count?: number
+  }): Promise<DbChatMessage | null> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .insert([messageData])
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Error saving chat message:', error)
+        return null
+      }
+      
+      console.log('✅ Chat message saved:', data.id)
+      return data
+    } catch (error) {
+      console.error('Error in saveMessage:', error)
+      return null
+    }
+  }
+
+  // Get chat history for a user and coach
+  static async getChatHistory(
+    userId: string, 
+    coachType: 'logan' | 'chase' | 'mason' | 'blake' | 'knox',
+    limit: number = 50
+  ): Promise<DbChatMessage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('coach_type', coachType)
+        .order('timestamp', { ascending: true })
+        .limit(limit)
+      
+      if (error) {
+        console.error('Error getting chat history:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getChatHistory:', error)
+      return []
+    }
+  }
+
+  // Get recent chat sessions for a user
+  static async getChatSessions(userId: string, limit: number = 10): Promise<ChatSession[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('session_id, coach_type, timestamp, created_at')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .limit(limit * 10) // Get more to group by session
+      
+      if (error) {
+        console.error('Error getting chat sessions:', error)
+        return []
+      }
+      
+      // Group messages by session_id
+      const sessionMap = new Map<string, {
+        session_id: string
+        coach_type: string
+        created_at: string
+        last_message_at: string
+        message_count: number
+      }>()
+      
+      data?.forEach(msg => {
+        const existing = sessionMap.get(msg.session_id)
+        if (existing) {
+          existing.message_count++
+          if (msg.timestamp > existing.last_message_at) {
+            existing.last_message_at = msg.timestamp
+          }
+        } else {
+          sessionMap.set(msg.session_id, {
+            session_id: msg.session_id,
+            coach_type: msg.coach_type,
+            created_at: msg.created_at,
+            last_message_at: msg.timestamp,
+            message_count: 1
+          })
+        }
+      })
+      
+      // Convert to array and get full messages for each session
+      const sessions: ChatSession[] = []
+      for (const sessionData of Array.from(sessionMap.values()).slice(0, limit)) {
+        const messages = await this.getSessionMessages(sessionData.session_id)
+        sessions.push({
+          ...sessionData,
+          messages
+        })
+      }
+      
+      return sessions.sort((a, b) => 
+        new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+      )
+    } catch (error) {
+      console.error('Error in getChatSessions:', error)
+      return []
+    }
+  }
+
+  // Get all messages for a specific session
+  static async getSessionMessages(sessionId: string): Promise<DbChatMessage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('timestamp', { ascending: true })
+      
+      if (error) {
+        console.error('Error getting session messages:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getSessionMessages:', error)
+      return []
+    }
+  }
+
+  // Create a new chat session
+  static async createNewSession(
+    userId: string,
+    username: string,
+    coachType: 'logan' | 'chase' | 'mason' | 'blake' | 'knox',
+    initialMessage: string,
+    userAge?: number,
+    userType?: string
+  ): Promise<string | null> {
+    try {
+      // Generate new session ID
+      const sessionId = crypto.randomUUID()
+      
+      // Save the initial user message
+      const message = await this.saveMessage({
+        user_id: userId,
+        username,
+        coach_type: coachType,
+        message_type: 'user',
+        content: initialMessage,
+        session_id: sessionId,
+        user_age: userAge,
+        user_type: userType
+      })
+      
+      if (!message) {
+        throw new Error('Failed to save initial message')
+      }
+      
+      console.log('✅ New chat session created:', sessionId)
+      return sessionId
+    } catch (error) {
+      console.error('Error in createNewSession:', error)
+      return null
+    }
+  }
+
+  // Mark messages as read
+  static async markMessagesAsRead(userId: string, sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+        .eq('message_type', 'coach') // Only mark coach messages as read
+      
+      if (error) {
+        console.error('Error marking messages as read:', error)
+        return false
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Error in markMessagesAsRead:', error)
+      return false
+    }
+  }
+
+  // Delete a chat session
+  static async deleteSession(userId: string, sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+      
+      if (error) {
+        console.error('Error deleting chat session:', error)
+        return false
+      }
+      
+      console.log('✅ Chat session deleted:', sessionId)
+      return true
+    } catch (error) {
+      console.error('Error in deleteSession:', error)
+      return false
+    }
+  }
+
+  // Get chat statistics for analytics
+  static async getChatStats(userId: string): Promise<{
+    total_messages: number
+    total_sessions: number
+    favorite_coach: string
+    avg_messages_per_session: number
+  } | null> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('session_id, coach_type, message_type')
+        .eq('user_id', userId)
+      
+      if (error) {
+        console.error('Error getting chat stats:', error)
+        return null
+      }
+      
+      const totalMessages = data?.length || 0
+      const uniqueSessions = new Set(data?.map(msg => msg.session_id)).size
+      
+      // Find favorite coach
+      const coachCounts = data?.reduce((acc, msg) => {
+        acc[msg.coach_type] = (acc[msg.coach_type] || 0) + 1
+        return acc
+      }, {} as Record<string, number>) || {}
+      
+      const favoriteCoach = Object.entries(coachCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'logan'
+      
+      return {
+        total_messages: totalMessages,
+        total_sessions: uniqueSessions,
+        favorite_coach: favoriteCoach,
+        avg_messages_per_session: uniqueSessions > 0 ? totalMessages / uniqueSessions : 0
+      }
+    } catch (error) {
+      console.error('Error in getChatStats:', error)
+      return null
+    }
+  }
+}
