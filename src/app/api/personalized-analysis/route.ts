@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
 My challenge: ${userTypeData.core_issue}
 My age: ${age}
-My confidence score: ${confidenceScore}/40
+My confidence score: ${confidenceScore}/100
 My assigned coach: ${coachData.name} (${coachData.title})
 
 Give me a short, powerful analysis that shows me exactly why AlphaRise is the solution I need to transform my life.`

@@ -22,20 +22,15 @@ export interface DbUser {
   id: string
   username: string
   email: string
-  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' // Assessment result
-  coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox' // Assigned coach
-  age: number // User age from assessment
-  coins: number
-  streak: number
-  level: number
-  total_earned: number
-  monthly_earnings: number
-  discount_earned: number
-  subscription_type: 'trial' | 'premium'
-  trial_days_left: number
+  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
+  age: number
   confidence_score: number
-  experience: number
-  badges: string[]
+  coins: number // Current coin balance
+  current_plan: 'trial' | 'basic' | 'premium'
+  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired'
+  subscription_expires_at?: string
+  trial_started_at: string
   created_at: string
   updated_at: string
   last_active: string
@@ -104,6 +99,32 @@ export interface DbCoach {
   created_at: string
 }
 
+export interface DbPricingPlan {
+  id: string
+  plan_type: 'trial' | 'basic' | 'premium'
+  name: string
+  display_name: string
+  price: number
+  currency: string
+  trial_price: number
+  trial_days: number
+  is_active: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DbPlanFeature {
+  id: string
+  plan_type: 'trial' | 'basic' | 'premium'
+  feature_key: string
+  feature_name: string
+  feature_description?: string
+  max_value?: number // -1 for unlimited, NULL for boolean features
+  is_enabled: boolean
+  created_at: string
+}
+
 // User Management - FIXED VERSION
 export class SupabaseUserManager {
   
@@ -144,17 +165,11 @@ export class SupabaseUserManager {
         user_type: userData.user_type || 'overthinker',
         coach: userData.coach || 'logan',
         age: userData.age || 25,
-        coins: userData.coins || 200,
-        streak: userData.streak || 1,
-        level: userData.level || 1,
-        total_earned: userData.total_earned || 0,
-        monthly_earnings: userData.monthly_earnings || 0,
-        discount_earned: userData.discount_earned || 0,
-        subscription_type: userData.subscription_type || 'trial',
-        trial_days_left: userData.trial_days_left || 7,
         confidence_score: userData.confidence_score || 25,
-        experience: userData.experience || 150,
-        badges: userData.badges || [],
+        coins: userData.coins || 200,
+        current_plan: userData.current_plan || 'trial',
+        subscription_status: userData.subscription_status || 'trial',
+        trial_started_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         last_active: new Date().toISOString()
@@ -243,33 +258,27 @@ export class SupabaseUserManager {
     }
   }
 
-  // Update user stats
-  static async updateUserStats(username: string, stats: {
-    total_earned?: number
-    monthly_earnings?: number
-    discount_earned?: number
-    streak?: number
-    level?: number
-    experience?: number
-  }): Promise<boolean> {
+  // Update user plan
+  static async updateUserPlan(username: string, planType: 'trial' | 'basic' | 'premium', status: 'trial' | 'active' | 'cancelled' | 'expired'): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('users')
         .update({
-          ...stats,
+          current_plan: planType,
+          subscription_status: status,
           updated_at: new Date().toISOString(),
           last_active: new Date().toISOString()
         })
         .eq('username', username)
       
       if (error) {
-        console.error('Error updating user stats:', error)
+        console.error('Error updating user plan:', error)
         return false
       }
       
       return true
     } catch (error) {
-      console.error('Error in updateUserStats:', error)
+      console.error('Error in updateUserPlan:', error)
       return false
     }
   }
@@ -812,6 +821,277 @@ export class SupabaseCoachManager {
   }
 }
 
+// Plan Features Management
+export class SupabasePlanManager {
+  
+  // Get all features for a specific plan
+  static async getPlanFeatures(planType: 'trial' | 'basic' | 'premium'): Promise<DbPlanFeature[]> {
+    try {
+      const { data, error } = await supabase
+        .from('plan_features')
+        .select('*')
+        .eq('plan_type', planType)
+        .eq('is_enabled', true)
+      
+      if (error) {
+        console.error('Error getting plan features:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getPlanFeatures:', error)
+      return []
+    }
+  }
+
+  // Check if user has specific feature
+  static async userHasFeature(username: string, featureKey: string): Promise<boolean> {
+    try {
+      const user = await SupabaseUserManager.getUserByUsername(username)
+      if (!user) return false
+
+      const { data, error } = await supabase
+        .from('plan_features')
+        .select('is_enabled')
+        .eq('plan_type', user.current_plan)
+        .eq('feature_key', featureKey)
+        .eq('is_enabled', true)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking user feature:', error)
+        return false
+      }
+
+      return !!data
+    } catch (error) {
+      console.error('Error in userHasFeature:', error)
+      return false
+    }
+  }
+
+  // Get user's feature limit
+  static async getUserFeatureLimit(username: string, featureKey: string): Promise<number> {
+    try {
+      const user = await SupabaseUserManager.getUserByUsername(username)
+      if (!user) return 0
+
+      const { data, error } = await supabase
+        .from('plan_features')
+        .select('max_value')
+        .eq('plan_type', user.current_plan)
+        .eq('feature_key', featureKey)
+        .eq('is_enabled', true)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error getting user feature limit:', error)
+        return 0
+      }
+
+      return data?.max_value || 0
+    } catch (error) {
+      console.error('Error in getUserFeatureLimit:', error)
+      return 0
+    }
+  }
+
+  // Check if user can earn more coins today
+  static async canUserEarnCoins(username: string): Promise<{ canEarn: boolean; dailyLimit: number; todayEarnings: number }> {
+    try {
+      const dailyLimit = await this.getUserFeatureLimit(username, 'max_coins_daily')
+      
+      const today = new Date().toISOString().split('T')[0]
+      const { data, error } = await supabase
+        .from('coin_transactions')
+        .select('amount')
+        .eq('user_id', username)
+        .eq('type', 'earn')
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`)
+
+      if (error) {
+        console.error('Error checking coin earnings:', error)
+        return { canEarn: true, dailyLimit, todayEarnings: 0 }
+      }
+
+      const todayEarnings = (data || []).reduce((sum, tx) => sum + tx.amount, 0)
+      const canEarn = dailyLimit === -1 || todayEarnings < dailyLimit
+
+      return { canEarn, dailyLimit, todayEarnings }
+    } catch (error) {
+      console.error('Error in canUserEarnCoins:', error)
+      return { canEarn: false, dailyLimit: 0, todayEarnings: 0 }
+    }
+  }
+
+  // Check if user can ask more questions today
+  static async canUserAskQuestion(username: string): Promise<{ canAsk: boolean; dailyLimit: number; todayQuestions: number }> {
+    try {
+      const dailyLimit = await this.getUserFeatureLimit(username, 'max_questions_daily')
+      
+      const today = new Date().toISOString().split('T')[0]
+      const { data, error } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('author_id', username)
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`)
+
+      if (error) {
+        console.error('Error checking questions asked:', error)
+        return { canAsk: true, dailyLimit, todayQuestions: 0 }
+      }
+
+      const todayQuestions = (data || []).length
+      const canAsk = dailyLimit === -1 || todayQuestions < dailyLimit
+
+      return { canAsk, dailyLimit, todayQuestions }
+    } catch (error) {
+      console.error('Error in canUserAskQuestion:', error)
+      return { canAsk: false, dailyLimit: 0, todayQuestions: 0 }
+    }
+  }
+}
+
+// Pricing Management
+export class SupabasePricingManager {
+  
+  // Get all active pricing plans
+  static async getActivePricingPlans(): Promise<DbPricingPlan[]> {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+      
+      if (error) {
+        console.error('Error getting pricing plans:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getActivePricingPlans:', error)
+      return []
+    }
+  }
+
+  // Get specific plan by type
+  static async getPlanByType(planType: string): Promise<DbPricingPlan | null> {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .select('*')
+        .eq('plan_type', planType)
+        .eq('is_active', true)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error getting pricing plan:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error in getPlanByType:', error)
+      return null
+    }
+  }
+
+  // Get trial pricing info
+  static async getTrialPricing(): Promise<{
+    price: number
+    days: number
+    currency: string
+  } | null> {
+    try {
+      const basicPlan = await this.getPlanByType('basic')
+      if (!basicPlan) return null
+
+      return {
+        price: basicPlan.trial_price || 1,
+        days: basicPlan.trial_days || 3,
+        currency: basicPlan.currency
+      }
+    } catch (error) {
+      console.error('Error in getTrialPricing:', error)
+      return null
+    }
+  }
+
+  // Get main subscription pricing
+  static async getMainPricing(): Promise<{
+    price: number
+    currency: string
+    name: string
+  } | null> {
+    try {
+      const basicPlan = await this.getPlanByType('basic')
+      if (!basicPlan) return null
+
+      return {
+        price: basicPlan.price,
+        currency: basicPlan.currency,
+        name: basicPlan.name
+      }
+    } catch (error) {
+      console.error('Error in getMainPricing:', error)
+      return null
+    }
+  }
+
+  // Admin: Update pricing plan
+  static async updatePricingPlan(planId: string, updates: Partial<DbPricingPlan>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('pricing_plans')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', planId)
+
+      if (error) {
+        console.error('Error updating pricing plan:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error in updatePricingPlan:', error)
+      return false
+    }
+  }
+
+  // Admin: Create new pricing plan
+  static async createPricingPlan(planData: Omit<DbPricingPlan, 'id' | 'created_at' | 'updated_at'>): Promise<DbPricingPlan | null> {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .insert({
+          ...planData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating pricing plan:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in createPricingPlan:', error)
+      return null
+    }
+  }
+}
+
 // Enhanced Coin Management with Anti-Abuse
 export class SupabaseCoinManager {
   
@@ -958,15 +1238,8 @@ export const supabaseHelpers = {
       age: age || 25,
       confidence_score: confidenceScore || 25,
       coins: 200,
-      streak: 1,
-      level: 1,
-      total_earned: 0,
-      monthly_earnings: 0,
-      discount_earned: 0,
-      subscription_type: 'trial',
-      trial_days_left: 7,
-      experience: 150,
-      badges: []
+      current_plan: 'trial',
+      subscription_status: 'trial'
     })
   },
 

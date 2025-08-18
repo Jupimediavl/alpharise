@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useEffect, useState, Suspense } from 'react'
+import { SupabasePricingManager } from '@/lib/supabase'
 
 function ResultsContent() {
   const searchParams = useSearchParams()
@@ -13,6 +14,17 @@ function ResultsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [personalizedAnalysis, setPersonalizedAnalysis] = useState<string>('')
   const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [pricingData, setPricingData] = useState<{
+    trialPrice: number
+    trialDays: number
+    mainPrice: number
+    currency: string
+  }>({
+    trialPrice: 1,
+    trialDays: 3,
+    mainPrice: 9.99,
+    currency: 'USD'
+  })
 
   // NEW SYSTEM: Show user their PROBLEM and their assigned COACH who will help
   const userTypeData = {
@@ -164,24 +176,48 @@ function ResultsContent() {
   }
 
   useEffect(() => {
-    // Get user type and coach from URL params (from assessment)
-    const urlUserType = searchParams.get('userType') || 'overthinker'
-    const urlCoach = searchParams.get('coach') || 'logan'
-    const age = searchParams.get('age') || '25'
-    const confidenceScore = searchParams.get('confidenceScore') || '25'
-    
-    setUserType(urlUserType)
-    setCoach(urlCoach)
-    
-    // Fetch personalized analysis
-    fetchPersonalizedAnalysis(urlUserType, urlCoach, age, confidenceScore)
-    
-    // Simulate loading/processing time
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 2000)
+    const loadPageData = async () => {
+      // Get user type and coach from URL params (from assessment)
+      const urlUserType = searchParams.get('userType') || 'overthinker'
+      const urlCoach = searchParams.get('coach') || 'logan'
+      const age = searchParams.get('age') || '25'
+      const confidenceScore = searchParams.get('confidenceScore') || '25'
+      
+      setUserType(urlUserType)
+      setCoach(urlCoach)
+      
+      // Load pricing data from database
+      try {
+        const [trialPricing, mainPricing] = await Promise.all([
+          SupabasePricingManager.getTrialPricing(),
+          SupabasePricingManager.getMainPricing()
+        ])
 
-    return () => clearTimeout(timer)
+        if (trialPricing && mainPricing) {
+          setPricingData({
+            trialPrice: trialPricing.price,
+            trialDays: trialPricing.days,
+            mainPrice: mainPricing.price,
+            currency: trialPricing.currency
+          })
+        }
+      } catch (error) {
+        console.error('Error loading pricing:', error)
+        // Keep default values if error
+      }
+      
+      // Fetch personalized analysis
+      fetchPersonalizedAnalysis(urlUserType, urlCoach, age, confidenceScore)
+      
+      // Simulate loading/processing time
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+
+    loadPageData()
   }, [searchParams])
 
   if (isLoading) {
@@ -324,14 +360,19 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white">
-                START MY TRANSFORMATION NOW
+                START FREE TRIAL NOW
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
             </motion.button>
             
-            <div className="mt-3 text-sm text-gray-400">
-              Or continue reading to learn more about your personalized plan
+            <div className="mt-3 space-y-1">
+              <div className="text-sm text-green-400 font-semibold">
+                {pricingData.trialDays}-Day Trial for ${pricingData.trialPrice} • Then ${pricingData.mainPrice}/month
+              </div>
+              <div className="text-xs text-gray-400">
+                Or continue reading to learn more about your personalized plan
+              </div>
             </div>
           </motion.div>
 
@@ -446,16 +487,6 @@ function ResultsContent() {
                 Every day you wait is another day of <strong className="text-purple-400">missed opportunities</strong>, 
                 <strong className="text-purple-400"> rejected approaches</strong>, and <strong className="text-purple-400">confidence that stays stuck</strong>.
               </div>
-              <div className="bg-purple-500/20 border border-purple-500/50 rounded-xl p-6 mb-6">
-                <div className="text-2xl font-bold text-magenta-400 mb-3">
-                  REALITY CHECK
-                </div>
-                <div className="text-lg text-white">
-                  While you're reading this, confident guys are out there getting the girls you want, 
-                  landing the jobs you dream of, and living the life you deserve. 
-                  <strong className="text-magenta-400"> How much longer will you let them win?</strong>
-                </div>
-              </div>
             </div>
           </motion.div>
 
@@ -526,23 +557,26 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white drop-shadow-lg">
-                CLAIM YOUR ALPHA TRANSFORMATION NOW
+                START YOUR FREE TRIAL
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
             </motion.button>
 
             <div className="space-y-3">
-              <p className="text-lg font-bold text-magenta-400">
-                Start Training with Coach {currentCoach.name} in 60 Seconds
+              <p className="text-lg font-bold text-green-400">
+                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
+              </p>
+              <p className="text-base text-magenta-400 font-semibold">
+                Start Training with Coach {currentCoach.name} Today
               </p>
               <p className="text-sm text-gray-400">
-                Join 12,847+ men who chose transformation over mediocrity
+                Then ${pricingData.mainPrice}/month • Cancel anytime before trial ends
               </p>
               <div className="flex items-center justify-center gap-4 text-sm text-green-400">
-                <span>✓ 30-Day Results Guarantee</span>
-                <span>✓ Instant Access</span>
-                <span>✓ 24/7 Support</span>
+                <span>✓ Full Program Access</span>
+                <span>✓ Cancel Anytime</span>
+                <span>✓ Results in {pricingData.trialDays} Days</span>
               </div>
             </div>
           </motion.div>
