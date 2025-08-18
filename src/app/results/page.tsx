@@ -144,7 +144,7 @@ function ResultsContent() {
           coach,
           age: parseInt(age),
           confidenceScore: parseInt(confidenceScore),
-          username: 'future alpha' // Could get actual username from session if available
+          username: 'future Alpha' // Could get actual username from session if available
         })
       })
 
@@ -233,9 +233,12 @@ function ResultsContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header */}
       <header className="p-6 text-center">
-        <div className="text-3xl font-black text-white">
+        <button
+          onClick={() => router.push('/')}
+          className="text-3xl font-black text-white hover:text-magenta-400 transition-colors cursor-pointer"
+        >
           AlphaRise
-        </div>
+        </button>
       </header>
 
       <div className="container mx-auto px-6 py-12">
@@ -265,23 +268,131 @@ function ResultsContent() {
           </motion.div>
 
           <motion.h1 
-            className="text-3xl md:text-4xl font-black mb-4 text-white"
+            className="text-4xl md:text-5xl font-black mb-8 text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            Your Challenge: {currentUserType.problem} {currentUserType.problemIcon}
+            YOUR CONFIDENCE ANALYSIS
           </motion.h1>
 
-          {/* Personalized Analysis Section */}
+          {/* Confidence Score - Big and Prominent */}
           <motion.div 
-            className="text-xl leading-relaxed opacity-90 mb-12 max-w-3xl mx-auto"
+            className="mb-8 bg-gradient-to-r from-purple-900/50 to-magenta-900/50 border-2 border-purple-500/50 rounded-2xl p-8"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+          >
+            <div className="text-center">
+              <div className="text-purple-400 font-bold text-lg mb-2">YOUR CONFIDENCE SCORE</div>
+              <div className="text-8xl md:text-9xl font-black text-purple-500 mb-4">
+                {searchParams.get('confidenceScore') || '25'}<span className="text-4xl text-white">/100</span>
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-magenta-400 mb-4">
+                MASSIVE POTENTIAL!
+              </div>
+              <div className="text-xl text-white max-w-2xl mx-auto">
+                <strong>You're starting at {searchParams.get('confidenceScore') || '25'}, but your potential is 100.</strong> 
+                Most successful guys started exactly where you are right now. 
+                <span className="text-magenta-400 font-bold"> Your transformation to 100 starts today.</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Early CTA - For Immediate Action */}
+          <motion.div
+            className="text-center mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
+            <div className="mb-4">
+              <div className="text-xl text-white mb-2">
+                Ready to transform that <span className="text-purple-500 font-bold">{searchParams.get('confidenceScore') || '25'}</span> into <span className="text-magenta-400 font-bold">100</span>?
+              </div>
+            </div>
+            
+            <motion.button
+              onClick={handleStartProgram}
+              className="px-12 py-4 text-xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-xl 
+                       transition-all duration-300 ease-out shadow-xl relative overflow-hidden group border border-magenta-400/50
+                       hover:scale-105 active:scale-95"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 0 30px rgba(236, 72, 153, 0.4)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="relative z-10 text-white">
+                START MY TRANSFORMATION NOW
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
+                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
+            </motion.button>
+            
+            <div className="mt-3 text-sm text-gray-400">
+              Or continue reading to learn more about your personalized plan
+            </div>
+          </motion.div>
+
+          {/* Problem Statement */}
+          <motion.div 
+            className="text-2xl md:text-3xl font-bold mb-8 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <span className="text-purple-400">Your Problem:</span>{' '}
+            <span className="text-white">{currentUserType.problem} {currentUserType.problemIcon}</span>
+          </motion.div>
+
+          {/* Coach Assignment */}
+          <motion.div 
+            className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 rounded-2xl p-8 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">{currentCoach.icon}</div>
+              <div className="text-2xl md:text-3xl font-bold text-white mb-2">
+                You've been assigned Coach {currentCoach.name}
+              </div>
+              <div className="text-xl text-blue-400 font-semibold">
+                "{currentCoach.title}"
+              </div>
+            </div>
+            
+            <div className="text-lg text-white text-center mb-6">
+              Coach {currentCoach.name} specializes in helping guys with {currentUserType.problem.toLowerCase()}. 
+              Here's exactly how he'll transform you:
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+              {currentCoach.features.map((feature, index) => (
+                <motion.div 
+                  key={index}
+                  className="flex items-start gap-3 text-left"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.9 + (index * 0.1) }}
+                >
+                  <div className="text-blue-400 mt-1 text-xl">🎯</div>
+                  <div className="text-white">{feature}</div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Personalized Analysis Section - Emphasized */}
+          <motion.div 
+            className="mb-12 max-w-4xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.0 }}
+          >
             {analysisLoading ? (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-8">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-8 text-center">
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <motion.div
                     className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full"
@@ -293,89 +404,147 @@ function ResultsContent() {
                 <p className="text-base opacity-70">Creating your personalized confidence profile</p>
               </div>
             ) : personalizedAnalysis ? (
-              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-8">
-                <h3 className="text-2xl font-bold text-purple-400 mb-4 flex items-center gap-2">
-                  {currentCoach.icon} Personal Analysis from Coach {currentCoach.name}
-                </h3>
-                <div className="text-lg text-left leading-relaxed whitespace-pre-line">
-                  {personalizedAnalysis}
+              <div className="bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border-2 border-purple-500/40 rounded-2xl p-8 text-center">
+                <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-6 tracking-wider">
+                  PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
+                </div>
+                <div className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-3xl mx-auto">
+                  {personalizedAnalysis.split('\n\n').map((paragraph, index) => (
+                    <p key={index} className="mb-6">
+                      {paragraph.trim()}
+                    </p>
+                  ))}
                 </div>
               </div>
             ) : (
               // Fallback to static content if AI analysis fails
-              <div className="space-y-6">
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-                  <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
-                    {currentUserType.problemIcon} Your Core Challenge
-                  </h3>
-                  <p className="text-lg">{currentUserType.description}</p>
+              <div className="bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border-2 border-purple-500/40 rounded-2xl p-8 text-center">
+                <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-6 tracking-wider">
+                  PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
                 </div>
-                
-                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
-                  <h3 className="text-xl font-bold text-green-400 mb-3 flex items-center gap-2">
-                    {currentCoach.icon} Your Solution Coach
-                  </h3>
-                  <div className="text-2xl font-bold mb-2">
-                    {currentCoach.name} - {currentCoach.title}
-                  </div>
-                  <p className="text-lg mb-3">Specializes in helping {currentCoach.helpsWith}</p>
-                  <p className="text-base opacity-90">{currentCoach.approach}</p>
+                <div className="text-xl text-white max-w-2xl mx-auto">
+                  You're dealing with {currentUserType.problem.toLowerCase()}, which is exactly my specialty. 
+                  At your confidence level, you've got serious potential - we just need to unlock it. 
+                  <strong className="text-magenta-400">AlphaRise will transform you into the confident man you're meant to be.</strong>
                 </div>
               </div>
             )}
           </motion.div>
 
-          {/* Program Features */}
+          {/* Urgency & FOMO Section */}
           <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 mb-12"
+            className="bg-gradient-to-r from-purple-900/30 to-magenta-900/30 border-2 border-purple-500/50 rounded-2xl p-8 mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <h3 className="text-2xl font-bold mb-6 text-cyan-400">
-              What {currentCoach.name} Will Teach You:
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-              {currentCoach.features.map((feature, index) => (
-                <motion.div 
-                  key={index}
-                  className="flex items-start gap-3"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 1 + (index * 0.1) }}
-                >
-                  <div className="text-purple-400 mt-1">✓</div>
-                  <div className="text-lg">{feature}</div>
-                </motion.div>
-              ))}
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-black text-magenta-400 mb-4">
+                DON'T WAIT ANOTHER DAY
+              </div>
+              <div className="text-xl md:text-2xl text-white mb-6">
+                Every day you wait is another day of <strong className="text-purple-400">missed opportunities</strong>, 
+                <strong className="text-purple-400"> rejected approaches</strong>, and <strong className="text-purple-400">confidence that stays stuck</strong>.
+              </div>
+              <div className="bg-purple-500/20 border border-purple-500/50 rounded-xl p-6 mb-6">
+                <div className="text-2xl font-bold text-magenta-400 mb-3">
+                  REALITY CHECK
+                </div>
+                <div className="text-lg text-white">
+                  While you're reading this, confident guys are out there getting the girls you want, 
+                  landing the jobs you dream of, and living the life you deserve. 
+                  <strong className="text-magenta-400"> How much longer will you let them win?</strong>
+                </div>
+              </div>
             </div>
           </motion.div>
 
-          {/* CTA */}
-          <motion.div
+
+          {/* Final Urgency Push */}
+          <motion.div 
+            className="bg-gradient-to-r from-purple-900/50 to-magenta-900/50 border-2 border-purple-500/50 rounded-2xl p-8 mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.2 }}
+            transition={{ duration: 0.6, delay: 1.4 }}
           >
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-black text-magenta-400 mb-4">
+                THE CHOICE IS YOURS
+              </div>
+              <div className="text-xl text-white mb-6">
+                Right now, you have TWO paths:
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-gray-500/20 border border-gray-500/50 rounded-xl p-6">
+                  <div className="text-xl font-bold text-gray-400 mb-3">STAY THE SAME</div>
+                  <ul className="text-left space-y-2 text-white">
+                    <li>• Keep getting rejected</li>
+                    <li>• Watch opportunities slip away</li>
+                    <li>• Feel like a fraud around confident people</li>
+                    <li>• Wonder "what if" for the rest of your life</li>
+                  </ul>
+                </div>
+                <div className="bg-purple-500/20 border border-purple-500/50 rounded-xl p-6">
+                  <div className="text-xl font-bold text-magenta-400 mb-3">TRANSFORM WITH ALPHARISE</div>
+                  <ul className="text-left space-y-2 text-white">
+                    <li>• Command respect wherever you go</li>
+                    <li>• Attract the people you actually want</li>
+                    <li>• Feel genuinely confident in any situation</li>
+                    <li>• Become the man you were meant to be</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Powerful CTA */}
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.6 }}
+          >
+            <div className="mb-6">
+              <div className="text-3xl font-black text-white mb-2">
+                The time for excuses is OVER.
+              </div>
+              <div className="text-xl text-purple-400">
+                Your confidence score of <strong>{searchParams.get('confidenceScore') || '25'}/100</strong> will NOT magically improve.
+              </div>
+            </div>
+
             <motion.button
               onClick={handleStartProgram}
-              className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-full 
+              className="px-16 py-8 text-2xl md:text-3xl font-black bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-2xl 
                        transition-all duration-300 ease-out
-                       shadow-2xl relative overflow-hidden group mb-8"
+                       shadow-2xl relative overflow-hidden group mb-8 border-2 border-magenta-400
+                       hover:scale-105 active:scale-95"
               whileHover={{ 
-                scale: 1.05, 
-                y: -2
+                scale: 1.08,
+                boxShadow: "0 0 50px rgba(236, 72, 153, 0.6)"
               }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <span className="relative z-10">START TRAINING WITH {currentCoach.name.toUpperCase()}</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
+              <span className="relative z-10 text-white drop-shadow-lg">
+                CLAIM YOUR ALPHA TRANSFORMATION NOW
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
+                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
             </motion.button>
 
-            <p className="text-sm opacity-60">
-              Join thousands of {currentCoach.helpsWith.toLowerCase()} who've transformed with {currentCoach.name}
-            </p>
+            <div className="space-y-3">
+              <p className="text-lg font-bold text-magenta-400">
+                Start Training with Coach {currentCoach.name} in 60 Seconds
+              </p>
+              <p className="text-sm text-gray-400">
+                Join 12,847+ men who chose transformation over mediocrity
+              </p>
+              <div className="flex items-center justify-center gap-4 text-sm text-green-400">
+                <span>✓ 30-Day Results Guarantee</span>
+                <span>✓ Instant Access</span>
+                <span>✓ 24/7 Support</span>
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       </div>

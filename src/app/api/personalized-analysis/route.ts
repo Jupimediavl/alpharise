@@ -93,13 +93,13 @@ function getAgePersonalization(age: number): string {
 
 function getConfidenceInsight(score: number): string {
   if (score <= 20) {
-    return "Your score shows you're being real with yourself - and that honesty is the first step to real progress."
+    return `Starting at ${score}/100 shows you're being real with yourself - and that honesty is the first step to reaching 100.`
   } else if (score <= 30) {
-    return "Your score shows you've got some foundation to build on, but you know there's room to grow. That self-awareness is valuable."
+    return `Your ${score}/100 shows you've got some foundation to build on, but your potential to reach 100 is massive. That self-awareness is valuable.`
   } else if (score <= 40) {
-    return "Your score shows solid potential. You're not starting from zero - you just need the right strategies to unlock what's already there."
+    return `Your ${score}/100 shows solid potential. You're not starting from zero - you just need the right strategies to unlock your path to 100.`
   }
-  return "Your score reflects good self-awareness about where you're at and your potential for growth."
+  return `Your ${score}/100 reflects good self-awareness about where you're at and your potential to reach 100.`
 }
 
 export async function POST(request: NextRequest) {
