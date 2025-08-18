@@ -51,7 +51,6 @@ export default function LoginPage() {
 
       if (user) {
         // Update last active time
-        await SupabaseUserManager.updateUserStats(user.username, {})
 
         // Store user info in sessionStorage
         if (typeof window !== 'undefined') {

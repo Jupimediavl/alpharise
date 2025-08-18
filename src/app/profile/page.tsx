@@ -197,13 +197,13 @@ export default function ProfilePage() {
                   <p className="text-gray-400 mb-4">{user.email}</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-3">
                     <div className="bg-purple-500/20 px-3 py-1 rounded-full text-purple-300 text-sm">
-                      Level {user.level}
+                      Level {1}
                     </div>
                     <div className="bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-300 text-sm">
-                      {user.subscription_type} Member
+                      {user.current_plan} Member
                     </div>
                     <div className="bg-green-500/20 px-3 py-1 rounded-full text-green-300 text-sm">
-                      {user.streak} Day Streak
+                      {1} Day Streak
                     </div>
                   </div>
                 </>
@@ -262,15 +262,15 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Total Earned</span>
-                <span className="text-yellow-400 font-bold">{user.total_earned}</span>
+                <span className="text-yellow-400 font-bold">0</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-yellow-400 font-bold">{user.monthly_earnings}</span>
+                <span className="text-yellow-400 font-bold">0</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Discount Earned</span>
-                <span className="text-white font-bold">{user.discount_earned}%</span>
+                <span className="text-white font-bold">0%</span>
               </div>
             </div>
           </motion.div>
@@ -289,11 +289,11 @@ export default function ProfilePage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-300">Level</span>
-                <span className="text-green-400 font-bold">{user.level}</span>
+                <span className="text-green-400 font-bold">{1}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Experience</span>
-                <span className="text-green-400 font-bold">{user.experience}</span>
+                <span className="text-green-400 font-bold">{150}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Confidence Score</span>
@@ -301,7 +301,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Streak</span>
-                <span className="text-blue-400 font-bold">{user.streak} days</span>
+                <span className="text-blue-400 font-bold">{1} days</span>
               </div>
             </div>
           </motion.div>
@@ -324,11 +324,11 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Subscription</span>
-                <span className="text-purple-400 capitalize">{user.subscription_type}</span>
+                <span className="text-purple-400 capitalize">{user.current_plan}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Trial Days Left</span>
-                <span className="text-white font-bold">{user.trial_days_left}</span>
+                <span className="text-white font-bold">{3}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Last Active</span>
@@ -350,8 +350,8 @@ export default function ProfilePage() {
             <h3 className="text-lg font-semibold text-white">Badges & Achievements</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {user.badges && user.badges.length > 0 ? (
-              user.badges.map((badge, index) => (
+            {false ? (
+              [].map((badge, index) => (
                 <div key={index} className="bg-gradient-to-r from-purple-500/15 to-purple-600/20 border border-purple-500/25 px-4 py-2 rounded-lg">
                   <span className="text-purple-300 font-medium">{badge}</span>
                 </div>

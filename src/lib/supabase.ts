@@ -1203,10 +1203,8 @@ export class SupabaseCoinManager {
 
       const newBalance = user.coins + coinEarnings
       await SupabaseUserManager.updateUserCoins(username, newBalance)
-      await SupabaseUserManager.updateUserStats(username, {
-        total_earned: user.total_earned + coinEarnings,
-        monthly_earnings: user.monthly_earnings + coinEarnings
-      })
+      // Note: total_earned tracking removed in new DB structure
+      // Coins are tracked via coin_transactions table
 
       await this.recordTransaction({
         user_id: username,

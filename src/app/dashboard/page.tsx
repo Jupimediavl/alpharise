@@ -526,7 +526,7 @@ function DashboardContent() {
                     <div>
                       <div className="font-semibold text-white">{user?.username || 'User'}</div>
                       <div className="text-sm text-gray-400">{user?.email || 'member@alpharise.app'}</div>
-                      <div className="text-xs text-purple-400 capitalize">{user?.coach || 'Member'} • Level {user?.level || 1}</div>
+                      <div className="text-xs text-purple-400 capitalize">{user?.coach || 'Member'} • Level {1}</div>
                     </div>
                   </div>
                 </div>
@@ -959,12 +959,12 @@ function DashboardContent() {
             </div>
             
             <div className="bg-blue-500/10 border border-blue-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.streak || user.streak}</div>
+              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.streak || 1}</div>
               <div className="text-xs text-gray-400">Day Streak</div>
             </div>
             
             <div className="bg-green-500/10 border border-green-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{user.level}</div>
+              <div className="text-lg font-bold text-white">{1}</div>
               <div className="text-xs text-gray-400">Level</div>
             </div>
             

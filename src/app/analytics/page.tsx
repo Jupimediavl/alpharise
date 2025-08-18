@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
           <StatCard
             icon={<Coins className="w-6 h-6 text-yellow-400" />}
             title="Total Coins Earned"
-            value={user.total_earned || 0}
+            value={0} // total_earned removed from new DB structure
             change="+12%"
             changeType="positive"
             description="All-time earnings from community participation"
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
           <StatCard
             icon={<TrendingUp className="w-6 h-6 text-green-400" />}
             title="Current Level"
-            value={user.level || 1}
+            value={1} // level removed from new DB structure
             change="Recently leveled up"
             changeType="positive"
             description="Your experience and contribution level"
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
           <StatCard
             icon={<Activity className="w-6 h-6 text-blue-400" />}
             title="Streak Days"
-            value={user.streak || 0}
+            value={0} // streak removed from new DB structure
             change="+3 this week"
             changeType="positive"
             description="Consecutive days of activity"
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Monthly Earnings</span>
-                <span className="text-yellow-400 font-bold">{user.monthly_earnings} coins</span>
+                <span className="text-yellow-400 font-bold">0 coins</span>
               </div>
               
               <div className="flex justify-between items-center">
@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
                   <Calendar className="w-5 h-5 text-blue-400" />
                   <span className="text-gray-300">Daily Logins</span>
                 </div>
-                <span className="text-white font-semibold">{user.streak} days</span>
+                <span className="text-white font-semibold">0 days</span>
               </div>
               
               <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
@@ -299,7 +299,7 @@ export default function AnalyticsPage() {
                   <Award className="w-5 h-5 text-purple-400" />
                   <span className="text-gray-300">Badges Earned</span>
                 </div>
-                <span className="text-white font-semibold">{user.badges?.length || 0}</span>
+                <span className="text-white font-semibold">0</span>
               </div>
             </div>
           </div>
@@ -311,12 +311,12 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium">Reach Level 5</span>
-                  <span className="text-white font-bold text-sm">{user.level}/5</span>
+                  <span className="text-white font-bold text-sm">1/5</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
                     className="bg-purple-500 h-2 rounded-full" 
-                    style={{ width: `${(user.level / 5) * 100}%` }}
+                    style={{ width: `${(1 / 5) * 100}%` }}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-2">Keep answering questions to level up!</p>
@@ -325,12 +325,12 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-yellow-400 font-medium">Earn 100 Coins</span>
-                  <span className="text-white font-bold text-sm">{user.total_earned}/100</span>
+                  <span className="text-white font-bold text-sm">0/100</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
                     className="bg-yellow-400 h-2 rounded-full" 
-                    style={{ width: `${Math.min((user.total_earned / 100) * 100, 100)}%` }}
+                    style={{ width: `0%` }}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-2">Almost there! Keep helping the community.</p>
@@ -339,12 +339,12 @@ export default function AnalyticsPage() {
               <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium">30-Day Streak</span>
-                  <span className="text-white font-bold text-sm">{user.streak}/30</span>
+                  <span className="text-white font-bold text-sm">0/30</span>
                 </div>
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
                     className="bg-blue-400 h-2 rounded-full" 
-                    style={{ width: `${(user.streak / 30) * 100}%` }}
+                    style={{ width: `${(0 / 30) * 100}%` }}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-2">Stay consistent with daily logins!</p>
@@ -383,7 +383,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex-1">
                 <div className="text-white font-medium">Daily login streak</div>
-                <div className="text-gray-400 text-sm">Maintained {user.streak}-day streak • 1 day ago</div>
+                <div className="text-gray-400 text-sm">Maintained 0-day streak • 1 day ago</div>
               </div>
             </div>
           </div>

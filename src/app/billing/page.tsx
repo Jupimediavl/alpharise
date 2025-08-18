@@ -50,7 +50,7 @@ export default function BillingPage() {
         
         if (userData) {
           setUser(userData)
-          setSelectedPlan(userData.subscription_type === 'premium' ? 'premium' : 'trial')
+          setSelectedPlan(userData.current_plan === 'premium' ? 'premium' : 'trial')
         } else {
           router.push('/login')
         }
@@ -205,9 +205,9 @@ export default function BillingPage() {
           
           <div className="flex items-center gap-2 bg-gray-800/50 px-4 py-2 rounded-lg">
             <Crown className="w-5 h-5 text-purple-400" />
-            <span className="text-white font-semibold capitalize">{user.subscription_type}</span>
-            {user.subscription_type === 'trial' && (
-              <span className="text-purple-300 text-sm">({user.trial_days_left} days left)</span>
+            <span className="text-white font-semibold capitalize">{user.current_plan}</span>
+            {user.current_plan === 'trial' && (
+              <span className="text-purple-300 text-sm">({3} days left)</span>
             )}
           </div>
         </div>
@@ -227,10 +227,10 @@ export default function BillingPage() {
                 <Crown className="w-6 h-6 text-purple-400" />
               </div>
               <div>
-                <div className="text-white font-semibold capitalize">{user.subscription_type} Plan</div>
+                <div className="text-white font-semibold capitalize">{user.current_plan} Plan</div>
                 <div className="text-gray-400 text-sm">
-                  {user.subscription_type === 'trial' 
-                    ? `${user.trial_days_left} days remaining`
+                  {user.current_plan === 'trial' 
+                    ? `${3} days remaining`
                     : 'Active subscription'
                   }
                 </div>
@@ -244,7 +244,7 @@ export default function BillingPage() {
               <div>
                 <div className="text-white font-semibold">Next Billing</div>
                 <div className="text-gray-400 text-sm">
-                  {user.subscription_type === 'trial' 
+                  {user.current_plan === 'trial' 
                     ? 'No billing (trial)'
                     : 'February 15, 2025'
                   }
@@ -259,7 +259,7 @@ export default function BillingPage() {
               <div>
                 <div className="text-white font-semibold">Monthly Cost</div>
                 <div className="text-gray-400 text-sm">
-                  {user.subscription_type === 'trial' ? '$0.00' : '$19.99'}
+                  {user.current_plan === 'trial' ? '$0.00' : '$19.99'}
                 </div>
               </div>
             </div>
@@ -311,7 +311,7 @@ export default function BillingPage() {
 
           {/* Action Buttons */}
           <div className="text-center mt-8">
-            {user.subscription_type !== selectedPlan && (
+            {user.current_plan !== selectedPlan && (
               <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105">
                 {selectedPlan === 'premium' ? 'Upgrade to Premium' : 'Downgrade to Trial'}
               </button>
@@ -320,7 +320,7 @@ export default function BillingPage() {
         </motion.section>
 
         {/* Payment Method */}
-        {user.subscription_type === 'premium' && (
+        {user.current_plan === 'premium' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

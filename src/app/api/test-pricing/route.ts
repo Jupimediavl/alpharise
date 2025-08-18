@@ -18,7 +18,7 @@ export async function GET() {
     console.error('Error testing pricing:', error)
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       message: 'Failed to load pricing from database'
     }, { status: 500 })
   }

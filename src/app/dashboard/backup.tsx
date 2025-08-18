@@ -164,9 +164,9 @@ function DashboardContent() {
   const avatar = avatarData[user.coach] || avatarData.marcus
   
   // Calculate level from experience
-  const currentLevel = Math.floor(user.experience / 250) + 1
-  const experienceForNextLevel = (currentLevel * 250) - user.experience
-  const levelProgress = (user.experience % 250) / 250 * 100
+  const currentLevel = Math.floor(150 / 250) + 1
+  const experienceForNextLevel = (currentLevel * 250) - 150
+  const levelProgress = (150 % 250) / 250 * 100
 
   // Generate catchy welcome message
   const welcomeMessages = [
@@ -211,7 +211,7 @@ function DashboardContent() {
         <div className="flex items-center gap-4">
           <div className="text-sm opacity-70">{currentTime}</div>
           <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-semibold">
-            {user.trial_days_left} days trial left
+            {3} days trial left
           </div>
           <button 
             onClick={() => router.push('/signup')}
@@ -272,7 +272,7 @@ function DashboardContent() {
               <span className="text-2xl">⚡</span>
               <span className="text-sm font-semibold text-purple-400">XP</span>
             </div>
-            <div className="text-2xl font-bold">{user.experience}</div>
+            <div className="text-2xl font-bold">{150}</div>
             <div className="text-xs opacity-70">Level {currentLevel} progress</div>
           </motion.div>
 
@@ -287,7 +287,7 @@ function DashboardContent() {
               <span className="text-2xl">🔥</span>
               <span className="text-sm font-semibold text-red-400">Streak</span>
             </div>
-            <div className="text-2xl font-bold">{user.streak}</div>
+            <div className="text-2xl font-bold">{1}</div>
             <div className="text-xs opacity-70">Days active</div>
           </motion.div>
 
@@ -382,7 +382,7 @@ function DashboardContent() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm opacity-70">Level {currentLevel}</span>
-                  <span className="text-sm font-semibold">{user.experience}/{currentLevel * 250} XP</span>
+                  <span className="text-sm font-semibold">{150}/{currentLevel * 250} XP</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                   <div 
@@ -511,19 +511,19 @@ function DashboardContent() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{user.total_earned}</div>
+              <div className="text-2xl font-bold text-green-400">0</div>
               <div className="text-sm opacity-70">Total Earned</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-400">{user.monthly_earnings}</div>
+              <div className="text-2xl font-bold text-blue-400">0</div>
               <div className="text-sm opacity-70">This Month</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-400">{user.badges?.length || 0}</div>
+              <div className="text-2xl font-bold text-purple-400">{0}</div>
               <div className="text-sm opacity-70">Badges</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{user.level}</div>
+              <div className="text-2xl font-bold text-yellow-400">{1}</div>
               <div className="text-sm opacity-70">Level</div>
             </div>
           </div>
