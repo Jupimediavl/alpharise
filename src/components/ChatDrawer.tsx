@@ -16,7 +16,7 @@ interface ChatDrawerProps {
     age?: number
     userType?: string
   }
-  onSendMessage?: (message: string) => Promise<string | null>
+  onSendMessage?: (message: string, conversationHistory?: any[]) => Promise<string | null>
 }
 
 interface Message {
@@ -156,8 +156,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       }
       setMessages(prev => [...prev, loadingMessage])
 
-      // Get AI response
-      const response = onSendMessage ? await onSendMessage(userMessage.content) : null
+      // Get AI response with conversation context
+      const response = onSendMessage ? await onSendMessage(userMessage.content, messages.filter(msg => !msg.isLoading)) : null
       
       // Remove loading message and add real response
       setMessages(prev => prev.filter(msg => msg.id !== 'loading'))

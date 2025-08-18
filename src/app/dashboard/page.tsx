@@ -174,7 +174,69 @@ const getPersonalizedProblems = (avatarType: string, userAge: number): Personali
   return problems
 }
 
-// AI Response Generator using OpenAI API
+// AI Response Generator with Conversation Context
+const generateAIResponseWithContext = async (
+  query: string, 
+  avatarType: string, 
+  userAge: number, 
+  username: string,
+  conversationHistory: Array<{role: string, content: string}> = [],
+  userData: any = null
+) => {
+  try {
+    const response = await fetch('/api/ai-coach', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        avatarType,
+        userAge,
+        username,
+        conversationHistory,
+        userData
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('API request failed')
+    }
+
+    const data = await response.json()
+    
+    if (data.success) {
+      return {
+        response: data.response,
+        source: 'openai' as const
+      }
+    } else {
+      // Return fallback response if API fails
+      return {
+        response: data.response,
+        source: 'fallback' as const
+      }
+    }
+  } catch (error) {
+    console.error('Error calling AI Coach API:', error)
+    
+    // Local fallback if API is completely down
+    const fallbackMessages = {
+      marcus: `Hey ${username}, Logan here! I'm having some technical issues right now, but I hear you. Try asking me again in a moment?`,
+      alex: `Hey ${username}! Mason here - I'm just having a small technical hiccup. Try asking me again in a second.`,
+      ryan: `${username}, Blake here! I'm just having a quick system restart, try asking me again in a moment.`,
+      jake: `${username}, Chase here! I'm optimizing my systems right now, try reaching out again in just a second.`,
+      ethan: `${username}, Knox here! I'm having a small technical moment, try reaching out again in just a second.`
+    }
+    
+    return {
+      response: fallbackMessages[avatarType as keyof typeof fallbackMessages] || fallbackMessages.marcus,
+      source: 'local' as const
+    }
+  }
+}
+
+// Legacy AI Response Generator (keeping for compatibility)
 const generateAIResponse = async (query: string, avatarType: string, userAge: number, username: string) => {
   try {
     const response = await fetch('/api/ai-coach', {
@@ -404,17 +466,42 @@ function DashboardContent() {
     }
   }, [])
 
-  // Handle chat message sending
-  const handleChatMessage = async (message: string): Promise<string | null> => {
+  // Handle chat message sending with conversation context
+  const handleChatMessage = async (message: string, conversationHistory?: any[]): Promise<string | null> => {
     if (!user) return null
 
     try {
       const mappedCoachForAI = user.coach ? coachMapping[user.coach] || 'marcus' : 'marcus'
-      const result = await generateAIResponse(message, mappedCoachForAI, userAge, user.username)
       
-      console.log('🤖 Chat Response:', {
+      // Build conversation context for AI
+      const conversationContext = conversationHistory ? conversationHistory.map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      })) : []
+
+      // Get user data from Supabase for full profile
+      let userData = null
+      try {
+        userData = await SupabaseUserManager.getUserByUsername(user.username)
+      } catch (error) {
+        console.log('Could not fetch user data from Supabase:', error)
+      }
+      
+      const result = await generateAIResponseWithContext(
+        message, 
+        mappedCoachForAI, 
+        userAge, 
+        user.username, 
+        conversationContext,
+        userData // Pass full user profile
+      )
+      
+      console.log('🤖 Chat Response with Context & Profile:', {
         query: message,
         coach: user.coach,
+        userType: userData?.user_type,
+        confidenceScore: userData?.confidence_score,
+        contextLength: conversationContext.length,
         response: result.response?.substring(0, 100) + '...',
         source: result.source
       })
