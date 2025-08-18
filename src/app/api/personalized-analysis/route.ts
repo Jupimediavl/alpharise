@@ -209,9 +209,10 @@ This message must make them feel DESPERATE to click that button and start the tr
     const fallbackCoach = requestData?.coach || 'logan'
     const fallbackUsername = requestData?.username || 'future Alpha'
     const fallbackAge = requestData?.age || 25
+    const fallbackConfidenceScore = requestData?.confidenceScore || 25
     
     const coachData = coachPersonalities[fallbackCoach] || coachPersonalities.logan
-    const fallbackAnalysis = `Right now, you're watching confident guys get everything you want while you stay stuck at ${confidenceScore}/100. Every day you wait is another opportunity missed, another regret added. AlphaRise ends this cycle TODAY - complete transformation from invisible to unstoppable. This is your moment.`
+    const fallbackAnalysis = `Right now, you're watching confident guys get everything you want while you stay stuck at ${fallbackConfidenceScore}/100. Every day you wait is another opportunity missed, another regret added. AlphaRise ends this cycle TODAY - complete transformation from invisible to unstoppable. This is your moment.`
     
     return NextResponse.json({ 
       analysis: fallbackAnalysis,
