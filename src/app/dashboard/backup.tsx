@@ -111,7 +111,7 @@ function DashboardContent() {
         sessionStorage.setItem('alpharise_user', JSON.stringify({
           username: userData.username,
           email: userData.email,
-          avatar_type: userData.avatar_type,
+          coach: userData.coach,
           coins: userData.coins,
           last_loaded: new Date().toISOString()
         }))
@@ -161,7 +161,7 @@ function DashboardContent() {
     )
   }
 
-  const avatar = avatarData[user.avatar_type] || avatarData.marcus
+  const avatar = avatarData[user.coach] || avatarData.marcus
   
   // Calculate level from experience
   const currentLevel = Math.floor(user.experience / 250) + 1

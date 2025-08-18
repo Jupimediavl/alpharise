@@ -100,6 +100,7 @@ export interface DbCoach {
   description: string
   icon: string
   features: string[]
+  color?: string
   created_at: string
 }
 
@@ -964,7 +965,6 @@ export const supabaseHelpers = {
       discount_earned: 0,
       subscription_type: 'trial',
       trial_days_left: 7,
-      confidence_score: 34,
       experience: 150,
       badges: []
     })

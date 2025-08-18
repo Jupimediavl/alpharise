@@ -666,7 +666,7 @@ function DashboardContent() {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${coach.color} flex items-center justify-center text-lg flex-shrink-0`}>
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${'color' in coach ? coach.color || 'from-purple-500 to-magenta-500' : 'from-purple-500 to-magenta-500'} flex items-center justify-center text-lg flex-shrink-0`}>
                   {coach.icon}
                 </div>
                 <div className="flex-1">
@@ -744,7 +744,7 @@ function DashboardContent() {
           transition={{ duration: 0.5 }}
         >
           <div className="flex items-center gap-4 mb-6">
-            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || coach.color} flex items-center justify-center text-xl shadow-lg`}>
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || ('color' in coach ? coach.color : 'from-purple-500 to-magenta-500')} flex items-center justify-center text-xl shadow-lg`}>
               {problemsData?.icon || coach.icon}
             </div>
             <div>

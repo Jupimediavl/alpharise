@@ -103,8 +103,15 @@ function getConfidenceInsight(score: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  let requestData: AnalysisRequest | null = null
+  
   try {
-    const requestData: AnalysisRequest = await request.json()
+    requestData = await request.json()
+    
+    if (!requestData) {
+      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
+    }
+
     const { userType, coach, age, confidenceScore, username = "brother" } = requestData
 
     if (!userType || !coach || !age || confidenceScore === undefined) {
@@ -201,9 +208,13 @@ The user's name is ${username}. Talk naturally, like a real coach who truly gets
   } catch (error) {
     console.error('Personalized Analysis API Error:', error)
     
-    // Fallback response
-    const coachData = coachPersonalities[coach] || coachPersonalities.logan
-    const fallbackAnalysis = `${username}, look - ${userTypeData?.core_issue || 'your confidence struggles'} ends now. At ${age} with your level of self-awareness, AlphaRise is gonna transform you into the confident alpha you're meant to be. Get ready to become unstoppable.`
+    // Fallback response - use data from the request if available
+    const fallbackCoach = requestData?.coach || 'logan'
+    const fallbackUsername = requestData?.username || 'future Alpha'
+    const fallbackAge = requestData?.age || 25
+    
+    const coachData = coachPersonalities[fallbackCoach] || coachPersonalities.logan
+    const fallbackAnalysis = `${fallbackUsername}, look - your confidence challenges end now. At ${fallbackAge} with your level of self-awareness, AlphaRise is gonna transform you into the confident alpha you're meant to be. Get ready to become unstoppable.`
     
     return NextResponse.json({ 
       analysis: fallbackAnalysis,
