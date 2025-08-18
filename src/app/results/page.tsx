@@ -337,7 +337,8 @@ function ResultsContent() {
                 MASSIVE POTENTIAL!
               </div>
               <div className="text-xl text-white max-w-2xl mx-auto">
-                <strong>You're starting at {searchParams.get('confidenceScore') || '25'}, but your potential is 100.</strong> 
+                <strong>You're starting at {searchParams.get('confidenceScore') || '25'}, but your potential is 100.</strong>
+                <br /><br />
                 Most successful guys started exactly where you are right now. 
                 <span className="text-magenta-400 font-bold"> Your transformation to 100 starts today.</span>
               </div>

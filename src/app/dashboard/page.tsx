@@ -496,14 +496,18 @@ function DashboardContent() {
               className="flex items-center gap-3 bg-gray-800/50 hover:bg-gray-700/50 px-4 py-2 rounded-xl border border-gray-600/30 hover:border-purple-500/30 transition-all"
             >
               {/* User Avatar */}
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              <div className="w-8 h-8 rounded-full overflow-hidden">
+                <img
+                  src={`/avatars/${user?.coach || 'logan'}.png`}
+                  alt={`Coach ${user?.coach || 'logan'}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
               
               {/* User Info */}
               <div className="text-left hidden md:block">
                 <div className="text-sm font-semibold text-white">{user?.username || 'User'}</div>
-                <div className="text-xs text-gray-400">{user?.coach || 'Member'}</div>
+                <div className="text-xs text-gray-400">Coach: {coach.name.split(' ')[0] || 'Logan'}</div>
               </div>
               
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
@@ -520,8 +524,12 @@ function DashboardContent() {
                 {/* User Info Header */}
                 <div className="p-4 border-b border-gray-600/30">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    <div className="w-12 h-12 rounded-full overflow-hidden">
+                      <img
+                        src={`/avatars/${user?.coach || 'logan'}.png`}
+                        alt={`Coach ${user?.coach || 'logan'}`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <div className="font-semibold text-white">{user?.username || 'User'}</div>
@@ -608,8 +616,12 @@ function DashboardContent() {
         >
           <div className="bg-gradient-to-r from-purple-500/20 to-magenta-500/20 border border-purple-500/30 rounded-2xl p-6 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || 'from-purple-500 to-magenta-500'} flex items-center justify-center text-xl`}>
-                {problemsData?.icon || '🤝'}
+              <div className="w-12 h-12 rounded-full overflow-hidden">
+                <img
+                  src={`/avatars/${user?.coach || 'logan'}.png`}
+                  alt={`Coach ${user?.coach || 'logan'}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Ask {coach.name} Anything</h2>
@@ -737,24 +749,6 @@ function DashboardContent() {
         </motion.div>
         
         {/* Welcome Header */}
-        <motion.div 
-          className="mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center gap-4 mb-6">
-            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${problemsData?.color || ('color' in coach ? coach.color : 'from-purple-500 to-magenta-500')} flex items-center justify-center text-xl shadow-lg`}>
-              {problemsData?.icon || coach.icon}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Hey {user.username}! 👋
-              </h1>
-              <p className="text-gray-400">{problemsData?.ageContext || 'Your Personal Coach'} • Age {userAge}</p>
-            </div>
-          </div>
-        </motion.div>
 
         {/* Compact Problem Card */}
         {problemsData && (
@@ -770,17 +764,21 @@ function DashboardContent() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">🎯</span>
                   <div>
-                    <h3 className="text-lg font-bold text-red-400">{problemsData.primaryProblem}</h3>
-                    <p className="text-sm text-gray-400">{problemsData.description}</p>
+                    <h3 className="text-lg font-bold text-white">{problemsData.primaryProblem}</h3>
+                    <p className="text-sm text-white/80">{problemsData.description}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
                   {problemsData.urgency === 'high' && (
-                    <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold">
+                    <div className="bg-white/90 text-red-600 px-2 py-1 rounded-full text-xs font-semibold border border-red-300">
                       🚨 High Priority
+                    </div>
+                  )}
+                  {problemsData.urgency === 'medium' && (
+                    <div className="bg-white/90 text-orange-600 px-2 py-1 rounded-full text-xs font-semibold border border-orange-300">
+                      ⚠️ Medium Priority
                     </div>
                   )}
                   <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform group-hover:translate-x-1 ${showProblemDetails ? 'rotate-90' : ''}`} />
@@ -797,11 +795,11 @@ function DashboardContent() {
                 >
                   {problemsData.ageSpecificNote && (
                     <div className="bg-black/30 rounded-lg p-3 mb-3">
-                      <div className="text-cyan-400 font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
-                      <div className="text-sm text-gray-300">{problemsData.ageSpecificNote}</div>
+                      <div className="text-white font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
+                      <div className="text-sm text-white/80">{problemsData.ageSpecificNote}</div>
                     </div>
                   )}
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-white/70">
                     Based on your confidence test results and age, this is your #1 barrier to success.
                   </div>
                 </motion.div>

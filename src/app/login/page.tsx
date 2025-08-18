@@ -214,38 +214,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Demo Accounts */}
-            <div className="mt-8 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
-              <h3 className="text-sm font-semibold mb-3 text-center text-transparent bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text">
-                🎮 Try Demo Accounts
-              </h3>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { username: 'testuser1', type: 'Regular User', coins: 200 },
-                  { username: 'coach_rodriguez', type: 'Expert Coach', coins: 500 },
-                  { username: 'expert_dan', type: 'Community Expert', coins: 350 }
-                ].map((demo) => (
-                  <button
-                    key={demo.username}
-                    onClick={() => setFormData({ identifier: demo.username })}
-                    className="p-3 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg transition-colors text-left border border-purple-500/20"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-purple-400">{demo.username}</div>
-                        <div className="text-xs text-gray-400">{demo.type}</div>
-                      </div>
-                      <div className="text-xs text-transparent bg-gradient-to-r from-pink-400 to-pink-400 bg-clip-text font-semibold">
-                        {demo.coins} AlphaCoins
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 text-center mt-3">
-                Click any demo account to auto-fill the login form
-              </p>
-            </div>
           </motion.div>
         </div>
       </div>
