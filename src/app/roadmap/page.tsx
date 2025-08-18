@@ -93,9 +93,9 @@ export default function RoadmapPage() {
         techStack: ['Stripe integration ready']
       },
       {
-        id: 'assessment-tool',
-        title: 'Confidence Assessment',
-        description: 'Initial assessment to determine user avatar type and starting point',
+        id: 'confidence-test-tool',
+        title: 'Confidence Test',
+        description: 'Initial confidence test to determine user avatar type and starting point',
         category: 'core',
         priority: 'high',
         pages: ['/assessment'],

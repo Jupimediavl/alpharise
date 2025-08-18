@@ -182,7 +182,7 @@ export class SupabaseUserManager {
       }
 
       console.log('📝 Attempting to create user with data:', newUserData)
-      console.log('📊 Assessment values received:', {
+      console.log('📊 Confidence test values received:', {
         user_type: userData.user_type,
         coach: userData.coach
       })

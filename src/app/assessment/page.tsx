@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
-export default function AssessmentPage() {
+export default function ConfidenceTestPage() {
   const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(-1) // Start with age verification
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
@@ -202,7 +202,7 @@ export default function AssessmentPage() {
     })
     
     // Ensure score stays within beginner bounds (15-40)
-    // Everyone who takes this assessment needs improvement!
+    // Everyone who takes this confidence test needs improvement!
     confidenceScore = Math.max(15, Math.min(40, confidenceScore))
     
     console.log('Problem scores:', problemScores)
@@ -443,7 +443,7 @@ export default function AssessmentPage() {
             </h2>
             
             <p className="text-lg opacity-70 mb-8 leading-relaxed">
-              This assessment contains mature content and is designed for adults only. We also use your age to match you with the right coach for your specific challenges.
+              This confidence test contains mature content and is designed for adults only. We also use your age to match you with the right coach for your specific challenges.
             </p>
 
             {showAgeError && (
@@ -475,9 +475,9 @@ export default function AssessmentPage() {
               <button
                 onClick={handleAgeSubmit}
                 disabled={!inputAge}
-                className="block mx-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all transform hover:scale-105 disabled:scale-100"
+                className="block mx-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-all transform hover:scale-105 disabled:scale-100"
               >
-                Continue to Assessment
+                Start Your Test
               </button>
             </div>
 
@@ -486,7 +486,7 @@ export default function AssessmentPage() {
             </div>
           </motion.div>
         ) : (
-          /* Regular Assessment Questions */
+          /* Regular Confidence Test Questions */
           <motion.div 
             className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 text-center"
             initial={{ opacity: 0, y: 30 }}
@@ -540,7 +540,7 @@ export default function AssessmentPage() {
 
             <div className="text-sm opacity-60">
               {selectedAnswer !== null && currentQuestion < 9 && "Moving to next question..."}
-              {currentQuestion === 9 && selectedAnswer !== null && "Completing assessment..."}
+              {currentQuestion === 9 && selectedAnswer !== null && "Completing your test..."}
             </div>
 
             <div className="text-sm opacity-40">

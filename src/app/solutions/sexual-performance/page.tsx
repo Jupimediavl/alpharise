@@ -151,7 +151,7 @@ During sex, when you feel yourself getting close, give your PC muscle a firm squ
 
 This isn't about numbing yourself - it's about training your body to handle stimulation without going over the edge.
 
-**Week 1: Assessment and Baseline**
+**Week 1: Evaluation and Baseline**
 - During solo practice, note exactly when you reach the point of no return
 - Rate your sensitivity from 1-10 (most guys start at 8-9)
 - Practice with minimal lubrication to increase friction tolerance

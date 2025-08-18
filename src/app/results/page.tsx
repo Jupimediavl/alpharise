@@ -183,7 +183,7 @@ function ResultsContent() {
 
   useEffect(() => {
     const loadPageData = async () => {
-      // Get user type and coach from URL params (from assessment)
+      // Get user type and coach from URL params (from confidence test)
       const urlUserType = searchParams.get('userType') || 'overthinker'
       const urlCoach = searchParams.get('coach') || 'logan'
       const age = searchParams.get('age') || '25'
@@ -289,15 +289,6 @@ function ResultsContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Avatar Reveal */}
-          <motion.div 
-            className="text-8xl mb-8"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.6, type: "spring", bounce: 0.5 }}
-          >
-            {currentCoach.icon}
-          </motion.div>
 
           <motion.div 
             className="mb-4 text-sm uppercase tracking-wider text-cyan-400 font-semibold"
@@ -317,24 +308,6 @@ function ResultsContent() {
             YOUR CONFIDENCE ANALYSIS
           </motion.h1>
 
-          {/* Scarcity Banner */}
-          <motion.div
-            className="mb-8 bg-gradient-to-r from-red-600/30 to-orange-600/30 border-2 border-red-500/60 rounded-xl p-4 text-center"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <span className="text-2xl">⚡</span>
-              <div className="text-xl font-black text-red-300">
-                SPECIAL PRICING ENDS SOON
-              </div>
-              <span className="text-2xl">⚡</span>
-            </div>
-            <div className="text-red-200 font-semibold">
-              ${pricingData.trialPrice} Trial Available for LIMITED TIME Only - Don't Miss Out!
-            </div>
-          </motion.div>
 
           {/* Confidence Score - Big and Prominent */}
           <motion.div 
@@ -520,8 +493,8 @@ function ResultsContent() {
                     <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
                       🔥 Exclusive Analysis
                     </div>
-                    <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
-                      PERSONAL ANALYSIS FROM<br/>COACH {currentCoach.name.toUpperCase()}
+                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
+                      PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
                     </div>
                   </motion.div>
                   
@@ -565,8 +538,8 @@ function ResultsContent() {
                     <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
                       🔥 Exclusive Analysis
                     </div>
-                    <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
-                      PERSONAL ANALYSIS FROM<br/>COACH {currentCoach.name.toUpperCase()}
+                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
+                      PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
                     </div>
                   </motion.div>
                   
@@ -593,180 +566,7 @@ function ResultsContent() {
             )}
           </motion.div>
 
-          {/* CTA After Personal Analysis */}
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.2 }}
-          >
-            <div className="mb-6">
-              <div className="text-2xl md:text-3xl text-white mb-4 font-bold">
-                Ready to Start Your Transformation?
-              </div>
-              <div className="text-lg text-gray-300 mb-2">
-                Don't let another day pass with a confidence score of <span className="text-purple-400 font-bold">{searchParams.get('confidenceScore') || '25'}</span>
-              </div>
-            </div>
-            
-            <motion.button
-              onClick={handleStartProgram}
-              className="px-14 py-5 text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-xl 
-                       transition-all duration-300 ease-out shadow-xl relative overflow-hidden group border-2 border-magenta-400/50
-                       hover:scale-105 active:scale-95"
-              whileHover={{ 
-                scale: 1.05,
-                boxShadow: "0 0 40px rgba(236, 72, 153, 0.5)"
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="relative z-10 text-white drop-shadow-md">
-                ⚡ SECURE YOUR TRANSFORMATION - ONLY ${pricingData.trialPrice}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-600"></div>
-            </motion.button>
-            
-            <div className="mt-4 space-y-3">
-              <div className="text-lg font-bold text-green-400">
-                🔥 {pricingData.trialDays}-Day Trial • Only ${pricingData.trialPrice}
-              </div>
-              <div className="text-sm bg-red-900/40 text-red-200 px-4 py-2 rounded-lg border border-red-500/50 font-medium">
-                ⚠️ WARNING: This price won't last long
-              </div>
-              <div className="text-sm text-gray-400">
-                Then ${pricingData.mainPrice}/month • Transform with Coach {currentCoach.name}
-              </div>
-              <div className="flex items-center justify-center gap-4 text-sm text-green-400 mt-3">
-                <span>✓ Instant Access</span>
-                <span>✓ Personal Coach</span>
-                <span>✓ Cancel Anytime</span>
-              </div>
-            </div>
-          </motion.div>
 
-          {/* Final Urgency Push */}
-          <motion.div 
-            className="bg-gradient-to-r from-purple-900/50 to-magenta-900/50 border-2 border-purple-500/50 rounded-2xl p-8 mb-8"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.4 }}
-          >
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-red-400 mb-2">
-                ⏰ CRITICAL DECISION TIME ⏰
-              </div>
-              <div className="text-xl md:text-2xl text-white mb-2 font-bold">
-                This Moment Will Define Your Next 5 Years
-              </div>
-              <div className="text-lg text-gray-300 mb-8">
-                <span className="text-red-400 font-bold">WARNING:</span> Only one of these paths leads to the life you actually want...
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* OPTION 1 - Dark/Depressing */}
-                <motion.div 
-                  className="relative bg-gray-800/40 border-2 border-red-500/60 rounded-2xl p-8 transform"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  {/* Danger badge */}
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                    ⚠️ DANGER ZONE
-                  </div>
-                  
-                  <div className="text-2xl font-black text-red-400 mb-4 mt-2">PATH 1: STAY STUCK</div>
-                  <div className="text-base text-gray-300 mb-4 italic">
-                    "I'll figure it out eventually..." (You won't)
-                  </div>
-                  <ul className="text-left space-y-3 text-gray-200">
-                    <li className="flex items-start gap-3">
-                      <span className="text-red-400 text-xl">💔</span>
-                      <span>Watch confident guys get the girls you want</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-red-400 text-xl">😞</span>
-                      <span>Keep getting rejected because nothing changed</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-red-400 text-xl">⏳</span>
-                      <span>Waste another year feeling invisible and frustrated</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-red-400 text-xl">🥀</span>
-                      <span>Live with regrets: "What if I had tried AlphaRise?"</span>
-                    </li>
-                  </ul>
-                  
-                  <div className="mt-6 p-4 bg-red-900/30 rounded-lg border border-red-500/30">
-                    <div className="text-red-300 font-bold text-lg">Result After 1 Year:</div>
-                    <div className="text-red-200">Still {searchParams.get('confidenceScore') || '25'}/100 • Still alone • Still wondering "what if"</div>
-                  </div>
-                </motion.div>
-
-                {/* OPTION 2 - Bright/Attractive */}
-                <motion.div 
-                  className="relative bg-gradient-to-br from-purple-600/30 via-magenta-600/25 to-pink-600/30 border-2 border-magenta-400/80 rounded-2xl p-8 transform shadow-2xl"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  {/* Success badge with glow */}
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse">
-                    🔥 SUCCESS PATH
-                  </div>
-                  
-                  {/* Glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl rounded-2xl"></div>
-                  
-                  <div className="relative z-10">
-                    <div className="text-2xl font-black bg-gradient-to-r from-magenta-300 to-pink-300 bg-clip-text text-transparent mb-4 mt-2">
-                      PATH 2: ALPHARISE TRANSFORMATION
-                    </div>
-                    <div className="text-base text-magenta-200 mb-4 italic font-semibold">
-                      "I chose to become unstoppable..." (The smart choice)
-                    </div>
-                    <ul className="text-left space-y-3 text-white">
-                      <li className="flex items-start gap-3">
-                        <span className="text-magenta-400 text-xl">👑</span>
-                        <span><strong>Command respect</strong> - people notice when you enter a room</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-pink-400 text-xl">😍</span>
-                        <span><strong>Attract amazing people</strong> who are drawn to your confidence</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-magenta-400 text-xl">⚡</span>
-                        <span><strong>Unshakeable confidence</strong> in every situation</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-pink-400 text-xl">🚀</span>
-                        <span><strong>Become the Alpha</strong> you were always meant to be</span>
-                      </li>
-                    </ul>
-                    
-                    <div className="mt-6 p-4 bg-gradient-to-r from-magenta-900/40 to-pink-900/40 rounded-lg border border-magenta-400/50">
-                      <div className="text-magenta-200 font-bold text-lg">Result After 30 Days:</div>
-                      <div className="text-white font-semibold">85+/100 Confidence • Dating Success • Living Your Best Life</div>
-                    </div>
-                    
-                    {/* Urgency indicator */}
-                    <div className="mt-4 text-center">
-                      <div className="inline-block bg-yellow-500/20 border border-yellow-500/60 rounded-full px-4 py-2">
-                        <span className="text-yellow-300 text-sm font-bold">⚡ Limited Time: ${pricingData.trialPrice} Trial</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Decorative elements */}
-                  <div className="absolute top-4 right-4 w-2 h-2 bg-magenta-400 rounded-full animate-ping"></div>
-                  <div className="absolute bottom-4 left-4 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
 
           {/* Powerful CTA */}
           <motion.div

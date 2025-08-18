@@ -303,7 +303,7 @@ function DashboardContent() {
               <span className="text-sm font-semibold text-blue-400">Confidence</span>
             </div>
             <div className="text-2xl font-bold">{user.confidence_score}%</div>
-            <div className="text-xs opacity-70">Assessment score</div>
+            <div className="text-xs opacity-70">Confidence score</div>
           </motion.div>
         </div>
 

@@ -6,7 +6,7 @@ interface AnalysisRequest {
   coach: string
   age: number
   confidenceScore: number
-  assessmentAnswers?: number[]
+  confidenceTestAnswers?: number[]
   username?: string
 }
 
@@ -154,25 +154,22 @@ CONTEXT ABOUT THIS USER:
 - Current confidence: ${confidenceScore}/100 (MAJOR PROBLEM)
 
 CRITICAL INSTRUCTIONS:
-1. Write as ${coachData.name} - NO introductions, NO "Hey future Alpha" - jump STRAIGHT into the pain
-2. 60-80 words total - make every word COUNT for conversion
-3. Start with BRUTAL REALITY - what's happening to their life RIGHT NOW because of their problem
-4. Use EMOTIONAL TRIGGERS: "missing out", "watching others", "another day wasted", "tired of being..."
-5. Create URGENCY: "every day you wait", "right now", "today", "this moment"
-6. End with TRANSFORMATION PROMISE: "AlphaRise changes everything", "complete transformation", "the man you're meant to be"
-7. Use POWER WORDS: devastating, crushing, transform, dominate, unstoppable, breakthrough
-8. Make them feel the PAIN of staying the same vs the PLEASURE of transformation
-9. NO generic advice - TARGET their specific problem with laser precision
-10. Make this feel like their LAST CHANCE to change
+1. Write as ${coachData.name} - NO introductions, jump STRAIGHT to the point
+2. MAXIMUM 35-40 words - be ruthlessly concise
+3. Start with their SPECIFIC PAIN POINT - hit where it hurts most
+4. End with IMMEDIATE TRANSFORMATION promise
+5. Use POWER WORDS: stuck, missing, transform, breakthrough, unstoppable
+6. Make them feel the URGENCY to act NOW
+7. Target their exact user type problem with surgical precision
 
-This message must make them feel DESPERATE to click that button and start the trial IMMEDIATELY.`
+Short, brutal, conversion-focused. Every word must drive them to take action.`
           },
           {
             role: 'user', 
             content: analysisPrompt
           }
         ],
-        max_tokens: 100,
+        max_tokens: 50,
         temperature: 0.8,
         frequency_penalty: 0.3,
         presence_penalty: 0.3
@@ -212,7 +209,7 @@ This message must make them feel DESPERATE to click that button and start the tr
     const fallbackConfidenceScore = requestData?.confidenceScore || 25
     
     const coachData = coachPersonalities[fallbackCoach] || coachPersonalities.logan
-    const fallbackAnalysis = `Right now, you're watching confident guys get everything you want while you stay stuck at ${fallbackConfidenceScore}/100. Every day you wait is another opportunity missed, another regret added. AlphaRise ends this cycle TODAY - complete transformation from invisible to unstoppable. This is your moment.`
+    const fallbackAnalysis = `You're stuck at ${fallbackConfidenceScore}/100 while others get what you want. Every day you wait = another missed opportunity. AlphaRise transforms you from invisible to unstoppable. This is your breakthrough moment.`
     
     return NextResponse.json({ 
       analysis: fallbackAnalysis,

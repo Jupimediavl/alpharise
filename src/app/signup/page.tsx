@@ -112,7 +112,7 @@ function SignupContent() {
   const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
 
   useEffect(() => {
-    // Get user type, coach, age, and confidence score from URL params (from assessment results)
+    // Get user type, coach, age, and confidence score from URL params (from confidence test results)
     const urlUserType = searchParams.get('userType') || 'overthinker'
     const urlCoach = searchParams.get('coach') || 'logan'
     const urlAge = parseInt(searchParams.get('age') || '25')
@@ -262,16 +262,16 @@ function SignupContent() {
       
       console.log('✅ Table access successful, existing users:', testSelect?.length || 0)
       
-      // Use helper function to create user with assessment data
-      console.log('📝 Creating user with assessment data:', { userName, email, coach, userType })
+      // Use helper function to create user with confidence test data
+      console.log('📝 Creating user with confidence test data:', { userName, email, coach, userType })
       
       const newUser = await supabaseHelpers.initializeUser(
         userName.trim(),
         email.trim(), 
-        userType, // Assessment result
+        userType, // Confidence test result
         coach, // Original coach name
         age, // User age
-        confidenceScore // Calculated confidence score from assessment
+        confidenceScore // Calculated confidence score from confidence test
       )
       
       if (!newUser) {

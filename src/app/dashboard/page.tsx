@@ -802,7 +802,7 @@ function DashboardContent() {
                     </div>
                   )}
                   <div className="text-xs text-gray-500">
-                    Based on your assessment answers and age, this is your #1 barrier to success.
+                    Based on your confidence test results and age, this is your #1 barrier to success.
                   </div>
                 </motion.div>
               )}
@@ -1007,7 +1007,7 @@ function DashboardContent() {
                       onClick={() => router.push('/assessment')}
                       className="text-gray-300 hover:text-purple-400 transition-colors text-sm flex items-center gap-2"
                     >
-                      <span>📋</span> Assessment
+                      <span>📋</span> Confidence Test
                     </button>
                   </li>
                   <li>

@@ -17,7 +17,7 @@ export default function PreparePage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const handleStartAssessment = () => {
+  const handleStartConfidenceTest = () => {
     router.push('/assessment')
   }
 
@@ -173,7 +173,7 @@ export default function PreparePage() {
 
           {/* Start Button */}
           <motion.button
-            onClick={handleStartAssessment}
+            onClick={handleStartConfidenceTest}
             className="px-12 py-6 text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 rounded-full 
                      transition-all duration-300 ease-out
                      shadow-2xl relative overflow-hidden group mb-8"

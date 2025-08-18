@@ -104,7 +104,7 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              Take Free Assessment
+              Take Your Confidence Test
             </motion.button>
             
             <motion.button
@@ -130,14 +130,14 @@ export default function LandingPage() {
               className="text-center"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text text-transparent">2,500+</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">2,500+</div>
               <div className="text-gray-400">Men Transformed</div>
             </motion.div>
             <motion.div 
               className="text-center"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-magenta-400 to-pink-400 bg-clip-text text-transparent">94%</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">94%</div>
               <div className="text-gray-400">Success Rate</div>
             </motion.div>
             <motion.div 
@@ -182,7 +182,7 @@ export default function LandingPage() {
                 >
                   {feature.icon}
                 </motion.div>
-                <h3 className="text-lg font-semibold mb-2 bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text text-transparent">
+                <h3 className="text-lg font-semibold mb-2 text-purple-400">
                   {feature.title}
                 </h3>
                 <p className="text-sm text-gray-400">{feature.desc}</p>
@@ -207,15 +207,7 @@ export default function LandingPage() {
             
             <div className="relative z-10">
               <motion.h2 
-                className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-400 via-magenta-400 to-pink-400 bg-clip-text text-transparent"
-                animate={{ 
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                }}
-                transition={{ 
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                className="text-2xl font-bold mb-4 text-purple-300"
               >
                 Ready to Transform Your Life?
               </motion.h2>

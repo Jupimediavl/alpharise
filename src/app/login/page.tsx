@@ -209,7 +209,7 @@ export default function LoginPage() {
                   onClick={() => router.push('/assessment')}
                   className="text-transparent bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text font-semibold hover:from-purple-300 hover:to-magenta-300"
                 >
-                  Take the assessment
+                  Take the confidence test
                 </button>
               </p>
             </div>
