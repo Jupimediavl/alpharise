@@ -4,8 +4,9 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
-import { supabaseHelpers, SupabaseUserManager, supabase } from '@/lib/supabase'
+import { supabaseHelpers, SupabaseUserManager, supabase, SupabasePricingManager } from '@/lib/supabase'
 import { ArrowRight, Sparkles, Crown } from 'lucide-react'
+import Image from 'next/image'
 
 // Temporary mapping from new coach names to valid database values
 const getValidAvatarType = (coach: string): string => {
@@ -40,6 +41,25 @@ function SignupContent() {
     userName?: boolean
     email?: boolean
   }>({})
+  const [pricingData, setPricingData] = useState<{
+    trialPrice: number
+    trialDays: number
+    originalPrice: number
+    discountedPrice: number
+    currentPrice: number
+    discountPercentage: number
+    hasDiscount: boolean
+    currency: string
+  }>({
+    trialPrice: 1,
+    trialDays: 3,
+    originalPrice: 19.99,
+    discountedPrice: 9.99,
+    currentPrice: 9.99,
+    discountPercentage: 50,
+    hasDiscount: true,
+    currency: 'USD'
+  })
 
   // NEW COACH SYSTEM - Coaches are the SOLUTION to user problems
   const coachData = {
@@ -47,6 +67,7 @@ function SignupContent() {
       name: 'Logan',
       title: 'The Straight Shooter',
       icon: '🎯',
+      avatar: '/avatars/logan.png',
       helpsWith: 'Overthinkers',
       userTypeProblem: 'overthinking every interaction',
       personalMessage: "Logan here! I help Overthinkers like you get out of their heads and into action. I used to coach guys who'd analyze conversations for hours afterward - sound familiar? I'll teach you to trust your instincts and make confident decisions instantly.",
@@ -58,6 +79,7 @@ function SignupContent() {
       name: 'Chase', 
       title: 'The Cool Cat',
       icon: '😎',
+      avatar: '/avatars/chase.png',
       helpsWith: 'Nervous Guys',
       userTypeProblem: 'performance anxiety in intimate situations',
       personalMessage: "Chase here! I specialize in helping Nervous Guys like you transform anxiety into magnetic confidence. Performance pressure used to control my life too - now I'll show you how to stay calm and confident no matter what.",
@@ -69,6 +91,7 @@ function SignupContent() {
       name: 'Mason',
       title: 'The Patient Pro', 
       icon: '🧑‍🏫',
+      avatar: '/avatars/mason.png',
       helpsWith: 'Rookies',
       userTypeProblem: 'feeling behind and inexperienced',
       personalMessage: "Mason here! I work exclusively with Rookies like you who are starting their confidence journey. Everyone was a beginner once - but most guys are too proud to admit it. That honesty is exactly why you'll succeed faster than everyone else.",
@@ -80,6 +103,7 @@ function SignupContent() {
       name: 'Blake',
       title: 'The Reliable Guy',
       icon: '⚡',
+      avatar: '/avatars/blake.png',
       helpsWith: 'Up & Down Guys',
       userTypeProblem: 'inconsistent confidence that comes and goes',
       personalMessage: "Blake here! I help Up & Down guys like you turn potential into consistent results. I see you have those moments when your natural charm shines through - the problem isn't that you lack confidence, it's that you can't access it reliably.",
@@ -91,6 +115,7 @@ function SignupContent() {
       name: 'Knox',
       title: 'The Authentic One',
       icon: '❤️',
+      avatar: '/avatars/knox.png',
       helpsWith: 'Surface Guys', 
       userTypeProblem: 'struggling to form deep, meaningful connections',
       personalMessage: "Knox here! I help Surface Guys like you create authentic, deep connections. Your emotional intelligence is actually rare and valuable - most guys think it's all about technique, but you understand that real intimacy starts with genuine connection.",
@@ -123,6 +148,34 @@ function SignupContent() {
     setAge(urlAge)
     setConfidenceScore(urlConfidenceScore)
 
+    // Load pricing data from database
+    const loadPricingData = async () => {
+      try {
+        const [trialPricing, mainPricingWithDiscount] = await Promise.all([
+          SupabasePricingManager.getTrialPricing(),
+          SupabasePricingManager.getPricingWithDiscount()
+        ])
+
+        if (trialPricing && mainPricingWithDiscount) {
+          setPricingData({
+            trialPrice: trialPricing.price,
+            trialDays: trialPricing.days,
+            originalPrice: mainPricingWithDiscount.originalPrice,
+            discountedPrice: mainPricingWithDiscount.discountedPrice,
+            currentPrice: mainPricingWithDiscount.currentPrice,
+            discountPercentage: mainPricingWithDiscount.discountPercentage,
+            hasDiscount: mainPricingWithDiscount.hasDiscount,
+            currency: trialPricing.currency
+          })
+        }
+      } catch (error) {
+        console.error('Error loading pricing:', error)
+        // Keep default values if error
+      }
+    }
+
+    loadPricingData()
+
     // Update live counter every few seconds
     const interval = setInterval(() => {
       setLiveCount(prev => {
@@ -153,7 +206,7 @@ function SignupContent() {
           .maybeSingle()
         
         if (data) {
-          setErrors(prev => ({ ...prev, userName: 'Username already taken. Try another one!' }))
+          setErrors(prev => ({ ...prev, userName: 'Username already taken. Try another one! Already registered? Sign in here.' }))
         } else {
           setErrors(prev => ({ ...prev, userName: null }))
         }
@@ -186,7 +239,7 @@ function SignupContent() {
           .maybeSingle()
         
         if (data) {
-          setErrors(prev => ({ ...prev, email: 'Email already registered. Try signing in instead!' }))
+          setErrors(prev => ({ ...prev, email: 'Email already registered. Already have an account? Sign in here.' }))
         } else {
           setErrors(prev => ({ ...prev, email: null }))
         }
@@ -204,6 +257,27 @@ function SignupContent() {
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
+  }
+
+  const renderErrorWithLink = (errorMessage: string) => {
+    if (!errorMessage) return null
+    
+    if (errorMessage.includes('Sign in here')) {
+      const parts = errorMessage.split('Sign in here')
+      return (
+        <span>
+          {parts[0]}
+          <span 
+            onClick={() => router.push('/login')} 
+            className="underline cursor-pointer hover:text-red-300"
+          >
+            Sign in here
+          </span>
+          {parts[1]}
+        </span>
+      )
+    }
+    return errorMessage
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -292,9 +366,9 @@ function SignupContent() {
       
       if (error.message?.includes('duplicate key')) {
         if (error.message.includes('username')) {
-          setErrors(prev => ({ ...prev, userName: 'Username already taken' }))
+          setErrors(prev => ({ ...prev, userName: 'Username already taken. Try another one! Already registered? Sign in here.' }))
         } else if (error.message.includes('email')) {
-          setErrors(prev => ({ ...prev, email: 'Email already registered' }))
+          setErrors(prev => ({ ...prev, email: 'Email already registered. Already have an account? Sign in here.' }))
         }
       } else {
         setErrors(prev => ({ 
@@ -392,10 +466,9 @@ function SignupContent() {
             transition={{ duration: 0.6 }}
           >
             <motion.div 
-              className="text-5xl mb-6"
+              className="mb-6 flex justify-center"
               animate={{ 
-                rotate: [0, 5, -5, 0],
-                scale: [1, 1.1, 1, 1.05, 1]
+                scale: [1, 1.05, 1, 1.02, 1]
               }}
               transition={{ 
                 duration: 3,
@@ -403,7 +476,17 @@ function SignupContent() {
                 ease: "easeInOut"
               }}
             >
-              {currentCoach.icon}
+              <div className="w-48 h-48 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-magenta-500/20 rounded-full blur-lg"></div>
+                <Image
+                  src={currentCoach.avatar}
+                  alt={`Coach ${currentCoach.name} - ${currentCoach.title}`}
+                  width={192}
+                  height={192}
+                  className="relative z-10 w-full h-full object-contain"
+                  priority
+                />
+              </div>
             </motion.div>
             
             {/* Coach talking TO the user about THEIR problem */}
@@ -525,7 +608,7 @@ function SignupContent() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      {errors.userName}
+                      {renderErrorWithLink(errors.userName)}
                     </motion.p>
                   )}
                   {userName && userName.length >= 3 && !errors.userName && !validationLoading.userName && (
@@ -593,7 +676,7 @@ function SignupContent() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      {errors.email}
+                      {renderErrorWithLink(errors.email)}
                     </motion.p>
                   )}
                   {email && isValidEmail(email) && !errors.email && !validationLoading.email && (
@@ -672,13 +755,18 @@ function SignupContent() {
                 </motion.button>
               </form>
 
-              <div className="text-center mt-6 space-y-2">
+              <div className="text-center mt-6 space-y-3">
                 <p className="text-sm opacity-60">
-                  ✅ Free for 7 days • ✅ Cancel anytime • ✅ No credit card required
+                  ✅ {pricingData.trialDays}-day trial for ${pricingData.trialPrice} • ✅ Cancel anytime • ✅ Secure payment
                 </p>
-                <p className="text-xs opacity-40">
-                  After trial: $27/month • Over 2,000 men have transformed with {currentCoach.name}
-                </p>
+                <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-4">
+                  <p className="text-lg font-bold mb-1">
+                    After trial: <span className="text-xl text-gray-400 line-through">${pricingData.originalPrice}</span> <span className="text-2xl text-green-400 font-bold">${pricingData.currentPrice}/month</span>
+                  </p>
+                  <p className="text-sm text-green-400">
+                    🎯 {pricingData.discountPercentage}% OFF • Over 2,000 men have transformed with {currentCoach.name}
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -695,7 +783,7 @@ function SignupContent() {
               className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-6 text-center backdrop-blur-sm"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-purple-400 font-bold text-lg mb-2">🔴 Live Now</div>
+              <div className="text-purple-400 font-bold text-lg mb-2">🟢 Live Now</div>
               <motion.div 
                 className="text-2xl font-black text-white mb-1"
                 animate={{ scale: [1, 1.1, 1] }}
@@ -723,59 +811,6 @@ function SignupContent() {
             </motion.div>
           </motion.div>
 
-          {/* Benefits Specific to Coach & User Type */}
-          <motion.div 
-            className="bg-black/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <h3 className="text-xl font-bold mb-4 text-center">
-              What {currentCoach.name} will teach you in your first week:
-            </h3>
-            <div className="space-y-3">
-              <motion.div 
-                className="flex items-start gap-3"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="text-purple-400 mt-1">✨</div>
-                <div>Your personalized {currentCoach.title} confidence blueprint</div>
-              </motion.div>
-              <motion.div 
-                className="flex items-start gap-3"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="text-magenta-400 mt-1">🚀</div>
-                <div>Access to {currentCoach.name}'s exclusive {currentCoach.helpsWith} brotherhood</div>
-              </motion.div>
-              <motion.div 
-                className="flex items-start gap-3"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="text-pink-400 mt-1">🎯</div>
-                <div>{currentCoach.specificPain}</div>
-              </motion.div>
-              <motion.div 
-                className="flex items-start gap-3"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="text-purple-400 mt-1">⚡</div>
-                <div>Daily challenges designed specifically for overcoming {currentCoach.userTypeProblem}</div>
-              </motion.div>
-              <motion.div 
-                className="flex items-start gap-3"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="text-magenta-400 mt-1">💰</div>
-                <div>Coin rewards system - earn money back on your subscription</div>
-              </motion.div>
-            </div>
-          </motion.div>
 
           {/* Trust Signals */}
           <motion.div 
@@ -785,7 +820,7 @@ function SignupContent() {
             transition={{ duration: 0.6, delay: 0.8 }}
           >
             <p className="text-sm">
-              🔒 Your data is secure • 📧 No spam, ever • 🎯 Results in 7 days or it's free
+              🔒 Your data is secure • 📧 Don't worry, we hate spam too!
             </p>
           </motion.div>
         </div>

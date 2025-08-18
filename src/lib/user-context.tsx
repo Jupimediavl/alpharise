@@ -113,6 +113,12 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeUser = () => {
       try {
+        // Check if we're in the browser
+        if (typeof window === 'undefined') {
+          setIsInitialized(true)
+          return
+        }
+
         const savedUser = localStorage.getItem('alpharise_user')
         
         if (savedUser) {

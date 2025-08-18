@@ -18,12 +18,20 @@ function ResultsContent() {
   const [pricingData, setPricingData] = useState<{
     trialPrice: number
     trialDays: number
-    mainPrice: number
+    originalPrice: number
+    discountedPrice: number
+    currentPrice: number
+    discountPercentage: number
+    hasDiscount: boolean
     currency: string
   }>({
     trialPrice: 1,
     trialDays: 3,
-    mainPrice: 9.99,
+    originalPrice: 19.99,
+    discountedPrice: 9.99,
+    currentPrice: 9.99,
+    discountPercentage: 50,
+    hasDiscount: true,
     currency: 'USD'
   })
 
@@ -192,18 +200,22 @@ function ResultsContent() {
       setUserType(urlUserType)
       setCoach(urlCoach)
       
-      // Load pricing data from database
+      // Load pricing data with discount information
       try {
-        const [trialPricing, mainPricing] = await Promise.all([
+        const [trialPricing, mainPricingWithDiscount] = await Promise.all([
           SupabasePricingManager.getTrialPricing(),
-          SupabasePricingManager.getMainPricing()
+          SupabasePricingManager.getPricingWithDiscount()
         ])
 
-        if (trialPricing && mainPricing) {
+        if (trialPricing && mainPricingWithDiscount) {
           setPricingData({
             trialPrice: trialPricing.price,
             trialDays: trialPricing.days,
-            mainPrice: mainPricing.price,
+            originalPrice: mainPricingWithDiscount.originalPrice,
+            discountedPrice: mainPricingWithDiscount.discountedPrice,
+            currentPrice: mainPricingWithDiscount.currentPrice,
+            discountPercentage: mainPricingWithDiscount.discountPercentage,
+            hasDiscount: mainPricingWithDiscount.hasDiscount,
             currency: trialPricing.currency
           })
         }
@@ -357,19 +369,38 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white">
-                🔥 CLAIM ${pricingData.trialPrice} TRIAL - LIMITED TIME
+                START YOUR TRANSFORMATION
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
             </motion.button>
             
             <div className="mt-3 space-y-2">
-              <div className="text-sm text-green-400 font-semibold">
-                🔥 {pricingData.trialDays}-Day Trial for ${pricingData.trialPrice} • Then ${pricingData.mainPrice}/month
+              <div className="text-lg text-green-400 font-bold mb-3">
+                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
               </div>
-              <div className="text-xs text-yellow-300 font-medium bg-yellow-900/30 px-3 py-1 rounded-full inline-block">
-                ⚡ Limited Time Offer - Act Fast!
-              </div>
+              {pricingData.hasDiscount ? (
+                <div className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-600/30 rounded-lg p-3 mb-2">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Usually</div>
+                      <span className="text-sm text-gray-400 line-through">${pricingData.originalPrice}/mo</span>
+                    </div>
+                    <div className="text-purple-400 text-2xl">→</div>
+                    <div className="text-center">
+                      <div className="text-xs text-green-400">Your Price</div>
+                      <span className="text-xl text-green-400 font-bold">${pricingData.currentPrice}/mo</span>
+                    </div>
+                    <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium border border-green-500/30">
+                      Save $10
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-lg text-green-400 font-semibold">
+                  Then ${pricingData.currentPrice}/month
+                </div>
+              )}
               <div className="text-xs text-gray-400">
                 Or continue reading to learn more about your personalized plan
               </div>
@@ -597,26 +628,47 @@ function ResultsContent() {
               whileTap={{ scale: 0.95 }}
             >
               <span className="relative z-10 text-white drop-shadow-lg">
-                🚨 LAST CHANCE - GET ${pricingData.trialPrice} TRIAL NOW
+                START YOUR TRANSFORMATION
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
             </motion.button>
 
             <div className="space-y-4">
-              <p className="text-lg font-bold text-green-400">
-                🚨 {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
+              <p className="text-xl font-bold text-green-400 mb-3">
+                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
               </p>
-              <div className="bg-red-600/20 border border-red-500/60 rounded-lg p-3">
-                <p className="text-red-300 font-bold text-sm">
-                  ⏰ URGENT: Price Increases Soon - Lock In ${pricingData.trialPrice} Now!
-                </p>
-              </div>
+              {pricingData.hasDiscount && (
+                <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-6 mb-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-transparent bg-gradient-to-r from-purple-300 via-blue-300 to-green-300 bg-clip-text mb-4">
+                      Early Access Pricing
+                    </p>
+                    <div className="flex items-center justify-center gap-4 mb-3">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-400 mb-1">Regular Price</div>
+                        <span className="text-xl text-gray-400 line-through">${pricingData.originalPrice}</span>
+                      </div>
+                      <div className="text-2xl text-purple-400">→</div>
+                      <div className="text-center">
+                        <div className="text-sm text-green-400 mb-1">Your Price</div>
+                        <span className="text-3xl text-green-400 font-bold">${pricingData.currentPrice}</span>
+                      </div>
+                      <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        50% Off
+                      </div>
+                    </div>
+                    <p className="text-sm text-purple-200">
+                      Special launch pricing • Save $10/month
+                    </p>
+                  </div>
+                </div>
+              )}
               <p className="text-base text-magenta-400 font-semibold">
                 Start Training with Coach {currentCoach.name} Today
               </p>
               <p className="text-sm text-gray-400">
-                Then ${pricingData.mainPrice}/month • Cancel anytime before trial ends
+                Cancel anytime before trial ends • No commitments
               </p>
               <div className="flex items-center justify-center gap-4 text-sm text-green-400">
                 <span>✓ Full Program Access</span>

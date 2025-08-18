@@ -108,6 +108,10 @@ export interface DbPricingPlan {
   currency: string
   trial_price: number
   trial_days: number
+  original_price?: number
+  discounted_price?: number
+  discount_percentage?: number
+  discount_end_date?: string
   is_active: boolean
   display_order: number
   created_at: string
@@ -1039,6 +1043,44 @@ export class SupabasePricingManager {
       }
     } catch (error) {
       console.error('Error in getMainPricing:', error)
+      return null
+    }
+  }
+
+  // Get pricing with discount info
+  static async getPricingWithDiscount(): Promise<{
+    originalPrice: number
+    discountedPrice: number
+    currentPrice: number
+    discountPercentage: number
+    hasDiscount: boolean
+    discountEndsAt?: string
+    currency: string
+    trialPrice: number
+    trialDays: number
+  } | null> {
+    try {
+      const basicPlan = await this.getPlanByType('basic')
+      if (!basicPlan) return null
+
+      const hasDiscount = !!(basicPlan.original_price && basicPlan.discounted_price)
+      const originalPrice = basicPlan.original_price || basicPlan.price
+      const discountedPrice = basicPlan.discounted_price || basicPlan.price
+      const currentPrice = hasDiscount ? discountedPrice : basicPlan.price
+      
+      return {
+        originalPrice,
+        discountedPrice, 
+        currentPrice,
+        discountPercentage: basicPlan.discount_percentage || 0,
+        hasDiscount,
+        discountEndsAt: basicPlan.discount_end_date,
+        currency: basicPlan.currency,
+        trialPrice: basicPlan.trial_price || 1,
+        trialDays: basicPlan.trial_days || 3
+      }
+    } catch (error) {
+      console.error('Error in getPricingWithDiscount:', error)
       return null
     }
   }
