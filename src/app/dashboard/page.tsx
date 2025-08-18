@@ -890,6 +890,62 @@ function DashboardContent() {
           </motion.div>
         )}
 
+        {/* Learning System Preview */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <span>🧠</span> 
+              Your Learning Path
+            </h2>
+            <button
+              onClick={() => router.push(`/learning?username=${user?.username}`)}
+              className="text-purple-400 hover:text-purple-300 text-sm font-semibold transition-colors"
+            >
+              View All →
+            </button>
+          </div>
+          
+          <button
+            onClick={() => router.push(`/learning?username=${user?.username}`)}
+            className="w-full bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border border-purple-500/25 hover:border-purple-400/40 rounded-xl p-6 transition-all hover:scale-[1.02] text-left group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🎯</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg mb-1">
+                    Problems designed for {problemsData?.primaryProblem ? 'your type' : 'you'}
+                  </h3>
+                  <p className="text-gray-300 text-sm mb-2">
+                    {problemsData?.primaryProblem || 'Solve step-by-step solutions to build confidence'}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                    <span>• 5 core problems</span>
+                    <span>• 20+ solutions</span>
+                    <span>• Earn confidence points</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-purple-400 group-hover:translate-x-1 transition-transform">
+                <ChevronRight className="w-6 h-6" />
+              </div>
+            </div>
+            
+            {/* Progress Bar Preview */}
+            <div className="mt-4 bg-gray-800 rounded-full h-2">
+              <div className="bg-gradient-to-r from-purple-500 to-magenta-500 h-2 rounded-full w-[15%] transition-all duration-500" />
+            </div>
+            <div className="mt-1 text-xs text-gray-400">Getting started • 3 more solutions to unlock next level</div>
+          </button>
+        </motion.div>
+
         {/* Main Action Buttons */}
         <motion.div 
           className="mb-8"
@@ -897,7 +953,7 @@ function DashboardContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <h2 className="text-xl font-bold mb-4 text-white">What do you want to do?</h2>
+          <h2 className="text-xl font-bold mb-4 text-white">Quick Actions</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* AI Coach Button */}

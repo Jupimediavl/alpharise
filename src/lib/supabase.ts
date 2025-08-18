@@ -1645,3 +1645,158 @@ export class SupabaseChatManager {
     }
   }
 }
+
+// Learning System Types
+export interface DbProblem {
+  id: string
+  title: string
+  description: string
+  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  order_index: number
+  total_solutions: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DbSolution {
+  id: string
+  problem_id: string
+  title: string
+  description: string
+  content: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  points_reward: number
+  estimated_minutes: number
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DbMilestone {
+  id: string
+  title: string
+  description: string
+  points_required: number
+  badge_icon: string
+  order_index: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface DbUserSolutionProgress {
+  id: string
+  user_id: string
+  username: string
+  solution_id: string
+  problem_id: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  points_earned: number
+  completed_at?: string
+  started_at: string
+  created_at: string
+  updated_at: string
+}
+
+// Learning System Manager
+export class SupabaseLearningManager {
+  // Get problems for user type
+  static async getProblemsForUserType(userType: string): Promise<DbProblem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('problems')
+        .select('*')
+        .eq('user_type', userType)
+        .order('order_index')
+      
+      if (error) {
+        console.error('Error getting problems:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getProblemsForUserType:', error)
+      return []
+    }
+  }
+
+  // Get solutions for problem
+  static async getSolutionsForProblem(problemId: string): Promise<DbSolution[]> {
+    try {
+      const { data, error } = await supabase
+        .from('solutions')
+        .select('*')
+        .eq('problem_id', problemId)
+        .order('order_index')
+
+      if (error) {
+        console.error('Error getting solutions:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getSolutionsForProblem:', error)
+      return []
+    }
+  }
+
+  // Complete solution and return points earned
+  static async completeSolution(userId: string, username: string, solutionId: string, problemId: string): Promise<number> {
+    try {
+      // Get solution points
+      const { data: solution } = await supabase
+        .from('solutions')
+        .select('points_reward')
+        .eq('id', solutionId)
+        .single()
+      
+      if (!solution) return 0
+
+      // Update progress
+      const { error } = await supabase
+        .from('user_solution_progress')
+        .upsert({
+          user_id: userId,
+          username: username,
+          solution_id: solutionId,
+          problem_id: problemId,
+          status: 'completed',
+          points_earned: solution.points_reward,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      
+      if (error) {
+        console.error('Error completing solution:', error)
+        return 0
+      }
+
+      return solution.points_reward
+    } catch (error) {
+      console.error('Error in completeSolution:', error)
+      return 0
+    }
+  }
+
+  // Get milestones
+  static async getMilestones(): Promise<DbMilestone[]> {
+    try {
+      const { data, error } = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index')
+      
+      if (error) {
+        console.error('Error getting milestones:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getMilestones:', error)
+      return []
+    }
+  }
+}
