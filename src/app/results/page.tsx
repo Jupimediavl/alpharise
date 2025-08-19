@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useEffect, useState, Suspense } from 'react'
-import { SupabasePricingManager } from '@/lib/supabase'
+import { SupabasePricingManager, SupabaseLearningManager } from '@/lib/supabase'
 import Image from 'next/image'
 
 function ResultsContent() {
@@ -15,6 +15,13 @@ function ResultsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [personalizedAnalysis, setPersonalizedAnalysis] = useState<string>('')
   const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [milestones, setMilestones] = useState<any[]>([])
+  const [learningStats, setLearningStats] = useState({
+    totalProblems: 0,
+    totalExercises: 0,
+    nextMilestone: null as any,
+    currentMilestone: null as any
+  })
   const [pricingData, setPricingData] = useState<{
     trialPrice: number
     trialDays: number
@@ -200,6 +207,36 @@ function ResultsContent() {
       setUserType(urlUserType)
       setCoach(urlCoach)
       
+      // Load learning system data
+      try {
+        const milestonesData = await SupabaseLearningManager.getMilestones()
+        setMilestones(milestonesData)
+        
+        const currentPoints = parseInt(confidenceScore)
+        const currentMilestone = milestonesData
+          .filter(m => currentPoints >= m.points_required)
+          .sort((a, b) => b.points_required - a.points_required)[0]
+        
+        const nextMilestone = milestonesData.find(m => currentPoints < m.points_required)
+        
+        // Load problems and exercises count for the user type
+        const problems = await SupabaseLearningManager.getProblemsForUserType(urlUserType)
+        let totalExercises = 0
+        for (const problem of problems) {
+          const exercises = await SupabaseLearningManager.getExercisesForProblem(problem.id)
+          totalExercises += exercises.length
+        }
+        
+        setLearningStats({
+          totalProblems: problems.length,
+          totalExercises,
+          currentMilestone,
+          nextMilestone
+        })
+      } catch (error) {
+        console.error('Error loading learning system data:', error)
+      }
+
       // Load pricing data with discount information
       try {
         const [trialPricing, mainPricingWithDiscount] = await Promise.all([
@@ -321,7 +358,7 @@ function ResultsContent() {
           </motion.h1>
 
 
-          {/* Confidence Score - Big and Prominent */}
+          {/* Enhanced Confidence Score with Milestone System */}
           <motion.div 
             className="mb-8 bg-gradient-to-r from-purple-900/50 to-magenta-900/50 border-2 border-purple-500/50 rounded-2xl p-8"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -330,17 +367,101 @@ function ResultsContent() {
           >
             <div className="text-center">
               <div className="text-purple-400 font-bold text-lg mb-2">YOUR CONFIDENCE SCORE</div>
-              <div className="text-8xl md:text-9xl font-black text-purple-500 mb-4">
-                {searchParams.get('confidenceScore') || '25'}<span className="text-4xl text-white">/100</span>
+              <div className="text-8xl md:text-9xl font-black text-purple-500 mb-4 flex items-center justify-center gap-4">
+                {searchParams.get('confidenceScore') || '25'}
+                <span className="text-4xl text-white">points</span>
+                {learningStats.currentMilestone && (
+                  <span className="text-6xl">{learningStats.currentMilestone.badge_icon}</span>
+                )}
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-magenta-400 mb-4">
-                MASSIVE POTENTIAL!
-              </div>
+              
+              {/* Current Milestone */}
+              {learningStats.currentMilestone && (
+                <div className="text-2xl font-bold text-green-400 mb-2">
+                  {learningStats.currentMilestone.title}
+                </div>
+              )}
+              
+              {/* Next Milestone Progress */}
+              {learningStats.nextMilestone && (
+                <div className="mb-4">
+                  <div className="text-lg text-magenta-400 mb-2">
+                    Next: {learningStats.nextMilestone.badge_icon} {learningStats.nextMilestone.title}
+                  </div>
+                  <div className="bg-gray-800 rounded-full h-3 max-w-md mx-auto">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-magenta-500 h-3 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.min(100, ((parseInt(searchParams.get('confidenceScore') || '25')) / learningStats.nextMilestone.points_required) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                  <div className="text-sm text-gray-400 mt-1">
+                    {learningStats.nextMilestone.points_required - parseInt(searchParams.get('confidenceScore') || '25')} points to go
+                  </div>
+                </div>
+              )}
+              
               <div className="text-xl text-white max-w-2xl mx-auto">
-                <strong>You're starting at {searchParams.get('confidenceScore') || '25'}, but your potential is 100.</strong>
+                {learningStats.currentMilestone 
+                  ? <><strong>You've reached {learningStats.currentMilestone.title}!</strong> Keep building momentum to reach the next level.</>
+                  : <><strong>You're just getting started at {searchParams.get('confidenceScore') || '25'} points.</strong> Every journey begins with a single step.</>
+                }
                 <br /><br />
-                Most successful guys started exactly where you are right now. 
-                <span className="text-magenta-400 font-bold"> Your transformation to 100 starts today.</span>
+                Most successful people started exactly where you are right now. 
+                <span className="text-magenta-400 font-bold"> Your transformation starts today.</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Learning System Preview */}
+          <motion.div 
+            className="mb-12 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <div className="text-center mb-6">
+              <div className="text-2xl font-bold text-blue-400 mb-2">🎯 Your Personalized Learning Path</div>
+              <div className="text-lg text-white">Based on your {searchParams.get('confidenceScore') || '25'} point score</div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 text-center">
+                <div className="text-3xl mb-2">🧠</div>
+                <div className="text-xl font-bold text-white mb-2">{learningStats.totalProblems} Problems</div>
+                <div className="text-sm text-gray-400">Specifically designed for your personality type</div>
+              </div>
+              
+              <div className="bg-magenta-500/10 border border-magenta-500/30 rounded-lg p-4 text-center">
+                <div className="text-3xl mb-2">💪</div>
+                <div className="text-xl font-bold text-white mb-2">{learningStats.totalExercises}+ Exercises</div>
+                <div className="text-sm text-gray-400">Practical steps to build real confidence</div>
+              </div>
+              
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+                <div className="text-3xl mb-2">
+                  {learningStats.nextMilestone ? learningStats.nextMilestone.badge_icon : '🏆'}
+                </div>
+                <div className="text-xl font-bold text-white mb-2">
+                  {learningStats.nextMilestone ? learningStats.nextMilestone.title : 'Master Level'}
+                </div>
+                <div className="text-sm text-gray-400">
+                  {learningStats.nextMilestone 
+                    ? `${learningStats.nextMilestone.points_required - parseInt(searchParams.get('confidenceScore') || '25')} points away`
+                    : 'You\'ve reached the top!'
+                  }
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mt-6">
+              <div className="text-lg text-white">
+                🚀 <strong>Your first milestone:</strong> {' '}
+                {learningStats.nextMilestone 
+                  ? `Reach ${learningStats.nextMilestone.points_required} points to unlock "${learningStats.nextMilestone.title}"`
+                  : 'You\'re already at the highest level!'
+                }
               </div>
             </div>
           </motion.div>
@@ -354,7 +475,20 @@ function ResultsContent() {
           >
             <div className="mb-4">
               <div className="text-xl text-white mb-2">
-                Ready to transform that <span className="text-purple-500 font-bold">{searchParams.get('confidenceScore') || '25'}</span> into <span className="text-magenta-400 font-bold">100</span>?
+                {(() => {
+                  const score = parseInt(searchParams.get('confidenceScore') || '25')
+                  if (score <= 4) {
+                    return <>Ready to <span className="text-purple-500 font-bold">start your confidence journey</span>?</>
+                  } else if (score <= 24) {
+                    return <>You're <span className="text-green-400 font-bold">building momentum</span> - let's keep growing!</>
+                  } else if (score <= 49) {
+                    return <>You're <span className="text-blue-400 font-bold">making real progress</span> - time to level up!</>
+                  } else if (score <= 99) {
+                    return <>You're <span className="text-yellow-400 font-bold">getting confident</span> - let's reach mastery!</>
+                  } else {
+                    return <>You're at <span className="text-gold-400 font-bold">master level</span> - maintain your peak!</>
+                  }
+                })()}
               </div>
             </div>
             
@@ -612,7 +746,7 @@ function ResultsContent() {
                 The time for excuses is OVER.
               </div>
               <div className="text-xl text-purple-400">
-                Your confidence score of <strong>{searchParams.get('confidenceScore') || '25'}/100</strong> will NOT magically improve.
+                Your confidence score of <strong>{searchParams.get('confidenceScore') || '25'} points</strong> will NOT magically improve.
               </div>
             </div>
 

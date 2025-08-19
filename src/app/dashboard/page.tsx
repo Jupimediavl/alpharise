@@ -291,15 +291,20 @@ const generateAIResponse = async (query: string, avatarType: string, userAge: nu
 
 // Generate welcome message based on user's milestone progress
 const getWelcomeMessage = (currentPoints: number, milestones: any[]) => {
-  if (!milestones.length) {
-    return "Bun venit! Să începem să construim încrederea ta."
+  if (!milestones || !milestones.length) {
+    return "Welcome! Let's start building your confidence."
   }
   
   const achievedMilestones = milestones
-    .filter(m => currentPoints >= m.points_required)
+    .filter(m => m && m.points_required && currentPoints >= m.points_required)
     .sort((a, b) => b.points_required - a.points_required)
   
-  return achievedMilestones[0]?.welcome_message || "Welcome! Let's start building your confidence."
+  // If no milestone achieved or no welcome_message, use default
+  if (!achievedMilestones.length || !achievedMilestones[0]?.welcome_message) {
+    return "Welcome! Let's start building your confidence."
+  }
+  
+  return achievedMilestones[0].welcome_message
 }
 
 function DashboardContent() {
@@ -315,6 +320,12 @@ function DashboardContent() {
   const [problemsData, setProblemsData] = useState<any>(null)
   const [milestones, setMilestones] = useState<any[]>([])
   const [welcomeMessage, setWelcomeMessage] = useState<string>('')
+  const [learningStats, setLearningStats] = useState({
+    totalProblems: 0,
+    totalExercises: 0,
+    completedExercises: 0,
+    remainingToNextLevel: 0
+  })
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showProblemDetails, setShowProblemDetails] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -453,13 +464,48 @@ function DashboardContent() {
           userData.coins = (userData.coins || 0) + dailyReward.amount
         }
 
-        // Load milestones and generate welcome message
-        const milestonesData = await SupabaseLearningManager.getMilestones()
-        setMilestones(milestonesData)
-        
-        const currentPoints = userData.confidence_score || 0
-        const welcomeMsg = getWelcomeMessage(currentPoints, milestonesData)
-        setWelcomeMessage(welcomeMsg)
+        // Load milestones and learning system statistics
+        try {
+          const milestonesData = await SupabaseLearningManager.getMilestones()
+          setMilestones(milestonesData)
+          
+          const currentPoints = userData.confidence_score || 0
+          const welcomeMsg = getWelcomeMessage(currentPoints, milestonesData)
+          setWelcomeMessage(welcomeMsg)
+
+          // Load learning system statistics
+          const problems = await SupabaseLearningManager.getProblemsForUserType(userData.user_type)
+          const totalProblems = problems.length
+          
+          // Calculate total exercises across all problems
+          let totalExercises = 0
+          for (const problem of problems) {
+            const exercises = await SupabaseLearningManager.getExercisesForProblem(problem.id)
+            totalExercises += exercises.length
+          }
+          
+          // Get user progress
+          const userProgress = await SupabaseLearningManager.getUserProgress(userData.username)
+          const completedExercises = userProgress.filter(p => p.status === 'completed').length
+          
+          // Calculate remaining exercises to next milestone
+          const nextMilestone = milestonesData.find(m => currentPoints < m.points_required)
+          const remainingPoints = nextMilestone ? nextMilestone.points_required - currentPoints : 0
+          const avgPointsPerExercise = 10 // Average points per exercise
+          const remainingToNextLevel = Math.ceil(remainingPoints / avgPointsPerExercise)
+          
+          setLearningStats({
+            totalProblems,
+            totalExercises,
+            completedExercises,
+            remainingToNextLevel: Math.max(0, remainingToNextLevel)
+          })
+        } catch (error) {
+          console.error('Error loading milestones and learning statistics:', error)
+          // Set default welcome message if loading fails
+          setWelcomeMessage("Welcome! Let's start building your confidence.")
+          // Keep default values for learning stats
+        }
 
         // No need for sessionStorage - everything comes from database
 
@@ -808,14 +854,14 @@ function DashboardContent() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-lg mb-1">
-                    Cele mai comune probleme pentru {problemsData?.primaryProblem ? 'tipul tău' : 'tine'}
+                    Most common problems for {problemsData?.primaryProblem ? 'your type' : 'you'}
                   </h3>
                   <p className="text-gray-300 text-sm mb-2">
                     {problemsData?.primaryProblem || 'Solve step-by-step solutions to build confidence'}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span>• 5 core problems</span>
-                    <span>• 20+ solutions</span>
+                    <span>• {learningStats.totalProblems} core problems</span>
+                    <span>• {learningStats.totalExercises}+ exercises</span>
                     <span>• Earn confidence points</span>
                   </div>
                 </div>
@@ -827,9 +873,22 @@ function DashboardContent() {
             
             {/* Progress Bar Preview */}
             <div className="mt-4 bg-gray-800 rounded-full h-2">
-              <div className="bg-gradient-to-r from-purple-500 to-magenta-500 h-2 rounded-full w-[15%] transition-all duration-500" />
+              <div 
+                className="bg-gradient-to-r from-purple-500 to-magenta-500 h-2 rounded-full transition-all duration-500" 
+                style={{ 
+                  width: `${learningStats.totalExercises > 0 
+                    ? Math.min(100, (learningStats.completedExercises / learningStats.totalExercises) * 100)
+                    : 0}%` 
+                }}
+              />
             </div>
-            <div className="mt-1 text-xs text-gray-400">Getting started • 3 more solutions to unlock next level</div>
+            <div className="mt-1 text-xs text-gray-400">
+              {learningStats.completedExercises > 0 
+                ? `${learningStats.completedExercises} exercises completed` 
+                : 'Getting started'} • {learningStats.remainingToNextLevel > 0 
+                  ? `${learningStats.remainingToNextLevel} more exercises to unlock next level`
+                  : 'All levels unlocked!'}
+            </div>
           </button>
         </motion.div>
         
