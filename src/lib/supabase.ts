@@ -1707,6 +1707,7 @@ export interface DbProblem {
   order_index: number
   created_at: string
   updated_at: string
+  total_exercises?: number // For join queries that include exercise count
 }
 
 export interface DbExercise {

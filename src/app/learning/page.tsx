@@ -64,7 +64,7 @@ export default function LearningPage() {
   const getProgressStats = () => {
     const completedExercises = userProgress.filter(p => p.status === 'completed')
     const totalPoints = completedExercises.reduce((sum, p) => sum + p.points_earned, 0)
-    const totalExercises = problems.reduce((sum, p) => sum + p.total_exercises, 0)
+    const totalExercises = problems.reduce((sum, p) => sum + (p.total_exercises || 0), 0)
     const completedCount = completedExercises.length
 
     return {
@@ -319,7 +319,7 @@ export default function LearningPage() {
                               : 'bg-gradient-to-r from-purple-500 to-magenta-500'
                           }`}
                           style={{ 
-                            width: `${(completedExercises / problem.total_exercises) * 100}%` 
+                            width: `${(completedExercises / (problem.total_exercises || 1)) * 100}%` 
                           }}
                         />
                       </div>
