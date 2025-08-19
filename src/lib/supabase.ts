@@ -95,6 +95,14 @@ export interface DbCoach {
   description: string
   icon: string
   features: string[]
+  title?: string
+  avatar?: string
+  helpsWith?: string
+  userTypeProblem?: string
+  personalMessage?: string
+  urgentBenefit?: string
+  specificPain?: string
+  coachStyle?: string
   color?: string
   created_at: string
 }
@@ -313,6 +321,26 @@ export class SupabaseUserManager {
     } catch (error) {
       console.error('Error in checkDailyEarningLimit:', error)
       return { canEarn: true, todayEarnings: 0 }
+    }
+  }
+
+  // Get all users (for admin)
+  static async getAllUsers(): Promise<DbUser[]> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error getting all users:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllUsers:', error)
+      return []
     }
   }
 }
@@ -1132,6 +1160,26 @@ export class SupabasePricingManager {
       return null
     }
   }
+
+  // Get all pricing plans (for admin)
+  static async getAllPricingPlans(): Promise<DbPricingPlan[]> {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error getting all pricing plans:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllPricingPlans:', error)
+      return []
+    }
+  }
 }
 
 // Enhanced Coin Management with Anti-Abuse
@@ -1918,6 +1966,211 @@ export class SupabaseLearningManager {
     } catch (error) {
       console.error('Error in getMilestones:', error)
       return []
+    }
+  }
+
+  // Admin methods for managing problems and exercises
+
+  // Get all problems (for admin)
+  static async getAllProblems(): Promise<DbProblem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('problems')
+        .select('*')
+        .order('user_type', { ascending: true })
+        .order('order_index', { ascending: true })
+
+      if (error) {
+        console.error('Error getting all problems:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllProblems:', error)
+      return []
+    }
+  }
+
+  // Get all exercises (for admin)
+  static async getAllExercises(): Promise<DbExercise[]> {
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select(`
+          *,
+          problems (
+            id,
+            title,
+            user_type
+          )
+        `)
+        .order('problem_id', { ascending: true })
+        .order('order_index', { ascending: true })
+
+      if (error) {
+        console.error('Error getting all exercises:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllExercises:', error)
+      return []
+    }
+  }
+
+  // Create new problem (for admin)
+  static async createProblem(problemData: {
+    title: string
+    description: string
+    user_type: string
+    order_index: number
+  }): Promise<DbProblem | null> {
+    try {
+      const { data, error } = await supabase
+        .from('problems')
+        .insert([{
+          ...problemData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating problem:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in createProblem:', error)
+      return null
+    }
+  }
+
+  // Create new exercise (for admin)
+  static async createExercise(exerciseData: {
+    title: string
+    description: string
+    content?: string
+    problem_id: string
+    difficulty: 'easy' | 'medium' | 'hard'
+    points_reward: number
+    estimated_minutes: number
+    order_index: number
+  }): Promise<DbExercise | null> {
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .insert([{
+          ...exerciseData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating exercise:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in createExercise:', error)
+      return null
+    }
+  }
+
+  // Update problem (for admin)
+  static async updateProblem(problemId: string, updates: Partial<DbProblem>): Promise<DbProblem | null> {
+    try {
+      const { data, error } = await supabase
+        .from('problems')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', problemId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating problem:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in updateProblem:', error)
+      return null
+    }
+  }
+
+  // Update exercise (for admin)  
+  static async updateExercise(exerciseId: string, updates: Partial<DbExercise>): Promise<DbExercise | null> {
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', exerciseId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating exercise:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in updateExercise:', error)
+      return null
+    }
+  }
+
+  // Delete problem (for admin)
+  static async deleteProblem(problemId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('problems')
+        .delete()
+        .eq('id', problemId)
+
+      if (error) {
+        console.error('Error deleting problem:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error in deleteProblem:', error)
+      return false
+    }
+  }
+
+  // Delete exercise (for admin)
+  static async deleteExercise(exerciseId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('exercises')
+        .delete()
+        .eq('id', exerciseId)
+
+      if (error) {
+        console.error('Error deleting exercise:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error in deleteExercise:', error)
+      return false
     }
   }
 }

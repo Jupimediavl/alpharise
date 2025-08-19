@@ -339,24 +339,16 @@ function ResultsContent() {
           transition={{ duration: 0.8 }}
         >
 
+          {/* Problem Statement */}
           <motion.div 
-            className="mb-4 text-sm uppercase tracking-wider text-cyan-400 font-semibold"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            Your Problem & Coach Match
-          </motion.div>
-
-          <motion.h1 
-            className="text-4xl md:text-5xl font-black mb-4 text-white"
+            className="mb-4 text-2xl md:text-3xl font-bold text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            YOUR CONFIDENCE ANALYSIS
-          </motion.h1>
-
+            <span className="text-purple-400">Your Problem:</span>{' '}
+            <span className="text-white">{currentUserType.problem} {currentUserType.problemIcon}</span>
+          </motion.div>
 
           {/* Enhanced Confidence Score with Milestone System */}
           <motion.div 
@@ -366,8 +358,8 @@ function ResultsContent() {
             transition={{ duration: 0.8, delay: 0.5 }}
           >
             <div className="text-center">
-              <div className="text-purple-400 font-bold text-lg mb-2">YOUR CONFIDENCE SCORE</div>
-              <div className="text-8xl md:text-9xl font-black text-purple-500 mb-4 flex items-center justify-center gap-4">
+              <div className="text-purple-400 font-bold text-2xl mb-4">YOUR CONFIDENCE SCORE</div>
+              <div className="text-8xl md:text-9xl font-black text-purple-500 mb-6 flex items-center justify-center gap-4">
                 {searchParams.get('confidenceScore') || '25'}
                 <span className="text-4xl text-white">points</span>
                 {learningStats.currentMilestone && (
@@ -375,41 +367,83 @@ function ResultsContent() {
                 )}
               </div>
               
+              {/* Based on your responses */}
+              <div className="text-lg text-gray-300 mb-6">
+                <span className="text-cyan-400 font-semibold">Based on your responses</span>, here's where you stand and what comes next:
+              </div>
+              
               {/* Current Milestone */}
               {learningStats.currentMilestone && (
-                <div className="text-2xl font-bold text-green-400 mb-2">
-                  {learningStats.currentMilestone.title}
+                <div className="text-2xl font-bold text-green-400 mb-4">
+                  🏆 You've reached: {learningStats.currentMilestone.title}
                 </div>
               )}
               
               {/* Next Milestone Progress */}
               {learningStats.nextMilestone && (
-                <div className="mb-4">
-                  <div className="text-lg text-magenta-400 mb-2">
-                    Next: {learningStats.nextMilestone.badge_icon} {learningStats.nextMilestone.title}
+                <div className="mb-6">
+                  <div className="text-lg text-magenta-400 mb-3">
+                    🎯 Next Goal: {learningStats.nextMilestone.badge_icon} {learningStats.nextMilestone.title}
                   </div>
-                  <div className="bg-gray-800 rounded-full h-3 max-w-md mx-auto">
+                  <div className="bg-gray-800 rounded-full h-4 max-w-md mx-auto mb-2">
                     <div 
-                      className="bg-gradient-to-r from-purple-500 to-magenta-500 h-3 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-purple-500 to-magenta-500 h-4 rounded-full transition-all duration-500"
                       style={{ 
                         width: `${Math.min(100, ((parseInt(searchParams.get('confidenceScore') || '25')) / learningStats.nextMilestone.points_required) * 100)}%` 
                       }}
                     />
                   </div>
-                  <div className="text-sm text-gray-400 mt-1">
-                    {learningStats.nextMilestone.points_required - parseInt(searchParams.get('confidenceScore') || '25')} points to go
+                  <div className="text-sm text-gray-400">
+                    Only {learningStats.nextMilestone.points_required - parseInt(searchParams.get('confidenceScore') || '25')} points away from your next breakthrough!
                   </div>
                 </div>
               )}
               
-              <div className="text-xl text-white max-w-2xl mx-auto">
-                {learningStats.currentMilestone 
-                  ? <><strong>You've reached {learningStats.currentMilestone.title}!</strong> Keep building momentum to reach the next level.</>
-                  : <><strong>You're just getting started at {searchParams.get('confidenceScore') || '25'} points.</strong> Every journey begins with a single step.</>
-                }
-                <br /><br />
-                Most successful people started exactly where you are right now. 
-                <span className="text-magenta-400 font-bold"> Your transformation starts today.</span>
+              <div className="text-lg text-white max-w-2xl mx-auto leading-relaxed">
+                {(() => {
+                  const score = parseInt(searchParams.get('confidenceScore') || '25')
+                  if (score <= 4) {
+                    return (
+                      <>
+                        You're at the <strong className="text-purple-400">foundation stage</strong> - and that's exactly where every confident person started. 
+                        Your honesty about where you are shows incredible self-awareness. 
+                        <span className="text-magenta-400 font-bold"> This is your moment to begin the transformation.</span>
+                      </>
+                    )
+                  } else if (score <= 24) {
+                    return (
+                      <>
+                        You're in the <strong className="text-blue-400">building phase</strong> - you have some confidence but know there's more potential to unlock. 
+                        You're ready to take the next step and build real, lasting confidence. 
+                        <span className="text-magenta-400 font-bold"> Your growth journey starts now.</span>
+                      </>
+                    )
+                  } else if (score <= 49) {
+                    return (
+                      <>
+                        You're in the <strong className="text-green-400">momentum phase</strong> - you have solid confidence in some areas but want to be more consistent. 
+                        You're ready to level up and reach your full potential. 
+                        <span className="text-magenta-400 font-bold"> Time to unlock your next level.</span>
+                      </>
+                    )
+                  } else if (score <= 99) {
+                    return (
+                      <>
+                        You're in the <strong className="text-yellow-400">mastery phase</strong> - you have strong confidence but want to be truly unshakeable. 
+                        You're ready to fine-tune and reach peak performance. 
+                        <span className="text-magenta-400 font-bold"> Let's get you to mastery level.</span>
+                      </>
+                    )
+                  } else {
+                    return (
+                      <>
+                        You're at <strong className="text-gold-400">master level</strong> - you have exceptional confidence and want to maintain and optimize it. 
+                        You understand that peak performance requires ongoing refinement. 
+                        <span className="text-magenta-400 font-bold"> Let's keep you at the top.</span>
+                      </>
+                    )
+                  }
+                })()}
               </div>
             </div>
           </motion.div>
@@ -466,280 +500,79 @@ function ResultsContent() {
             </div>
           </motion.div>
 
-          {/* Early CTA - For Immediate Action */}
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <div className="mb-4">
-              <div className="text-xl text-white mb-2">
-                {(() => {
-                  const score = parseInt(searchParams.get('confidenceScore') || '25')
-                  if (score <= 4) {
-                    return <>Ready to <span className="text-purple-500 font-bold">start your confidence journey</span>?</>
-                  } else if (score <= 24) {
-                    return <>You're <span className="text-green-400 font-bold">building momentum</span> - let's keep growing!</>
-                  } else if (score <= 49) {
-                    return <>You're <span className="text-blue-400 font-bold">making real progress</span> - time to level up!</>
-                  } else if (score <= 99) {
-                    return <>You're <span className="text-yellow-400 font-bold">getting confident</span> - let's reach mastery!</>
-                  } else {
-                    return <>You're at <span className="text-gold-400 font-bold">master level</span> - maintain your peak!</>
-                  }
-                })()}
-              </div>
-            </div>
-            
-            <motion.button
-              onClick={handleStartProgram}
-              className="px-12 py-4 text-xl font-bold bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-xl 
-                       transition-all duration-300 ease-out shadow-xl relative overflow-hidden group border border-magenta-400/50
-                       hover:scale-105 active:scale-95"
-              whileHover={{ 
-                scale: 1.05,
-                boxShadow: "0 0 30px rgba(236, 72, 153, 0.4)"
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="relative z-10 text-white">
-                START YOUR TRANSFORMATION
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
-            </motion.button>
-            
-            <div className="mt-3 space-y-2">
-              <div className="text-lg text-green-400 font-bold mb-3">
-                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
-              </div>
-              {pricingData.hasDiscount ? (
-                <div className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-600/30 rounded-lg p-3 mb-2">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Usually</div>
-                      <span className="text-sm text-gray-400 line-through">${pricingData.originalPrice}/mo</span>
-                    </div>
-                    <div className="text-purple-400 text-2xl">→</div>
-                    <div className="text-center">
-                      <div className="text-xs text-green-400">Your Price</div>
-                      <span className="text-xl text-green-400 font-bold">${pricingData.currentPrice}/mo</span>
-                    </div>
-                    <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium border border-green-500/30">
-                      Save $10
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-lg text-green-400 font-semibold">
-                  Then ${pricingData.currentPrice}/month
-                </div>
-              )}
-              <div className="text-xs text-gray-400">
-                Or continue reading to learn more about your personalized plan
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Problem Statement */}
+          {/* What You Get - Benefits List */}
           <motion.div 
-            className="text-2xl md:text-3xl font-bold mb-8 text-center"
+            className="mb-12 bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-500/30 rounded-xl p-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
           >
-            <span className="text-purple-400">Your Problem:</span>{' '}
-            <span className="text-white">{currentUserType.problem} {currentUserType.problemIcon}</span>
-          </motion.div>
-
-          {/* Coach Assignment */}
-          <motion.div 
-            className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 rounded-2xl p-8 mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-          >
-            {/* Header */}
             <div className="text-center mb-8">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-2">
-                You've been assigned Coach {currentCoach.name}
+              <div className="text-3xl font-bold text-green-400 mb-2">What You Get Inside</div>
+              <div className="text-xl text-white">Everything you need to transform your confidence</div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* Left Column - Most Important Features */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Personal Coach Available 24/7</div>
+                  <div className="text-gray-300">Get instant advice, support, and guidance whenever you need it most</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">{learningStats.totalProblems}+ Core Problems Solved</div>
+                  <div className="text-gray-300">Step-by-step solutions for your exact personality type ({userType})</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">{learningStats.totalExercises}+ Confidence-Building Exercises</div>
+                  <div className="text-gray-300">Practical daily actions that build unshakeable confidence</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Active Community Access</div>
+                  <div className="text-gray-300">Connect with real guys who have the same problems - get answers & support 24/7</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Progress Tracking & Milestones</div>
+                  <div className="text-gray-300">Watch your confidence score grow from {searchParams.get('confidenceScore') || '25'} to mastery level</div>
+                </div>
               </div>
-              <div className="text-xl text-blue-400 font-semibold">
-                "{currentCoach.title}"
+
+              {/* Right Column - Supporting Features */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Instant Confidence Analysis</div>
+                  <div className="text-gray-300">Get personalized insights about your unique challenges and strengths</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Real-Time Support</div>
+                  <div className="text-gray-300">Never feel stuck again - get help exactly when you need it most</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Mobile-Friendly Access</div>
+                  <div className="text-gray-300">Build confidence anywhere - at home, work, or social situations</div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4 text-left">
+                  <div className="text-lg font-bold text-white">Complete Privacy</div>
+                  <div className="text-gray-300">Work on yourself in complete confidence - no judgment, just results</div>
+                </div>
               </div>
             </div>
 
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              
-              {/* Left Column - Content */}
-              <div className="space-y-6">
-                <div className="text-lg text-white">
-                  Coach {currentCoach.name} specializes in helping guys with <span className="text-blue-400 font-semibold">{currentUserType.problem.toLowerCase()}</span>. 
-                  Here's exactly how he'll transform you:
-                </div>
-                
-                <div className="space-y-4">
-                  {currentCoach.features.map((feature, index) => (
-                    <motion.div 
-                      key={index}
-                      className="flex items-start gap-3 text-left"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.9 + (index * 0.1) }}
-                    >
-                      <div className="text-blue-400 mt-1 text-lg">•</div>
-                      <div className="text-white">{feature}</div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Column - Avatar */}
-              <div className="flex justify-center lg:justify-end">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 1.0 }}
-                  className="relative"
-                >
-                  <div className="w-64 h-64 lg:w-80 lg:h-80 relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-xl"></div>
-                    <Image
-                      src={currentCoach.avatar}
-                      alt={`Coach ${currentCoach.name} - ${currentCoach.title}`}
-                      width={320}
-                      height={320}
-                      className="relative z-10 w-full h-full object-contain"
-                      priority
-                    />
-                  </div>
-                </motion.div>
-              </div>
-
-            </div>
           </motion.div>
 
-          {/* Personalized Analysis Section - Emphasized */}
-          <motion.div 
-            className="mb-12 max-w-4xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.0 }}
-          >
-            {analysisLoading ? (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-8 text-center">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <motion.div
-                    className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
-                  <span className="text-blue-400 font-semibold">Coach {currentCoach.name} is analyzing your results...</span>
-                </div>
-                <p className="text-base opacity-70">Creating your personalized confidence profile</p>
-              </div>
-            ) : personalizedAnalysis ? (
-              <div className="relative bg-gradient-to-br from-purple-600/20 via-magenta-600/25 to-pink-600/20 border-2 border-magenta-400/60 rounded-3xl p-10 text-center overflow-hidden shadow-2xl">
-                {/* Background glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl"></div>
-                
-                {/* Animated border glow */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 opacity-20 animate-pulse"></div>
-                
-                <div className="relative z-10">
-                  {/* Header with enhanced styling */}
-                  <motion.div 
-                    className="mb-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
-                      🔥 Exclusive Analysis
-                    </div>
-                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
-                      PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
-                    </div>
-                  </motion.div>
-                  
-                  {/* Content with enhanced typography */}
-                  <motion.div 
-                    className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-4xl mx-auto"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                  >
-                    {personalizedAnalysis.split('\n\n').map((paragraph, index) => (
-                      <p key={index} className="mb-6 text-shadow-sm">
-                        {paragraph.trim()}
-                      </p>
-                    ))}
-                  </motion.div>
-                  
-                  {/* Decorative elements */}
-                  <div className="absolute top-6 left-6 w-3 h-3 bg-magenta-400 rounded-full animate-ping"></div>
-                  <div className="absolute top-8 right-8 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
-                  <div className="absolute bottom-8 left-8 w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                </div>
-              </div>
-            ) : (
-              // Fallback to static content if AI analysis fails
-              <div className="relative bg-gradient-to-br from-purple-600/20 via-magenta-600/25 to-pink-600/20 border-2 border-magenta-400/60 rounded-3xl p-10 text-center overflow-hidden shadow-2xl">
-                {/* Background glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-magenta-600/15 to-pink-600/10 blur-xl"></div>
-                
-                {/* Animated border glow */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500 via-magenta-500 to-pink-500 opacity-20 animate-pulse"></div>
-                
-                <div className="relative z-10">
-                  {/* Header with enhanced styling */}
-                  <motion.div 
-                    className="mb-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <div className="inline-block bg-gradient-to-r from-magenta-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider mb-4">
-                      🔥 Exclusive Analysis
-                    </div>
-                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-magenta-200 to-pink-200 bg-clip-text text-transparent mb-4 leading-tight">
-                      PERSONAL ANALYSIS FROM COACH {currentCoach.name.toUpperCase()}
-                    </div>
-                  </motion.div>
-                  
-                  {/* Content with enhanced typography */}
-                  <motion.div 
-                    className="text-xl md:text-2xl leading-relaxed text-white font-medium max-w-4xl mx-auto"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                  >
-                    <p className="mb-6 text-shadow-sm">
-                      You're dealing with {currentUserType.problem.toLowerCase()}, which is exactly my specialty. 
-                      At your confidence level, you've got serious potential - we just need to unlock it. 
-                      <strong className="text-magenta-200">AlphaRise will transform you into the confident man you're meant to be.</strong>
-                    </p>
-                  </motion.div>
-                  
-                  {/* Decorative elements */}
-                  <div className="absolute top-6 left-6 w-3 h-3 bg-magenta-400 rounded-full animate-ping"></div>
-                  <div className="absolute top-8 right-8 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
-                  <div className="absolute bottom-8 left-8 w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                </div>
-              </div>
-            )}
-          </motion.div>
-
-
-
-          {/* Powerful CTA */}
+          {/* Powerful CTA Section */}
           <motion.div
-            className="text-center"
+            className="text-center mb-12"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.6 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
           >
             <div className="mb-6">
               <div className="text-3xl font-black text-white mb-2">
@@ -794,14 +627,11 @@ function ResultsContent() {
                       </div>
                     </div>
                     <p className="text-sm text-purple-200">
-                      Special launch pricing • Save $10/month
+                      Special launch pricing • {pricingData.discountPercentage}% discount
                     </p>
                   </div>
                 </div>
               )}
-              <p className="text-base text-magenta-400 font-semibold">
-                Start Training with Coach {currentCoach.name} Today
-              </p>
               <p className="text-sm text-gray-400">
                 Cancel anytime before trial ends • No commitments
               </p>
@@ -812,6 +642,7 @@ function ResultsContent() {
               </div>
             </div>
           </motion.div>
+
         </motion.div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
-import { supabaseHelpers, SupabaseUserManager, supabase, SupabasePricingManager } from '@/lib/supabase'
+import { supabaseHelpers, SupabaseUserManager, SupabaseCoachManager, supabase, SupabasePricingManager, DbCoach } from '@/lib/supabase'
 import { ArrowRight, Sparkles, Crown } from 'lucide-react'
 import Image from 'next/image'
 
@@ -26,6 +26,7 @@ function SignupContent() {
   const router = useRouter()
   const [userType, setUserType] = useState('overthinker')
   const [coach, setCoach] = useState('logan')
+  const [coachData, setCoachData] = useState<DbCoach | null>(null)
   const [age, setAge] = useState(25) // Will be set from URL params
   const [confidenceScore, setConfidenceScore] = useState(25) // Will be set from URL params
   const [email, setEmail] = useState('')
@@ -61,8 +62,8 @@ function SignupContent() {
     currency: 'USD'
   })
 
-  // NEW COACH SYSTEM - Coaches are the SOLUTION to user problems
-  const coachData = {
+  // NEW COACH SYSTEM - Coaches are the SOLUTION to user problems (FALLBACK DATA)
+  const coachDataLocal = {
     logan: {
       name: 'Logan',
       title: 'The Straight Shooter',
@@ -134,7 +135,38 @@ function SignupContent() {
     surface: "You struggle to move beyond surface-level connections"
   }
 
-  const currentCoach = coachData[coach as keyof typeof coachData] || coachData.logan
+  // Convert database coach data to expected format
+  const formatCoachData = (dbCoach: DbCoach | null) => {
+    if (!dbCoach) return null
+    
+    return {
+      name: dbCoach.name,
+      title: dbCoach.title || dbCoach.description, // Use title if available, otherwise description
+      icon: dbCoach.icon,
+      avatar: `/avatars/${dbCoach.id}.png`, // Construct avatar path from ID
+      helpsWith: dbCoach.helpsWith || extractHelpsWithFromName(dbCoach.name),
+      personalMessage: dbCoach.personalMessage || dbCoach.description,
+      coachStyle: dbCoach.coachStyle || "Professional coaching approach",
+      urgentBenefit: dbCoach.urgentBenefit || "Transform your confidence and unlock your potential",
+      userTypeProblem: dbCoach.userTypeProblem || "confidence challenges",
+      specificPain: dbCoach.specificPain || "overcome your limitations"
+    }
+  }
+
+  // Helper function to extract "helps with" from coach name
+  const extractHelpsWithFromName = (name: string) => {
+    const mapping: Record<string, string> = {
+      'Logan': 'Overthinkers',
+      'Chase': 'Nervous Guys', 
+      'Mason': 'Rookies',
+      'Blake': 'Up & Down Guys',
+      'Knox': 'Surface Guys'
+    }
+    return mapping[name] || 'Men seeking confidence'
+  }
+
+  // Use coach data from database if available, otherwise fallback to local data
+  const currentCoach = formatCoachData(coachData) || coachDataLocal[coach as keyof typeof coachDataLocal] || coachDataLocal.logan
 
   useEffect(() => {
     // Get user type, coach, age, and confidence score from URL params (from confidence test results)
@@ -147,6 +179,19 @@ function SignupContent() {
     setCoach(urlCoach)
     setAge(urlAge)
     setConfidenceScore(urlConfidenceScore)
+
+    // Load coach data from database
+    const loadCoachData = async () => {
+      try {
+        const coach = await SupabaseCoachManager.getCoachById(urlCoach)
+        if (coach) {
+          setCoachData(coach)
+        }
+      } catch (error) {
+        console.error('Error loading coach data:', error)
+      }
+    }
+    loadCoachData()
 
     // Load pricing data from database
     const loadPricingData = async () => {
@@ -497,6 +542,9 @@ function SignupContent() {
             <div className="bg-black/30 rounded-xl p-6 mb-6 border border-purple-500/20">
               <div className="text-sm text-purple-400 mb-2 font-semibold">
                 🎯 I Help: {currentCoach.helpsWith} (That's You!)
+              </div>
+              <div className="text-xs text-cyan-400 mb-3 opacity-80">
+                {currentCoach.name} has been specifically assigned to you based on your personality profile and confidence assessment results.
               </div>
               <div className="text-sm text-gray-400 mb-4">
                 Your Problem: {userTypeDescriptions[userType as keyof typeof userTypeDescriptions]}
