@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clock, Trophy, Star, CheckCircle, Circle, Lock } from 'lucide-react'
-import { SupabaseUserManager, SupabaseLearningManager, DbProblem, DbSolution, DbUserSolutionProgress, DbMilestone } from '@/lib/supabase'
+import { SupabaseUserManager, SupabaseLearningManager, DbProblem, DbExercise, DbUserExerciseProgress, DbMilestone } from '@/lib/supabase'
 
 export default function LearningPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [problems, setProblems] = useState<DbProblem[]>([])
-  const [userProgress, setUserProgress] = useState<DbUserSolutionProgress[]>([])
+  const [userProgress, setUserProgress] = useState<DbUserExerciseProgress[]>([])
   const [milestones, setMilestones] = useState<DbMilestone[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentConfidence, setCurrentConfidence] = useState(0)
@@ -60,17 +60,24 @@ export default function LearningPage() {
 
   // Calculate progress statistics
   const getProgressStats = () => {
-    const completedSolutions = userProgress.filter(p => p.status === 'completed')
-    const totalPoints = completedSolutions.reduce((sum, p) => sum + p.points_earned, 0)
-    const totalSolutions = problems.reduce((sum, p) => sum + p.total_solutions, 0)
-    const completedCount = completedSolutions.length
+    const completedExercises = userProgress.filter(p => p.status === 'completed')
+    const totalPoints = completedExercises.reduce((sum, p) => sum + p.points_earned, 0)
+    const totalExercises = problems.reduce((sum, p) => sum + p.total_exercises, 0)
+    const completedCount = completedExercises.length
 
     return {
       totalPoints: currentConfidence + totalPoints,
-      completedSolutions: completedCount,
-      totalSolutions,
-      progressPercentage: totalSolutions > 0 ? (completedCount / totalSolutions) * 100 : 0
+      completedExercises: completedCount,
+      totalExercises,
+      progressPercentage: totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0
     }
+  }
+
+  // Get current milestone
+  const getCurrentMilestone = (currentPoints: number) => {
+    return milestones
+      .filter(m => m.points_required <= currentPoints)
+      .sort((a, b) => b.points_required - a.points_required)[0]
   }
 
   // Get next milestone
@@ -100,6 +107,7 @@ export default function LearningPage() {
   if (!user) return null
 
   const stats = getProgressStats()
+  const currentMilestone = getCurrentMilestone(stats.totalPoints)
   const nextMilestone = getNextMilestone(stats.totalPoints)
 
   return (
@@ -139,8 +147,8 @@ export default function LearningPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-8 h-8 text-green-400" />
                 <div>
-                  <div className="text-2xl font-bold text-white">{stats.completedSolutions}</div>
-                  <div className="text-sm text-gray-400">Solutions Completed</div>
+                  <div className="text-2xl font-bold text-white">{stats.completedExercises}</div>
+                  <div className="text-sm text-gray-400">Exercises Completed</div>
                 </div>
               </div>
             </div>
@@ -166,22 +174,47 @@ export default function LearningPage() {
             </div>
           </div>
 
-          {/* Next Milestone */}
-          {nextMilestone && (
-            <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl">{nextMilestone.badge_icon}</div>
-                  <div>
-                    <div className="font-semibold text-white">Next: {nextMilestone.title}</div>
-                    <div className="text-sm text-gray-400">{nextMilestone.description}</div>
+          {/* Milestone Progress */}
+          <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4">
+                {/* Current Milestone */}
+                {currentMilestone && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-xl">{currentMilestone.badge_icon}</div>
+                    <div>
+                      <div className="text-sm text-green-400">Current:</div>
+                      <div className="font-semibold text-white text-sm">{currentMilestone.title}</div>
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {/* Arrow */}
+                {currentMilestone && nextMilestone && (
+                  <ArrowRight className="w-4 h-4 text-gray-400" />
+                )}
+                
+                {/* Next Milestone */}
+                {nextMilestone && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-xl">{nextMilestone.badge_icon}</div>
+                    <div>
+                      <div className="text-sm text-purple-400">Next:</div>
+                      <div className="font-semibold text-white text-sm">{nextMilestone.title}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {nextMilestone && (
                 <div className="text-sm text-gray-400">
                   {nextMilestone.points_required - stats.totalPoints} points to go
                 </div>
-              </div>
-              <div className="mt-3 bg-gray-800 rounded-full h-2">
+              )}
+            </div>
+            
+            {nextMilestone && (
+              <div className="bg-gray-800 rounded-full h-2">
                 <div 
                   className="bg-gradient-to-r from-pink-500 to-purple-500 h-2 rounded-full transition-all duration-500"
                   style={{ 
@@ -189,8 +222,14 @@ export default function LearningPage() {
                   }}
                 />
               </div>
-            </div>
-          )}
+            )}
+            
+            {!nextMilestone && currentMilestone && (
+              <div className="text-center py-2">
+                <div className="text-green-400 font-semibold">🎉 Congratulations! You've reached the highest milestone!</div>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Problems List */}
@@ -206,8 +245,8 @@ export default function LearningPage() {
           
           <div className="grid gap-4">
             {problems.map((problem, index) => {
-              const completedSolutions = getProblemProgress(problem.id)
-              const isCompleted = completedSolutions >= problem.total_solutions
+              const completedExercises = getProblemProgress(problem.id)
+              const isCompleted = completedExercises >= problem.total_exercises
               
               return (
                 <motion.div
@@ -243,11 +282,11 @@ export default function LearningPage() {
                       <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1 text-gray-400">
                           <CheckCircle className="w-4 h-4" />
-                          <span>{completedSolutions}/{problem.total_solutions} solutions</span>
+                          <span>{completedExercises}/{problem.total_exercises} exercises</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-400">
                           <Clock className="w-4 h-4" />
-                          <span>~{problem.total_solutions * 15} min total</span>
+                          <span>~{problem.total_exercises * 15} min total</span>
                         </div>
                       </div>
                     </div>
@@ -262,7 +301,7 @@ export default function LearningPage() {
                               : 'bg-gradient-to-r from-purple-500 to-magenta-500'
                           }`}
                           style={{ 
-                            width: `${(completedSolutions / problem.total_solutions) * 100}%` 
+                            width: `${(completedExercises / problem.total_exercises) * 100}%` 
                           }}
                         />
                       </div>

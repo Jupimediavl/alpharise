@@ -5,9 +5,9 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, supabaseHelpers } from '@/lib/supabase'
+import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, SupabaseLearningManager, supabaseHelpers } from '@/lib/supabase'
 import { simpleCoinHelpers } from '@/lib/simple-coin-system'
-import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut } from 'lucide-react'
+import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut, Trophy } from 'lucide-react'
 import ChatDrawer from '@/components/ChatDrawer'
 
 // Types
@@ -289,6 +289,19 @@ const generateAIResponse = async (query: string, avatarType: string, userAge: nu
   }
 }
 
+// Generate welcome message based on user's milestone progress
+const getWelcomeMessage = (currentPoints: number, milestones: any[]) => {
+  if (!milestones.length) {
+    return "Bun venit! Să începem să construim încrederea ta."
+  }
+  
+  const achievedMilestones = milestones
+    .filter(m => currentPoints >= m.points_required)
+    .sort((a, b) => b.points_required - a.points_required)
+  
+  return achievedMilestones[0]?.welcome_message || "Welcome! Let's start building your confidence."
+}
+
 function DashboardContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -300,6 +313,8 @@ function DashboardContent() {
   const [userCoinStats, setUserCoinStats] = useState<any>(null)
   const [userAge, setUserAge] = useState<number>(25) // Default age
   const [problemsData, setProblemsData] = useState<any>(null)
+  const [milestones, setMilestones] = useState<any[]>([])
+  const [welcomeMessage, setWelcomeMessage] = useState<string>('')
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showProblemDetails, setShowProblemDetails] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -437,6 +452,14 @@ function DashboardContent() {
           // Update user coins in session
           userData.coins = (userData.coins || 0) + dailyReward.amount
         }
+
+        // Load milestones and generate welcome message
+        const milestonesData = await SupabaseLearningManager.getMilestones()
+        setMilestones(milestonesData)
+        
+        const currentPoints = userData.confidence_score || 0
+        const welcomeMsg = getWelcomeMessage(currentPoints, milestonesData)
+        setWelcomeMessage(welcomeMsg)
 
         // No need for sessionStorage - everything comes from database
 
@@ -723,12 +746,99 @@ function DashboardContent() {
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         
-        {/* Chat with Coach */}
+        {/* Welcome Section */}
         <motion.div 
           className="mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+        >
+          <div className="bg-gradient-to-r from-purple-500/10 to-magenta-500/10 border border-purple-500/20 rounded-xl p-6 backdrop-blur-sm">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-white mb-3">
+                Welcome, {user?.username}! 🎉
+              </h2>
+              <p className="text-lg text-gray-300 mb-4">
+                {welcomeMessage}
+              </p>
+              <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  <span>{user?.confidence_score || 0} confidence points</span>
+                </div>
+                {user?.confidence_score > 0 && (
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                    <span>Building momentum</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Learning System Preview */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <span>🧠</span> 
+              Your Learning Path
+            </h2>
+            <button
+              onClick={() => router.push(`/learning?username=${user?.username}`)}
+              className="text-purple-400 hover:text-purple-300 text-sm font-semibold transition-colors"
+            >
+              View All →
+            </button>
+          </div>
+          
+          <button
+            onClick={() => router.push(`/learning?username=${user?.username}`)}
+            className="w-full bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border border-purple-500/25 hover:border-purple-400/40 rounded-xl p-6 transition-all hover:scale-[1.02] text-left group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🎯</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg mb-1">
+                    Cele mai comune probleme pentru {problemsData?.primaryProblem ? 'tipul tău' : 'tine'}
+                  </h3>
+                  <p className="text-gray-300 text-sm mb-2">
+                    {problemsData?.primaryProblem || 'Solve step-by-step solutions to build confidence'}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                    <span>• 5 core problems</span>
+                    <span>• 20+ solutions</span>
+                    <span>• Earn confidence points</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-purple-400 group-hover:translate-x-1 transition-transform">
+                <ChevronRight className="w-6 h-6" />
+              </div>
+            </div>
+            
+            {/* Progress Bar Preview */}
+            <div className="mt-4 bg-gray-800 rounded-full h-2">
+              <div className="bg-gradient-to-r from-purple-500 to-magenta-500 h-2 rounded-full w-[15%] transition-all duration-500" />
+            </div>
+            <div className="mt-1 text-xs text-gray-400">Getting started • 3 more solutions to unlock next level</div>
+          </button>
+        </motion.div>
+        
+        {/* Chat with Coach */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
           <motion.button
             onClick={() => setIsChatOpen(true)}
@@ -756,66 +866,6 @@ function DashboardContent() {
             </div>
           </motion.button>
         </motion.div>
-        
-        {/* Welcome Header */}
-
-        {/* Compact Problem Card */}
-        {problemsData && (
-          <motion.div 
-            className="mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div 
-              className={`bg-gradient-to-r ${problemsData.color}/10 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm cursor-pointer hover:border-red-500/50 transition-all group`}
-              onClick={() => setShowProblemDetails(!showProblemDetails)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{problemsData.primaryProblem}</h3>
-                    <p className="text-sm text-white/80">{problemsData.description}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {problemsData.urgency === 'high' && (
-                    <div className="bg-white/90 text-red-600 px-2 py-1 rounded-full text-xs font-semibold border border-red-300">
-                      🚨 High Priority
-                    </div>
-                  )}
-                  {problemsData.urgency === 'medium' && (
-                    <div className="bg-white/90 text-orange-600 px-2 py-1 rounded-full text-xs font-semibold border border-orange-300">
-                      ⚠️ Medium Priority
-                    </div>
-                  )}
-                  <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform group-hover:translate-x-1 ${showProblemDetails ? 'rotate-90' : ''}`} />
-                </div>
-              </div>
-              
-              {/* Expandable Details */}
-              {showProblemDetails && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="mt-4 pt-4 border-t border-red-500/20"
-                >
-                  {problemsData.ageSpecificNote && (
-                    <div className="bg-black/30 rounded-lg p-3 mb-3">
-                      <div className="text-white font-semibold text-sm mb-1">💡 Age-Specific Insight:</div>
-                      <div className="text-sm text-white/80">{problemsData.ageSpecificNote}</div>
-                    </div>
-                  )}
-                  <div className="text-xs text-white/70">
-                    Based on your confidence test results and age, this is your #1 barrier to success.
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        )}
 
         {/* Quick Solutions Preview */}
         {problemsData?.solutions && (
@@ -890,61 +940,6 @@ function DashboardContent() {
           </motion.div>
         )}
 
-        {/* Learning System Preview */}
-        <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.25 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>🧠</span> 
-              Your Learning Path
-            </h2>
-            <button
-              onClick={() => router.push(`/learning?username=${user?.username}`)}
-              className="text-purple-400 hover:text-purple-300 text-sm font-semibold transition-colors"
-            >
-              View All →
-            </button>
-          </div>
-          
-          <button
-            onClick={() => router.push(`/learning?username=${user?.username}`)}
-            className="w-full bg-gradient-to-r from-purple-500/15 to-magenta-500/15 border border-purple-500/25 hover:border-purple-400/40 rounded-xl p-6 transition-all hover:scale-[1.02] text-left group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">🎯</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-lg mb-1">
-                    Problems designed for {problemsData?.primaryProblem ? 'your type' : 'you'}
-                  </h3>
-                  <p className="text-gray-300 text-sm mb-2">
-                    {problemsData?.primaryProblem || 'Solve step-by-step solutions to build confidence'}
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span>• 5 core problems</span>
-                    <span>• 20+ solutions</span>
-                    <span>• Earn confidence points</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-purple-400 group-hover:translate-x-1 transition-transform">
-                <ChevronRight className="w-6 h-6" />
-              </div>
-            </div>
-            
-            {/* Progress Bar Preview */}
-            <div className="mt-4 bg-gray-800 rounded-full h-2">
-              <div className="bg-gradient-to-r from-purple-500 to-magenta-500 h-2 rounded-full w-[15%] transition-all duration-500" />
-            </div>
-            <div className="mt-1 text-xs text-gray-400">Getting started • 3 more solutions to unlock next level</div>
-          </button>
-        </motion.div>
 
         {/* Main Action Buttons */}
         <motion.div 

@@ -1653,12 +1653,12 @@ export interface DbProblem {
   description: string
   user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
   order_index: number
-  total_solutions: number
+  total_exercises: number
   created_at: string
   updated_at: string
 }
 
-export interface DbSolution {
+export interface DbExercise {
   id: string
   problem_id: string
   title: string
@@ -1680,14 +1680,15 @@ export interface DbMilestone {
   badge_icon: string
   order_index: number
   is_active: boolean
+  welcome_message?: string
   created_at: string
 }
 
-export interface DbUserSolutionProgress {
+export interface DbUserExerciseProgress {
   id: string
   user_id: string
   username: string
-  solution_id: string
+  exercise_id: string
   problem_id: string
   status: 'not_started' | 'in_progress' | 'completed'
   points_earned: number
@@ -1695,6 +1696,12 @@ export interface DbUserSolutionProgress {
   started_at: string
   created_at: string
   updated_at: string
+}
+
+// Legacy interfaces for backward compatibility
+export interface DbSolution extends DbExercise {}
+export interface DbUserSolutionProgress extends DbUserExerciseProgress {
+  solution_id: string
 }
 
 // Learning System Manager
@@ -1720,63 +1727,177 @@ export class SupabaseLearningManager {
     }
   }
 
-  // Get solutions for problem
-  static async getSolutionsForProblem(problemId: string): Promise<DbSolution[]> {
+  // Get exercises for problem
+  static async getExercisesForProblem(problemId: string): Promise<DbExercise[]> {
     try {
       const { data, error } = await supabase
-        .from('solutions')
+        .from('exercises')
         .select('*')
         .eq('problem_id', problemId)
         .order('order_index')
 
       if (error) {
-        console.error('Error getting solutions:', error)
+        console.error('Error getting exercises:', error)
         return []
       }
       
       return data || []
     } catch (error) {
-      console.error('Error in getSolutionsForProblem:', error)
+      console.error('Error in getExercisesForProblem:', error)
       return []
     }
   }
 
-  // Complete solution and return points earned
-  static async completeSolution(userId: string, username: string, solutionId: string, problemId: string): Promise<number> {
+  // Get user progress for all exercises
+  static async getUserProgress(userId: string): Promise<DbUserExerciseProgress[]> {
     try {
-      // Get solution points
-      const { data: solution } = await supabase
-        .from('solutions')
-        .select('points_reward')
-        .eq('id', solutionId)
-        .single()
-      
-      if (!solution) return 0
-
-      // Update progress
-      const { error } = await supabase
-        .from('user_solution_progress')
-        .upsert({
-          user_id: userId,
-          username: username,
-          solution_id: solutionId,
-          problem_id: problemId,
-          status: 'completed',
-          points_earned: solution.points_reward,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+      const { data, error } = await supabase
+        .from('user_exercise_progress')
+        .select('*')
+        .eq('user_id', userId)
       
       if (error) {
-        console.error('Error completing solution:', error)
-        return 0
+        console.error('Error getting user progress:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error in getUserProgress:', error)
+      return []
+    }
+  }
+
+  // Legacy methods for backward compatibility
+  static async getSolutionsForProblem(problemId: string): Promise<DbSolution[]> {
+    return this.getExercisesForProblem(problemId)
+  }
+
+  // Toggle exercise completion status
+  static async toggleExerciseCompletion(userId: string, username: string, exerciseId: string, problemId: string): Promise<{points: number, isCompleted: boolean}> {
+    try {
+      console.log('🔄 Toggling exercise:', { userId, exerciseId, problemId })
+      
+      // Check current progress
+      const { data: existingProgress, error: progressError } = await supabase
+        .from('user_exercise_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('exercise_id', exerciseId)
+        .maybeSingle()
+
+      if (progressError) {
+        console.error('Error fetching progress:', progressError)
+        return { points: 0, isCompleted: false }
       }
 
-      return solution.points_reward
+      // Get exercise points
+      const { data: exercise, error: exerciseError } = await supabase
+        .from('exercises')
+        .select('points_reward')
+        .eq('id', exerciseId)
+        .single()
+      
+      if (exerciseError || !exercise) {
+        console.error('Error fetching exercise:', exerciseError)
+        return { points: 0, isCompleted: false }
+      }
+
+      if (existingProgress && existingProgress.status === 'completed') {
+        // Mark as incomplete (reverse)
+        console.log('🔙 Marking as incomplete...')
+        const { error } = await supabase
+          .from('user_exercise_progress')
+          .update({
+            status: 'not_started',
+            points_earned: 0,
+            completed_at: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('exercise_id', exerciseId)
+        
+        if (error) {
+          console.error('Error uncompleting exercise:', error)
+          return { points: 0, isCompleted: true }
+        }
+
+        console.log('✅ Exercise marked as incomplete')
+        return { points: -exercise.points_reward, isCompleted: false }
+      } else {
+        // Mark as completed
+        console.log('✅ Marking as completed...')
+        
+        if (existingProgress) {
+          // Update existing record
+          const { error } = await supabase
+            .from('user_exercise_progress')
+            .update({
+              status: 'completed',
+              points_earned: exercise.points_reward,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('exercise_id', exerciseId)
+          
+          if (error) {
+            console.error('Error updating exercise completion:', error)
+            console.error('Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            })
+            return { points: 0, isCompleted: false }
+          }
+        } else {
+          // Insert new record
+          const { error } = await supabase
+            .from('user_exercise_progress')
+            .insert({
+              user_id: userId,
+              username: username,
+              exercise_id: exerciseId,
+              problem_id: problemId,
+              status: 'completed',
+              points_earned: exercise.points_reward,
+              completed_at: new Date().toISOString(),
+              started_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+          
+          if (error) {
+            console.error('Error inserting exercise completion:', error)
+            console.error('Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            })
+            return { points: 0, isCompleted: false }
+          }
+        }
+
+        console.log('🎉 Exercise marked as completed')
+        return { points: exercise.points_reward, isCompleted: true }
+      }
     } catch (error) {
-      console.error('Error in completeSolution:', error)
-      return 0
+      console.error('Error in toggleExerciseCompletion:', error)
+      return { points: 0, isCompleted: false }
     }
+  }
+
+  // Legacy method for backward compatibility
+  static async toggleSolutionCompletion(userId: string, username: string, solutionId: string, problemId: string): Promise<{points: number, isCompleted: boolean}> {
+    return this.toggleExerciseCompletion(userId, username, solutionId, problemId)
+  }
+
+  // Legacy method for backward compatibility
+  static async completeSolution(userId: string, username: string, solutionId: string, problemId: string): Promise<number> {
+    const result = await this.toggleSolutionCompletion(userId, username, solutionId, problemId)
+    return result.isCompleted ? result.points : 0
   }
 
   // Get milestones
