@@ -53,6 +53,9 @@ export default function AdminPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Filter state
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null)
 
   // Load all data
   useEffect(() => {
@@ -486,7 +489,15 @@ export default function AdminPage() {
           <h4 className="text-sm font-semibold text-gray-900 mb-4">Coach Assignments - User Type Mapping</h4>
           <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
             {Object.entries(coachMapping).map(([userType, { coach, title, color }]) => (
-              <div key={userType} className={`px-3 py-2 rounded-lg border ${color} flex flex-col items-center text-center`}>
+              <div 
+                key={userType} 
+                className={`px-3 py-2 rounded-lg border ${color} flex flex-col items-center text-center cursor-pointer transition-all duration-200 ${
+                  selectedUserType === userType 
+                    ? 'ring-2 ring-orange-500 bg-orange-50' 
+                    : 'hover:bg-gray-50 hover:scale-105'
+                }`}
+                onClick={() => setSelectedUserType(selectedUserType === userType ? null : userType)}
+              >
                 <div className="font-semibold text-sm capitalize">{userType}</div>
                 <div className="text-xs opacity-75">{coach}</div>
                 <div className="text-xs opacity-60">"{title}"</div>
@@ -497,6 +508,32 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
+
+        {/* Filter Status */}
+        {selectedUserType && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-orange-800 font-medium">
+                Filtering by: <span className="capitalize">{selectedUserType}</span>
+              </span>
+              <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs">
+                {activeTab === 'problems' 
+                  ? problems.filter(p => p.user_type === selectedUserType).length + ' problems'
+                  : exercises.filter(e => {
+                      const problem = problems.find(p => p.id === e.problem_id);
+                      return problem?.user_type === selectedUserType;
+                    }).length + ' exercises'
+                }
+              </span>
+            </div>
+            <button 
+              onClick={() => setSelectedUserType(null)}
+              className="text-orange-600 hover:text-orange-800 font-medium text-sm"
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
 
         {/* Header with tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -541,7 +578,9 @@ export default function AdminPage() {
           {activeTab === 'problems' && (
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {problems.map((problem) => (
+                {problems
+                  .filter(problem => !selectedUserType || problem.user_type === selectedUserType)
+                  .map((problem) => (
                   <motion.div 
                     key={problem.id} 
                     className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors"
@@ -598,7 +637,13 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {exercises.map((exercise) => (
+                  {exercises
+                    .filter(exercise => {
+                      if (!selectedUserType) return true;
+                      const problem = problems.find(p => p.id === exercise.problem_id);
+                      return problem?.user_type === selectedUserType;
+                    })
+                    .map((exercise) => (
                     <tr key={exercise.id} className="border-b border-gray-50 hover:bg-gray-25">
                       <td className="p-4">
                         <div>
