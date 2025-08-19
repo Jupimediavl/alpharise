@@ -38,12 +38,15 @@ export default function ProblemPage() {
         }
         setUser(userData)
 
-        // Load problem data
-        const problemsData = await SupabaseLearningManager.getProblemsForUserType(userData.user_type)
+        // Load problem data - check for bonus module
+        const module = searchParams.get('module')
+        const userTypeOrModule = module || userData.user_type
+        const problemsData = await SupabaseLearningManager.getProblemsForUserType(userTypeOrModule)
         const currentProblem = problemsData.find(p => p.id === problemId)
         
         if (!currentProblem) {
-          router.push(`/learning?username=${username}`)
+          const moduleParam = module ? `&module=${module}` : ''
+          router.push(`/learning?username=${username}${moduleParam}`)
           return
         }
         setProblem(currentProblem)
@@ -180,11 +183,19 @@ export default function ProblemPage() {
       {/* Header */}
       <header className="p-6 flex justify-between items-center border-b border-purple-500/20">
         <button
-          onClick={() => router.push(`/learning?username=${user.username}`)}
+          onClick={() => {
+            const module = searchParams.get('module')
+            const moduleParam = module ? `&module=${module}` : ''
+            router.push(`/learning?username=${user.username}${moduleParam}`)
+          }}
           className="flex items-center gap-2 text-white hover:text-purple-400 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span className="text-xl font-bold">Learning</span>
+          <span className="text-xl font-bold">
+            {searchParams.get('module') === 'intimacy_boost' ? '💕 Intimacy Boost' :
+             searchParams.get('module') === 'body_confidence' ? '💪 Body Confidence' :
+             'Learning'}
+          </span>
         </button>
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 border border-yellow-500/30">
@@ -206,8 +217,14 @@ export default function ProblemPage() {
             <span className="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-sm">
               Problem {problem.order_index}
             </span>
-            <span className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm capitalize">
-              {user.user_type}
+            <span className={`px-3 py-1 rounded-full text-sm ${
+              searchParams.get('module') === 'intimacy_boost' ? 'bg-red-500/20 text-red-300' :
+              searchParams.get('module') === 'body_confidence' ? 'bg-orange-500/20 text-orange-300' :
+              'bg-gray-700 text-gray-300'
+            }`}>
+              {searchParams.get('module') === 'intimacy_boost' ? 'Intimacy Boost' :
+               searchParams.get('module') === 'body_confidence' ? 'Body Confidence' :
+               user.user_type}
             </span>
           </div>
 
@@ -378,7 +395,11 @@ export default function ProblemPage() {
               You've completed all exercises for this problem. Great work!
             </p>
             <button
-              onClick={() => router.push(`/learning?username=${user.username}`)}
+              onClick={() => {
+                const module = searchParams.get('module')
+                const moduleParam = module ? `&module=${module}` : ''
+                router.push(`/learning?username=${user.username}${moduleParam}`)
+              }}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
             >
               Continue Learning

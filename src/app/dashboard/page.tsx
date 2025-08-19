@@ -926,78 +926,89 @@ function DashboardContent() {
           </motion.button>
         </motion.div>
 
-        {/* Quick Solutions Preview */}
-        {problemsData?.solutions && (
-          <motion.div 
-            className="mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>⚡</span> 
-              <span className="text-white">Quick Solutions</span>
-              <span className="text-sm text-gray-400 font-normal">Choose your approach</span>
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {problemsData.solutions.slice(0, 2).map((solution: any, index: number) => {
-                const typeColors = {
-                  immediate: 'border-purple-500/30 bg-purple-500/8 hover:bg-purple-500/12',
-                  practice: 'border-purple-500/25 bg-purple-500/6 hover:bg-purple-500/10',
-                  learning: 'border-purple-500/35 bg-purple-500/7 hover:bg-purple-500/11',
-                  system: 'border-purple-500/28 bg-purple-500/5 hover:bg-purple-500/9',
-                  technique: 'border-purple-500/32 bg-purple-500/6 hover:bg-purple-500/10',
-                  skill: 'border-purple-500/26 bg-purple-500/4 hover:bg-purple-500/8'
-                }
-                
-                const typeIcons = {
-                  immediate: '🚨',
-                  practice: '🏋️',
-                  learning: '📚',
-                  system: '⚙️',
-                  technique: '🎯',
-                  skill: '💡'
-                }
+        {/* Bonus Modules */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span>🔥</span> 
+            <span className="text-white">Bonus Modules</span>
+            <span className="text-sm text-gray-400 font-normal">Essential skills for every Alpha</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Intimacy Boost Module */}
+            <motion.button
+              className="text-left border border-red-500/30 bg-red-500/8 hover:bg-red-500/12 rounded-xl p-6 transition-all duration-200 hover:scale-[1.02] group"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              onClick={() => {
+                router.push(`/learning?module=intimacy_boost&username=${user?.username}`)
+              }}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">💕</span>
+                <h3 className="font-bold text-white text-lg">Intimacy Boost</h3>
+              </div>
+              
+              <p className="text-sm text-gray-300 mb-4 leading-relaxed">
+                Master deep connections and authentic relationships. Learn vulnerability, emotional intelligence, and meaningful communication.
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-red-300">
+                  <span className="font-semibold">5 Problems</span> • <span className="font-semibold">20+ Exercises</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-red-400 group-hover:translate-x-1 transition-transform">
+                  <Play className="w-3 h-3" />
+                  <span>Start Module</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </div>
+            </motion.button>
 
-                return (
-                  <motion.button
-                    key={index}
-                    className={`text-left border rounded-xl p-4 transition-all duration-200 hover:scale-[1.02] ${typeColors[solution.type as keyof typeof typeColors] || 'border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10'}`}
-                    initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    onClick={() => {
-                      router.push(`/solutions/${solution.type}?problem=${encodeURIComponent(problemsData.primaryProblem)}&username=${user?.username}`)
-                    }}
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xl">{typeIcons[solution.type as keyof typeof typeIcons]}</span>
-                      <h3 className="font-bold text-white">{solution.title}</h3>
-                    </div>
-                    
-                    <p className="text-sm text-gray-400 mb-3">{solution.action}</p>
-                    
-                    <div className="flex items-center gap-2 text-xs font-semibold text-purple-400">
-                      <Play className="w-3 h-3" />
-                      <span>Start {solution.type}</span>
-                      <ChevronRight className="w-3 h-3 ml-auto" />
-                    </div>
-                  </motion.button>
-                )
-              })}
-            </div>
-            
-            {problemsData.solutions.length > 2 && (
-              <button 
-                onClick={() => router.push(`/solutions?username=${user?.username}`)}
-                className="w-full mt-4 py-3 border border-gray-600 text-gray-300 rounded-xl hover:bg-gray-800/50 transition-colors text-sm"
-              >
-                View All {problemsData.solutions.length} Solutions →
-              </button>
-            )}
-          </motion.div>
-        )}
+            {/* Body Confidence Module */}
+            <motion.button
+              className="text-left border border-orange-500/30 bg-orange-500/8 hover:bg-orange-500/12 rounded-xl p-6 transition-all duration-200 hover:scale-[1.02] group"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              onClick={() => {
+                router.push(`/learning?module=body_confidence&username=${user?.username}`)
+              }}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">💪</span>
+                <h3 className="font-bold text-white text-lg">Body Confidence</h3>
+              </div>
+              
+              <p className="text-sm text-gray-300 mb-4 leading-relaxed">
+                Transform your physical presence and energy. Master body language, posture, movement, and commanding presence.
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-orange-300">
+                  <span className="font-semibold">5 Problems</span> • <span className="font-semibold">20+ Exercises</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-orange-400 group-hover:translate-x-1 transition-transform">
+                  <Play className="w-3 h-3" />
+                  <span>Start Module</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </div>
+            </motion.button>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              💡 These modules work alongside your personalized coach program
+            </p>
+          </div>
+        </motion.div>
 
 
         {/* Main Action Buttons */}

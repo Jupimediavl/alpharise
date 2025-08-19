@@ -36,8 +36,10 @@ export default function LearningPage() {
         setUser(userData)
         setCurrentConfidence(userData.confidence_score || 0)
 
-        // Load problems for user type
-        const problemsData = await SupabaseLearningManager.getProblemsForUserType(userData.user_type)
+        // Load problems for user type or specific module
+        const module = searchParams.get('module')
+        const userTypeOrModule = module || userData.user_type
+        const problemsData = await SupabaseLearningManager.getProblemsForUserType(userTypeOrModule)
         setProblems(problemsData)
 
         // Load user progress
@@ -136,14 +138,24 @@ export default function LearningPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-2">Your Learning Journey</h1>
+          <h1 className="text-4xl font-bold mb-2">
+            {searchParams.get('module') === 'intimacy_boost' ? '💕 Intimacy Boost Module' :
+             searchParams.get('module') === 'body_confidence' ? '💪 Body Confidence Module' :
+             'Your Learning Journey'}
+          </h1>
           <p className="text-gray-400 mb-6">
-            Solve problems designed specifically for <span className="text-purple-400 capitalize">{user.user_type}</span> users
+            {searchParams.get('module') === 'intimacy_boost' ? 'Master deep connections and authentic relationships through vulnerability, emotional intelligence, and meaningful communication.' :
+             searchParams.get('module') === 'body_confidence' ? 'Transform your physical presence and energy through body language mastery, posture, and commanding presence.' :
+             <>Solve problems designed specifically for <span className="text-purple-400 capitalize">{user.user_type}</span> users</>}
           </p>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-purple-500/10 to-magenta-500/10 border border-purple-500/20 rounded-xl p-4">
+            <div className={`bg-gradient-to-r rounded-xl p-4 ${
+              searchParams.get('module') === 'intimacy_boost' ? 'from-red-500/10 to-pink-500/10 border border-red-500/20' :
+              searchParams.get('module') === 'body_confidence' ? 'from-orange-500/10 to-yellow-500/10 border border-orange-500/20' :
+              'from-purple-500/10 to-magenta-500/10 border border-purple-500/20'
+            }`}>
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-8 h-8 text-green-400" />
                 <div>
@@ -246,7 +258,9 @@ export default function LearningPage() {
           <div className="grid gap-4">
             {problems.map((problem, index) => {
               const completedExercises = getProblemProgress(problem.id)
-              const isCompleted = completedExercises >= problem.total_exercises
+              // For now, we'll assume 4 exercises per problem (as per our dummy data)
+              const totalExercises = 4
+              const isCompleted = completedExercises >= totalExercises
               
               return (
                 <motion.div
@@ -259,7 +273,11 @@ export default function LearningPage() {
                       ? 'bg-green-500/10 border-green-500/30 hover:bg-green-500/20' 
                       : 'bg-gradient-to-r from-purple-500/10 to-magenta-500/10 border-purple-500/20 hover:bg-purple-500/20'
                   }`}
-                  onClick={() => router.push(`/learning/problem/${problem.id}?username=${user.username}`)}
+                  onClick={() => {
+                    const module = searchParams.get('module')
+                    const moduleParam = module ? `&module=${module}` : ''
+                    router.push(`/learning/problem/${problem.id}?username=${user.username}${moduleParam}`)
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -282,11 +300,11 @@ export default function LearningPage() {
                       <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1 text-gray-400">
                           <CheckCircle className="w-4 h-4" />
-                          <span>{completedExercises}/{problem.total_exercises} exercises</span>
+                          <span>{completedExercises}/{totalExercises} exercises</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-400">
                           <Clock className="w-4 h-4" />
-                          <span>~{problem.total_exercises * 15} min total</span>
+                          <span>~{totalExercises * 15} min total</span>
                         </div>
                       </div>
                     </div>

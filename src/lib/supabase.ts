@@ -6,8 +6,12 @@ import { createClient } from '@supabase/supabase-js'
 // Supabase configuration
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVICE_KEY'
+
+// Config validated
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 // Test connection on initialization
 if (typeof window !== 'undefined') {
@@ -22,7 +26,7 @@ export interface DbUser {
   id: string
   username: string
   email: string
-  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' | 'intimacy_boost' | 'body_confidence'
   coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
   age: number
   confidence_score: number
@@ -1699,9 +1703,8 @@ export interface DbProblem {
   id: string
   title: string
   description: string
-  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' | 'intimacy_boost' | 'body_confidence'
   order_index: number
-  total_exercises: number
   created_at: string
   updated_at: string
 }
@@ -2028,7 +2031,7 @@ export class SupabaseLearningManager {
     order_index: number
   }): Promise<DbProblem | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('problems')
         .insert([{
           ...problemData,
@@ -2062,7 +2065,7 @@ export class SupabaseLearningManager {
     order_index: number
   }): Promise<DbExercise | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('exercises')
         .insert([{
           ...exerciseData,
@@ -2087,7 +2090,7 @@ export class SupabaseLearningManager {
   // Update problem (for admin)
   static async updateProblem(problemId: string, updates: Partial<DbProblem>): Promise<DbProblem | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('problems')
         .update({
           ...updates,
@@ -2112,22 +2115,24 @@ export class SupabaseLearningManager {
   // Update exercise (for admin)  
   static async updateExercise(exerciseId: string, updates: Partial<DbExercise>): Promise<DbExercise | null> {
     try {
-      const { data, error } = await supabase
-        .from('exercises')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', exerciseId)
-        .select()
-        .single()
+      console.log('Updating exercise:', exerciseId, 'with updates:', updates)
+      
+      const response = await fetch(`/api/admin/exercises/${exerciseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates)
+      })
 
-      if (error) {
-        console.error('Error updating exercise:', error)
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('API Error updating exercise:', errorData)
         return null
       }
 
-      return data
+      const result = await response.json()
+      return result.data
     } catch (error) {
       console.error('Error in updateExercise:', error)
       return null
@@ -2137,7 +2142,7 @@ export class SupabaseLearningManager {
   // Delete problem (for admin)
   static async deleteProblem(problemId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('problems')
         .delete()
         .eq('id', problemId)
@@ -2157,7 +2162,7 @@ export class SupabaseLearningManager {
   // Delete exercise (for admin)
   static async deleteExercise(exerciseId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('exercises')
         .delete()
         .eq('id', exerciseId)

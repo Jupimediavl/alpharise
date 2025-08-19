@@ -7,6 +7,7 @@ import {
   MessageSquare, Settings, Plus, Edit, Trash2, Eye,
   BarChart3, TrendingUp, Calendar, Activity 
 } from 'lucide-react'
+import RichTextEditor from '@/components/RichTextEditor'
 import { 
   SupabaseUserManager, 
   SupabaseCoachManager, 
@@ -361,7 +362,7 @@ export default function AdminPage() {
     const [formData, setFormData] = useState<any>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const userTypes = ['overthinker', 'nervous', 'rookie', 'updown', 'surface']
+    const userTypes = ['overthinker', 'nervous', 'rookie', 'updown', 'surface', 'intimacy_boost', 'body_confidence']
     const difficulties = ['easy', 'medium', 'hard']
 
     const getDifficultyColor = (difficulty: string) => {
@@ -379,7 +380,9 @@ export default function AdminPage() {
         nervous: 'bg-blue-100 text-blue-800', 
         rookie: 'bg-green-100 text-green-800',
         updown: 'bg-yellow-100 text-yellow-800',
-        surface: 'bg-pink-100 text-pink-800'
+        surface: 'bg-pink-100 text-pink-800',
+        intimacy_boost: 'bg-red-100 text-red-800',
+        body_confidence: 'bg-orange-100 text-orange-800'
       }
       return colors[userType as keyof typeof colors] || 'bg-gray-100 text-gray-800'
     }
@@ -419,6 +422,7 @@ export default function AdminPage() {
           }
         } else {
           if (editingItem) {
+            console.log('Editing exercise:', editingItem.id, 'with formData:', formData)
             const result = await SupabaseLearningManager.updateExercise(editingItem.id, formData)
             success = !!result
           } else {
@@ -434,9 +438,12 @@ export default function AdminPage() {
           // Reload data
           await loadLearningData()
           await loadAllData() // Update stats
+        } else {
+          console.error('Failed to save - no result returned')
         }
       } catch (error) {
         console.error('Error saving:', error)
+        alert('Error updating exercise: ' + (error as Error).message)
       } finally {
         setIsSubmitting(false)
       }
@@ -467,7 +474,9 @@ export default function AdminPage() {
       nervous: { coach: 'Chase', title: 'The Cool Cat', color: 'bg-blue-100 text-blue-800 border-blue-200' },
       rookie: { coach: 'Mason', title: 'The Patient Pro', color: 'bg-green-100 text-green-800 border-green-200' },
       updown: { coach: 'Blake', title: 'The Reliable Guy', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      surface: { coach: 'Knox', title: 'The Authentic One', color: 'bg-pink-100 text-pink-800 border-pink-200' }
+      surface: { coach: 'Knox', title: 'The Authentic One', color: 'bg-pink-100 text-pink-800 border-pink-200' },
+      intimacy_boost: { coach: 'Bonus', title: 'Intimacy Boost', color: 'bg-red-100 text-red-800 border-red-200' },
+      body_confidence: { coach: 'Bonus', title: 'Body Confidence', color: 'bg-orange-100 text-orange-800 border-orange-200' }
     }
 
     return (
@@ -475,7 +484,7 @@ export default function AdminPage() {
         {/* Coach Assignment Legend */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h4 className="text-sm font-semibold text-gray-900 mb-4">Coach Assignments - User Type Mapping</h4>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
             {Object.entries(coachMapping).map(([userType, { coach, title, color }]) => (
               <div key={userType} className={`px-3 py-2 rounded-lg border ${color} flex flex-col items-center text-center`}>
                 <div className="font-semibold text-sm capitalize">{userType}</div>
@@ -703,12 +712,12 @@ export default function AdminPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
+                  <RichTextEditor
                     value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                    onChange={(content) => setFormData({ ...formData, description: content })}
                     placeholder="Enter description..."
+                    height={150}
+                    minimal={true}
                   />
                 </div>
 
@@ -814,12 +823,12 @@ export default function AdminPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Content (Optional)</label>
-                      <textarea
+                      <RichTextEditor
                         value={formData.content || ''}
-                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                        rows={4}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
-                        placeholder="Enter exercise content or instructions..."
+                        onChange={(content) => setFormData({ ...formData, content: content })}
+                        placeholder="Enter detailed exercise content, instructions, or steps..."
+                        height={300}
+                        minimal={false}
                       />
                     </div>
                   </>
