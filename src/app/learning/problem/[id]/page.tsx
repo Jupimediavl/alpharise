@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Clock, Trophy, CheckCircle, Circle, Play, Star } from 'lucide-react'
 import { SupabaseUserManager, SupabaseLearningManager, DbProblem, DbExercise, DbUserExerciseProgress } from '@/lib/supabase'
+import RichTextDisplay from '@/components/RichTextDisplay'
 
 export default function ProblemPage() {
   const params = useParams()
@@ -315,9 +316,11 @@ export default function ProblemPage() {
 
                       {/* Exercise Content Preview */}
                       <div className="bg-gray-900/50 rounded-lg p-4 mb-4">
-                        <p className="text-gray-300 text-sm">
-                          {exercise.content || 'Exercise content will be available here...'}
-                        </p>
+                        {exercise.content ? (
+                          <RichTextDisplay content={exercise.content} className="text-sm" />
+                        ) : (
+                          <p className="text-gray-300 text-sm">Exercise content will be available here...</p>
+                        )}
                       </div>
                     </div>
                   </div>
