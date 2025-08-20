@@ -739,7 +739,9 @@ function DashboardContent() {
               {/* User Info */}
               <div className="text-left hidden md:block">
                 <div className="text-sm font-semibold text-white">{user?.username || 'User'}</div>
-                <div className="text-xs text-gray-400">Coach: {coach.name.split(' ')[0] || 'Logan'}</div>
+                <div className={`text-xs font-semibold ${user?.current_plan === 'premium' ? 'text-green-400' : 'text-orange-400'}`}>
+                  {user?.current_plan === 'premium' ? '💎 Premium' : '⚡ Trial'}
+                </div>
               </div>
               
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />

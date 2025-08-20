@@ -52,7 +52,7 @@ function SignupContent() {
     hasDiscount: boolean
     currency: string
   }>({
-    trialPrice: 1,
+    trialPrice: 0,
     trialDays: 3,
     originalPrice: 19.99,
     discountedPrice: 9.99,
@@ -745,74 +745,55 @@ function SignupContent() {
                 </div>
 
                 
-                <motion.button 
+                <button 
                   type="submit"
                   disabled={isLoading || !isFormValid()}
-                  className={`w-full p-4 rounded-xl font-bold text-xl transition-all duration-500 ease-out relative overflow-hidden group ${
+                  className={`w-full p-5 rounded-xl font-bold text-xl transition-all duration-300 relative overflow-hidden ${
                     isLoading || !isFormValid()
                       ? 'bg-gray-600/50 cursor-not-allowed opacity-50 border border-gray-500/30' 
-                      : 'bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700 border border-purple-500/50'
+                      : 'bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700 border border-purple-500/50 hover:scale-[1.02] active:scale-[0.98] shadow-xl'
                   }`}
-                  whileHover={!isLoading && isFormValid() ? { 
-                    scale: 1.02,
-                    boxShadow: "0 20px 40px rgba(147, 51, 234, 0.4)"
-                  } : {}}
-                  whileTap={{ scale: 0.98 }}
-                  style={{
-                    boxShadow: !isLoading && isFormValid() 
-                      ? '0 10px 30px rgba(147, 51, 234, 0.3), 0 0 60px rgba(219, 39, 119, 0.2)'
-                      : 'none'
-                  }}
                 >
-                  {/* Button Shimmer Effect */}
-                  {!isLoading && isFormValid() && (
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                      animate={{ x: [-100, 400] }}
-                      transition={{ 
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  )}
-                  
                   <span className="relative z-10">
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-3">
-                        <motion.div 
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        <div 
+                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
                         />
-                        Setting up your training with {currentCoach.name}...
+                        Setting up your transformation...
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        <Sparkles className="w-5 h-5" />
-                        START TRAINING WITH {currentCoach.name.toUpperCase()}
-                        <motion.div
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                        >
-                          {currentCoach.icon}
-                        </motion.div>
+                      <div>
+                        <div className="text-2xl">CLAIM YOUR SPOT NOW</div>
+                        <div className="text-sm font-normal mt-1 opacity-90">
+                          Limited spots available at this price
+                        </div>
                       </div>
                     )}
                   </span>
-                </motion.button>
+                </button>
               </form>
 
               <div className="text-center mt-6 space-y-3">
                 <p className="text-sm opacity-60">
-                  ✅ {pricingData.trialDays}-day trial for ${pricingData.trialPrice} • ✅ Cancel anytime • ✅ Secure payment
+                  ✅ {pricingData.trialDays}-day trial for {pricingData.trialPrice === 0 ? 'FREE' : `$${pricingData.trialPrice}`} • ✅ Cancel anytime • ✅ Secure payment
                 </p>
                 <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-4">
-                  <p className="text-lg font-bold mb-1">
+                  <p className="text-lg font-bold mb-2">
                     After trial: <span className="text-xl text-gray-400 line-through">${pricingData.originalPrice}</span> <span className="text-2xl text-green-400 font-bold">${pricingData.currentPrice}/month</span>
                   </p>
+                  
+                  {/* Calculate and show discount percentage dynamically */}
+                  {pricingData.originalPrice > pricingData.currentPrice && (
+                    <div className="flex justify-center mb-3">
+                      <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full text-lg font-bold shadow-lg">
+                        Save {Math.round(((pricingData.originalPrice - pricingData.currentPrice) / pricingData.originalPrice) * 100)}%
+                      </div>
+                    </div>
+                  )}
+                  
                   <p className="text-sm text-green-400">
-                    🎯 {pricingData.discountPercentage}% OFF • Over 2,000 men have transformed with {currentCoach.name}
+                    Over 2,000 men have transformed with <span className="font-bold text-white">Coach {currentCoach.name}</span>
                   </p>
                 </div>
               </div>

@@ -32,7 +32,7 @@ function ResultsContent() {
     hasDiscount: boolean
     currency: string
   }>({
-    trialPrice: 1,
+    trialPrice: 0,
     trialDays: 3,
     originalPrice: 19.99,
     discountedPrice: 9.99,
@@ -604,7 +604,7 @@ function ResultsContent() {
 
             <div className="space-y-4">
               <p className="text-xl font-bold text-green-400 mb-3">
-                {pricingData.trialDays}-Day Trial for Just ${pricingData.trialPrice}
+                {pricingData.trialDays}-Day Trial for {pricingData.trialPrice === 0 ? 'FREE' : `$${pricingData.trialPrice}`}
               </p>
               {pricingData.hasDiscount && (
                 <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-6 mb-4">
@@ -612,7 +612,7 @@ function ResultsContent() {
                     <p className="text-2xl font-bold text-transparent bg-gradient-to-r from-purple-300 via-blue-300 to-green-300 bg-clip-text mb-4">
                       Early Access Pricing
                     </p>
-                    <div className="flex items-center justify-center gap-4 mb-3">
+                    <div className="flex items-center justify-center gap-6 mb-3">
                       <div className="text-center">
                         <div className="text-sm text-gray-400 mb-1">Regular Price</div>
                         <span className="text-xl text-gray-400 line-through">${pricingData.originalPrice}</span>
@@ -622,12 +622,17 @@ function ResultsContent() {
                         <div className="text-sm text-green-400 mb-1">Your Price</div>
                         <span className="text-3xl text-green-400 font-bold">${pricingData.currentPrice}</span>
                       </div>
-                      <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        50% Off
-                      </div>
                     </div>
+                    {/* Calculate and show discount percentage */}
+                    {pricingData.originalPrice > pricingData.currentPrice && (
+                      <div className="flex justify-center mb-3">
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full text-lg font-bold shadow-lg">
+                          Save {Math.round(((pricingData.originalPrice - pricingData.currentPrice) / pricingData.originalPrice) * 100)}%
+                        </div>
+                      </div>
+                    )}
                     <p className="text-sm text-purple-200">
-                      Special launch pricing • {pricingData.discountPercentage}% discount
+                      🔥 Limited time offer • Special launch pricing
                     </p>
                   </div>
                 </div>

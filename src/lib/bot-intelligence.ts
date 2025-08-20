@@ -121,71 +121,71 @@ export class BotIntelligence {
       ? `Recent community discussions include: ${context.trendingTopics.join(', ')}.`
       : ''
 
-    return `Tu ești ${bot.name}, un tip/tipă normală care are probleme cu încrederea în sine. ${expertiseContext}
+    return `You are ${bot.name}, a regular guy with confidence issues seeking help. ${expertiseContext}
 
 ${communityContext}
 
-Scrie în română, foarte natural, ca pe TikTok sau Instagram - relaxat, direct, fără să fii formal.
+Write in English, very naturally like on TikTok or Reddit - casual, direct, authentic.
 
-Generate o întrebare scurtă și autentică despre încredere în sine. Evită să repeți: ${context.recentQuestions.map(q => q.title).join(', ')}
+Generate a short and authentic question about confidence and self-improvement. Avoid repeating: ${context.recentQuestions.map(q => q.title).join(', ')}
 
-STIL:
-- Limbaj natural, de stradă, relaxat (fără "domnule", "doamnă", etc.)
-- Titlu FOARTE scurt (max 6-8 cuvinte)
-- Întrebare konkretă, reală, ca și cum ai vorbi cu un prieten
-- Fără fraze lungi sau complicate
-- Gen: "help", "cum să", "de ce", "ce fac când"
+STYLE:
+- Natural language, relaxed, conversational
+- Title VERY short (max 6-8 words)
+- Concrete, real question like talking to a friend
+- No long or complicated sentences
+- Examples: "help", "how to", "why do I", "what to do when"
 
 JSON format:
 {
-  "title": "Titlu scurt, natural (max 50 chars)",
-  "body": "Detalii scurte, 1-2 propoziții max, very casual",
+  "title": "Short, natural title (max 50 chars)",
+  "body": "Brief details, 1-2 sentences max, very casual",
   "type": "regular",
   "category": "confidence-building, relationships, dating-apps, sexual-performance"
 }`
   }
 
   private static buildQuestionUserPrompt(context: CommunityContext): string {
-    // Topics naturale, în română, gen TikTok
+    // Natural topics in English, like Reddit/TikTok
     const topicsByCategory: Record<string, string[]> = {
       'confidence-building': [
-        'cum să nu mai tremur când vorbesc în public',
-        'de ce îmi e frică să mă înscriu la sală',
-        'cum să nu mai roșesc când vorbesc cu șeful',
-        'de ce îmi e teamă să îmi exprim părerea',
-        'cum să nu mai fiu timid la petreceri',
-        'ce fac când toți par mai buni ca mine',
-        'cum să am curaj să îmi schimb jobul'
+        'how to stop shaking when speaking in public',
+        'why am I scared to join a gym',
+        'how to stop blushing when talking to my boss',
+        'why am I afraid to express my opinion',
+        'how to not be shy at parties',
+        'what to do when everyone seems better than me',
+        'how to have courage to change my job'
       ],
       'dating-apps': [
-        'de ce match-urile nu îmi răspund',
-        'cum să fac poze bune pentru Tinder',
-        'ce să scriu ca să nu par desperată',
-        'de ce conversațiile mor după 2 mesaje',
-        'cum să nu par boring pe dating apps'
+        'why do my matches not respond',
+        'how to take good photos for Tinder',
+        'what to write so I don\'t seem desperate',
+        'why do conversations die after 2 messages',
+        'how to not seem boring on dating apps'
       ],
       'relationships': [
-        'cum să nu mai fiu geloasă pe tot',
-        'ce fac când partenerul nu îmi răspunde repede',
-        'cum să nu mă cert cu prietena mereu',
-        'de ce am probleme să mă deschid emoțional',
-        'cum să nu mai fiu clingy în relații'
+        'how to stop being jealous about everything',
+        'what to do when partner doesn\'t text back fast',
+        'how to not fight with girlfriend constantly',
+        'why do I have trouble opening up emotionally',
+        'how to not be clingy in relationships'
       ],
       'sexual-performance': [
-        'cum să am încredere în corpul meu',
-        'de ce îmi e frică să încerc lucruri noi în pat',
-        'cum să vorbesc despre ce îmi place',
-        'ce fac când nu îmi place cum arăt',
-        'cum să nu mai fiu anxioasă în intimitate'
+        'how to have confidence in my body',
+        'why am I scared to try new things in bed',
+        'how to talk about what I like',
+        'what to do when I don\'t like how I look',
+        'how to not be anxious during intimacy'
       ]
     }
 
     const writingStyles = [
-      'foarte casual, cu litere mici',
-      'normal dar prietenos', 
-      'puțin anxios, cu multe întrebări',
-      'direct la subiect',
-      'povestește ca la prieteni'
+      'very casual, lowercase style',
+      'normal but friendly', 
+      'slightly anxious, asking multiple questions',
+      'direct to the point',
+      'telling story like to friends'
     ]
 
     // Randomly select a category and topic
@@ -195,22 +195,22 @@ JSON format:
     const randomTopic = topicsInCategory[Math.floor(Math.random() * topicsInCategory.length)]
     const randomStyle = writingStyles[Math.floor(Math.random() * writingStyles.length)]
 
-    return `Generează o întrebare unică despre: ${randomTopic}
+    return `Generate a unique question about: ${randomTopic}
 
-Categoria: ${randomCategory}
-Stil de scriere: ${randomStyle}
+Category: ${randomCategory}
+Writing style: ${randomStyle}
 
-NU repeta aceste topicuri recente:
+DO NOT repeat these recent topics:
 ${context.recentQuestions.slice(0, 5).map(q => `- ${q.title}`).join('\n')}
 
-Cerințe:
-- Să pară o persoană reală care întreabă
-- Limbaj natural, conversațional, gen TikTok
-- Detalii specifice, nu generice
-- Arată vulnerabilitate și griji reale
+Requirements:
+- Sound like a real person asking
+- Natural, conversational language, like TikTok/Reddit
+- Specific details, not generic
+- Show vulnerability and real concerns
 - IMPORTANT: category = "${randomCategory}"
 
-Creează o întrebare care să genereze răspunsuri utile de la comunitate.`
+Create a question that will generate helpful responses from the community.`
   }
 
   // Build system prompt for answer generation
@@ -223,22 +223,22 @@ Creează o întrebare care să genereze răspunsuri utile de la comunitate.`
       ? `Your areas of expertise include: ${bot.expertise_areas.join(', ')}.`
       : ''
 
-    return `Tu ești ${bot.name}, un membru cool al comunității care ajută pe alții. ${expertiseContext}
+    return `You are ${bot.name}, a cool community member who helps others. ${expertiseContext}
 
-Scrie în română, foarte natural, ca pe TikTok - relaxat, prietenos, fără formalități.
+Write in English, very naturally like on TikTok/Reddit - relaxed, friendly, no formalities.
 
-STIL RĂSPUNS:
-- Limbaj natural, de stradă, foarte casual
-- Scurt și la obiect (max 2-3 propoziții)
-- Fără "domnule/doamnă" sau formalități
-- Ca și cum ai răspunde la un prieten pe WhatsApp
-- Folosește "bro", "frate", "dragă", "bestie" etc. natural
-- Exemple concrete, nu sfaturi generice
-- Ton pozitiv și motivational
+RESPONSE STYLE:
+- Natural language, very casual
+- Short and to the point (max 2-3 sentences)
+- No formal language
+- Like you're answering a friend on WhatsApp
+- Use "bro", "dude", "man", "friend" naturally
+- Concrete examples, not generic advice
+- Positive and motivational tone
 
-Format JSON:
+JSON format:
 {
-  "content": "Răspuns scurt, natural, prietenos (max 2-3 propoziții)",
+  "content": "Short, natural, friendly response (max 2-3 sentences)",
   "tone": "helpful"
 }`
   }

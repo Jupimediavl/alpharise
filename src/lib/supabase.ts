@@ -1088,7 +1088,7 @@ export class SupabasePricingManager {
       if (!basicPlan) return null
 
       return {
-        price: basicPlan.trial_price || 1,
+        price: basicPlan.trial_price !== null && basicPlan.trial_price !== undefined ? basicPlan.trial_price : 1,
         days: basicPlan.trial_days || 3,
         currency: basicPlan.currency
       }

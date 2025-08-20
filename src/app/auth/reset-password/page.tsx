@@ -72,8 +72,8 @@ export default function ResetPasswordPage() {
       // Redirect based on flow type
       setTimeout(() => {
         if (isSetup) {
-          // Initial password setup - go to dashboard
-          router.push('/dashboard')
+          // Initial password setup - go to pricing page
+          router.push('/pricing')
         } else {
           // Password reset - go to login
           router.push('/login?message=password-updated')

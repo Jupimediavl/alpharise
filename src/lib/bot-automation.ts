@@ -55,12 +55,13 @@ export class BotAutomation {
   // Main automation cycle
   static async runAutomationCycle(): Promise<void> {
     try {
-      console.log('🔄 Running bot automation cycle...')
+      console.log('🔄 Running bot automation cycle at:', new Date().toISOString())
       
       const activeBots = await BotManager.getActiveBots()
+      console.log(`🤖 Found ${activeBots.length} active bots:`, activeBots.map(b => `${b.name} (${b.type})`))
       
       if (activeBots.length === 0) {
-        console.log('No active bots found')
+        console.log('⚠️ No active bots found - check bot status in database')
         return
       }
 
@@ -69,22 +70,30 @@ export class BotAutomation {
       // Process each active bot
       for (const bot of activeBots) {
         try {
+          console.log(`🔍 Processing bot: ${bot.name} (${bot.type})`)
+          
           // Check if bot should be active based on schedule
           const shouldBeActive = await ScheduleManager.isBotActiveNow(bot.id)
           if (!shouldBeActive) {
-            console.log(`Bot ${bot.name} is outside of scheduled hours`)
+            console.log(`⏰ Bot ${bot.name} is outside of scheduled hours`)
             continue
           }
 
           // Get community context
+          console.log(`📊 Getting community context for ${bot.name}`)
           const context = await BotIntelligence.getCommunityContext()
 
           // Decide what action to take based on bot type and activity level
+          console.log(`🤔 Deciding action for ${bot.name}`)
           const action = await this.decideBotAction(bot, context)
           
           if (action) {
+            console.log(`🚀 Executing action "${action}" for ${bot.name}`)
             const result = await this.executeBotAction(bot, action, context)
+            console.log(`📝 Action result for ${bot.name}:`, result.success ? '✅ Success' : '❌ Failed', result.error || '')
             results.push(result)
+          } else {
+            console.log(`😴 Bot ${bot.name} decided to stay quiet this cycle`)
           }
 
         } catch (error) {

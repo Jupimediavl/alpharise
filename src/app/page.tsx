@@ -100,11 +100,14 @@ export default function LandingPage() {
           >
             <motion.button
               onClick={() => router.push('/assessment')}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-lg font-bold text-xl hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700 transition-all transform hover:scale-105"
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 rounded-lg font-bold text-xl hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700 transition-all transform hover:scale-105 relative"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              Take Your Confidence Test
+              <span className="flex items-center gap-2">
+                Take Your FREE Confidence Test
+                <span className="text-sm bg-white/20 px-2 py-0.5 rounded-full">3 min</span>
+              </span>
             </motion.button>
             
             <motion.button
@@ -113,7 +116,7 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Continue Your Journey
+              Sign In & Continue Your Journey
             </motion.button>
           </motion.div>
           )}
@@ -130,7 +133,7 @@ export default function LandingPage() {
               className="text-center"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">2,500+</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">9,500+</div>
               <div className="text-gray-400">Men Transformed</div>
             </motion.div>
             <motion.div 
@@ -159,7 +162,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             {[
-              { icon: '🧠', title: 'Personalized Coaching', desc: 'AI-powered advice tailored to your personality' },
+              { icon: '🧠', title: 'Personalized Coaching', desc: 'Expert advice tailored to your personality' },
               { icon: '💬', title: 'Expert Community', desc: 'Learn from coaches and successful men' },
               { icon: '🎯', title: 'Practical Challenges', desc: 'Daily tasks to build real confidence' },
               { icon: '🏆', title: 'Proven Results', desc: 'Step-by-step system that actually works' }
