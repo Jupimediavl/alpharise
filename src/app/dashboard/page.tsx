@@ -326,6 +326,10 @@ function DashboardContent() {
     completedExercises: 0,
     remainingToNextLevel: 0
   })
+  const [moduleStats, setModuleStats] = useState({
+    intimacy_boost: { problems: 0, exercises: 0 },
+    body_confidence: { problems: 0, exercises: 0 }
+  })
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showProblemDetails, setShowProblemDetails] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -535,6 +539,19 @@ function DashboardContent() {
           // Set default welcome message if loading fails
           setWelcomeMessage("Welcome! Let's start building your confidence.")
           // Keep default values for learning stats
+        }
+
+        // Load module statistics
+        try {
+          const intimacyStats = await SupabaseLearningManager.getModuleStats('intimacy_boost')
+          const bodyStats = await SupabaseLearningManager.getModuleStats('body_confidence')
+          
+          setModuleStats({
+            intimacy_boost: intimacyStats,
+            body_confidence: bodyStats
+          })
+        } catch (error) {
+          console.error('Error loading module stats:', error)
         }
 
         // No need for sessionStorage - everything comes from database
@@ -993,7 +1010,7 @@ function DashboardContent() {
               
               <div className="flex items-center justify-between">
                 <div className="text-xs text-red-300">
-                  <span className="font-semibold">5 Problems</span> • <span className="font-semibold">20+ Exercises</span>
+                  <span className="font-semibold">{moduleStats.intimacy_boost.problems} Problems</span> • <span className="font-semibold">{moduleStats.intimacy_boost.exercises}+ Exercises</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-400 group-hover:translate-x-1 transition-transform">
                   <Play className="w-3 h-3" />
@@ -1024,7 +1041,7 @@ function DashboardContent() {
               
               <div className="flex items-center justify-between">
                 <div className="text-xs text-orange-300">
-                  <span className="font-semibold">5 Problems</span> • <span className="font-semibold">20+ Exercises</span>
+                  <span className="font-semibold">{moduleStats.body_confidence.problems} Problems</span> • <span className="font-semibold">{moduleStats.body_confidence.exercises}+ Exercises</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-orange-400 group-hover:translate-x-1 transition-transform">
                   <Play className="w-3 h-3" />

@@ -60,10 +60,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const thisWeekCoins = weeklyCoins
     const streakDays = calculateStreakDays(weeklyTransactions || [])
 
-    // Get coin settings
-    const settingsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/coins/settings`)
-    const settingsData = await settingsResponse.json()
-    const coinSettings = settingsData.settings
+    // Get coin settings directly from database
+    let { data: coinSettings, error: settingsError } = await supabase
+      .from('coin_settings')
+      .select('*')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    // Use default settings if none found or error
+    if (settingsError || !coinSettings) {
+      coinSettings = {
+        coins_per_dollar: 100.00,
+        min_cashout: 10.00,
+        max_discount_percent: 50.00,
+        bonus_multiplier: 1.00,
+        is_active: true
+      }
+    }
 
     const dollarValue = (totalCoins / coinSettings.coins_per_dollar).toFixed(2)
 

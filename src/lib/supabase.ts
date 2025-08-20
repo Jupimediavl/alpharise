@@ -1865,6 +1865,57 @@ export class SupabaseLearningManager {
     return this.getExercisesForProblem(problemId)
   }
 
+  // Get module statistics
+  static async getModuleStats(userType: string): Promise<{problems: number, exercises: number}> {
+    try {
+      // Count problems for user_type (modules)
+      const { count: problemCount, error: problemError } = await supabase
+        .from('problems')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_type', userType)
+
+      if (problemError) {
+        console.error('Error counting problems:', problemError)
+        return { problems: 0, exercises: 0 }
+      }
+
+      // Get problem IDs for this user_type to count exercises
+      const { data: problems, error: problemsError } = await supabase
+        .from('problems')
+        .select('id')
+        .eq('user_type', userType)
+
+      if (problemsError) {
+        console.error('Error getting problem IDs:', problemsError)
+        return { problems: problemCount || 0, exercises: 0 }
+      }
+
+      if (!problems || problems.length === 0) {
+        return { problems: problemCount || 0, exercises: 0 }
+      }
+
+      // Count exercises for all problems in this user_type
+      const problemIds = problems.map(p => p.id)
+      const { count: exerciseCount, error: exerciseError } = await supabase
+        .from('exercises')
+        .select('*', { count: 'exact', head: true })
+        .in('problem_id', problemIds)
+
+      if (exerciseError) {
+        console.error('Error counting exercises:', exerciseError)
+        return { problems: problemCount || 0, exercises: 0 }
+      }
+
+      return {
+        problems: problemCount || 0,
+        exercises: exerciseCount || 0
+      }
+    } catch (error) {
+      console.error('Error in getModuleStats:', error)
+      return { problems: 0, exercises: 0 }
+    }
+  }
+
   // Toggle exercise completion status
   static async toggleExerciseCompletion(userId: string, username: string, exerciseId: string, problemId: string): Promise<{points: number, isCompleted: boolean}> {
     try {
