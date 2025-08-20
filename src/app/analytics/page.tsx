@@ -3,8 +3,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser } from '@/lib/supabase'
-import { simpleCoinHelpers } from '@/lib/simple-coin-system'
+import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { BarChart3, ArrowLeft, TrendingUp, TrendingDown, Coins, Users, MessageCircle, Award, Calendar, Target, Zap, Star, Clock, Activity } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,14 +17,36 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const username = localStorage.getItem('username') || 'testuser1'
-        const userData = await SupabaseUserManager.getUserByUsername(username)
+        // Get current session from Supabase Auth
+        const session = await SupabaseAuthManager.getCurrentSession()
+        if (!session || !session.user) {
+          console.log('No valid session, redirecting to login...')
+          router.push('/login')
+          return
+        }
         
-        if (userData) {
-          setUser(userData)
-          // Get user stats from coin system
-          const userStats = simpleCoinHelpers.getUserStats(userData.id)
-          setStats(userStats)
+        // Get user profile from our users table using the email
+        const userData = await SupabaseUserManager.getUserByEmail(session.user.email!)
+        if (!userData) {
+          console.error('User profile not found for:', session.user.email)
+          router.push('/signup')
+          return
+        }
+        
+        const username = userData.username
+        const userProfileData = await SupabaseUserManager.getUserByUsername(username)
+        
+        if (userProfileData) {
+          setUser(userProfileData)
+          // Set empty stats since we're using Supabase directly now
+          setStats({
+            community: {
+              answersGiven: 0,
+              helpfulnessRatio: 0,
+              bestAnswersCount: 0,
+              totalVotesReceived: 0
+            }
+          })
         } else {
           router.push('/login')
         }

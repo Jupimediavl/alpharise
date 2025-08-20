@@ -5,8 +5,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, SupabaseLearningManager, supabaseHelpers } from '@/lib/supabase'
-import { simpleCoinHelpers } from '@/lib/simple-coin-system'
+import { SupabaseUserManager, DbUser, SupabaseCoachManager, DbCoach, SupabaseLearningManager, supabaseHelpers, SupabaseAuthManager } from '@/lib/supabase'
 import { ChevronRight, Zap, Target, AlertCircle, CheckCircle, Play, Book, Users, TrendingUp, Search, Send, MessageCircle, Coins, User, Settings, BarChart3, CreditCard, ChevronDown, LogOut, Trophy } from 'lucide-react'
 import ChatDrawer from '@/components/ChatDrawer'
 
@@ -442,23 +441,29 @@ function DashboardContent() {
       try {
         setIsLoading(true)
         
-        let username = searchParams.get('username')
-        if (!username) {
-          // If no username in URL, redirect to signup
-          router.push('/signup')
+        // Get current session from Supabase Auth
+        const session = await SupabaseAuthManager.getCurrentSession()
+        if (!session || !session.user) {
+          // No valid session, redirect to login
+          console.log('No valid session, redirecting to login...')
+          router.push('/login')
           return
         }
-
-        const userData = await SupabaseUserManager.getUserByUsername(username)
+        
+        // Get user profile from our users table using the email
+        const userData = await SupabaseUserManager.getUserByEmail(session.user.email!)
         if (!userData) {
+          console.error('User profile not found for:', session.user.email)
           router.push('/signup')
           return
         }
+        
+        console.log('✅ User authenticated:', userData.username)
 
         setUser(userData)
         
         // Load coin data for this user
-        await loadCoinData(username)
+        await loadCoinData(userData.username)
 
         // Load coaches from database
         const allCoaches = await supabaseHelpers.getAllCoaches()
@@ -479,17 +484,15 @@ function DashboardContent() {
         const personalizedProblems = getPersonalizedProblems(mappedCoachForProblems, ageToUse)
         setProblemsData(personalizedProblems)
 
-        // Load coin stats
-        const coinStats = simpleCoinHelpers.getUserStats(username)
-        setUserCoinStats(coinStats)
+        // Set empty coin stats since we're using Supabase directly now
+        setUserCoinStats({
+          totalEarned: userData.coins || 0,
+          totalSpent: 0,
+          currentBalance: userData.coins || 0,
+          dailyStreak: 0
+        })
 
-        // Process daily login reward
-        const dailyReward = simpleCoinHelpers.dailyLogin(username)
-        if (dailyReward) {
-          console.log('🎉 Daily login reward:', dailyReward)
-          // Update user coins in session
-          userData.coins = (userData.coins || 0) + dailyReward.amount
-        }
+        // No daily login reward processing since we're using Supabase directly
 
         // Load milestones and learning system statistics
         try {
@@ -801,8 +804,10 @@ function DashboardContent() {
                 {/* Logout */}
                 <div className="border-t border-gray-600/30 py-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setShowUserDropdown(false)
+                      // Sign out from Supabase
+                      await SupabaseAuthManager.signOut()
                       router.push('/login')
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
@@ -1205,7 +1210,14 @@ function DashboardContent() {
                 <ul className="space-y-2">
                   <li>
                     <button
-                      onClick={() => router.push('/coins-guide')}
+                      onClick={() => {
+                        const currentUsername = user?.username || user?.id
+                        if (currentUsername) {
+                          window.location.href = `/coins-guide?username=${encodeURIComponent(currentUsername)}`
+                        } else {
+                          window.location.href = '/coins-guide'
+                        }
+                      }}
                       className="text-gray-300 hover:text-yellow-400 transition-colors text-sm flex items-center gap-2"
                     >
                       <span>📖</span> How Coins Work

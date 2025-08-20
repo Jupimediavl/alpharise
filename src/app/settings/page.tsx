@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser } from '@/lib/supabase'
+import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { Settings, ArrowLeft, Bell, Shield, Palette, Moon, Sun, Volume2, VolumeX, Save, Eye, EyeOff, Globe, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 
@@ -63,8 +63,21 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const username = localStorage.getItem('username') || 'testuser1'
-        const userData = await SupabaseUserManager.getUserByUsername(username)
+        // Get current session from Supabase Auth
+        const session = await SupabaseAuthManager.getCurrentSession()
+        if (!session || !session.user) {
+          console.log('No valid session, redirecting to login...')
+          router.push('/login')
+          return
+        }
+        
+        // Get user profile from our users table using the email
+        const userData = await SupabaseUserManager.getUserByEmail(session.user.email!)
+        if (!userData) {
+          console.error('User profile not found for:', session.user.email)
+          router.push('/signup')
+          return
+        }
         
         if (userData) {
           setUser(userData)

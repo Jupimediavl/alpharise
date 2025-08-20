@@ -34,18 +34,50 @@ function CoinsGuideContent() {
   }, [searchParams])
 
   const goToDashboard = () => {
-    if (username) {
-      router.push(`/dashboard?username=${username}`)
-    } else {
-      router.push('/dashboard')
+    console.log('🏠 Navigating to dashboard from coins-guide')
+    console.log('🔍 Current username state:', username)
+    console.log('🔍 URL params:', window.location.search)
+    
+    if (typeof window !== 'undefined') {
+      // Try to get username from multiple sources
+      let targetUsername = username || searchParams.get('username')
+      
+      // Also try to get from localStorage as fallback
+      if (!targetUsername && typeof localStorage !== 'undefined') {
+        try {
+          const userData = localStorage.getItem('alpharise_user')
+          if (userData) {
+            const parsed = JSON.parse(userData)
+            targetUsername = parsed.userName || parsed.username || parsed.id
+          }
+        } catch (error) {
+          console.error('Error reading localStorage:', error)
+        }
+      }
+      
+      console.log('🎯 Target username for dashboard:', targetUsername)
+      
+      if (targetUsername && typeof targetUsername === 'string') {
+        const cleanUsername = encodeURIComponent(targetUsername.trim())
+        const dashboardUrl = `/dashboard?username=${cleanUsername}`
+        console.log('🚀 Navigating to:', dashboardUrl)
+        window.location.href = dashboardUrl
+      } else {
+        console.log('⚠️ No username found, going to dashboard without params')
+        window.location.href = '/dashboard'
+      }
     }
   }
 
   const goToCommunity = () => {
-    if (username) {
-      router.push(`/community?username=${username}`)
-    } else {
-      router.push('/community')
+    console.log('💬 Navigating to community from coins-guide')
+    if (typeof window !== 'undefined') {
+      if (username && typeof username === 'string') {
+        const cleanUsername = encodeURIComponent(username.trim())
+        window.location.href = `/community?username=${cleanUsername}`
+      } else {
+        window.location.href = '/community'
+      }
     }
   }
 

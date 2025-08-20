@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { SupabaseUserManager, DbUser } from '@/lib/supabase'
+import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { CreditCard, ArrowLeft, Check, Star, Zap, Crown, Gift, Download, Calendar, DollarSign, AlertTriangle, Clock } from 'lucide-react'
 import Link from 'next/link'
 
@@ -45,12 +45,28 @@ export default function BillingPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const username = localStorage.getItem('username') || 'testuser1'
-        const userData = await SupabaseUserManager.getUserByUsername(username)
+        // Get current session from Supabase Auth
+        const session = await SupabaseAuthManager.getCurrentSession()
+        if (!session || !session.user) {
+          console.log('No valid session, redirecting to login...')
+          router.push('/login')
+          return
+        }
         
-        if (userData) {
-          setUser(userData)
-          setSelectedPlan(userData.current_plan === 'premium' ? 'premium' : 'trial')
+        // Get user profile from our users table using the email
+        const userData = await SupabaseUserManager.getUserByEmail(session.user.email!)
+        if (!userData) {
+          console.error('User profile not found for:', session.user.email)
+          router.push('/signup')
+          return
+        }
+        
+        const username = userData.username
+        const userProfileData = await SupabaseUserManager.getUserByUsername(username)
+        
+        if (userProfileData) {
+          setUser(userProfileData)
+          setSelectedPlan(userProfileData.current_plan === 'premium' ? 'premium' : 'trial')
         } else {
           router.push('/login')
         }

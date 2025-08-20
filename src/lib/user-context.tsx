@@ -214,7 +214,7 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
     goToDashboard: () => {
       console.log('🏠 Navigating to dashboard')
       if (typeof window !== 'undefined') {
-        const username = user?.username || user?.id || user?.userName
+        const username = user?.userName
         if (username && typeof username === 'string') {
           const cleanUsername = encodeURIComponent(username.trim())
           window.location.href = `/dashboard?username=${cleanUsername}`
@@ -226,7 +226,7 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
     goToCommunity: () => {
       console.log('💬 Navigating to community')
       if (typeof window !== 'undefined') {
-        const username = user?.username || user?.id || user?.userName
+        const username = user?.userName
         if (username) {
           window.location.href = `/community?username=${username}`
         } else {
@@ -237,7 +237,7 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
     goToProfile: () => {
       console.log('👤 Navigating to profile')
       if (typeof window !== 'undefined') {
-        const username = user?.username || user?.id || user?.userName
+        const username = user?.userName
         if (username) {
           window.location.href = `/profile?username=${username}`
         } else {

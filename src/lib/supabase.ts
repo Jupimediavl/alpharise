@@ -15,6 +15,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVIC
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
+// Auth configuration
+export const supabaseAuth = supabase.auth
+
 // Test connection on initialization
 if (typeof window !== 'undefined') {
   console.log('🔌 Supabase config:', { 
@@ -252,6 +255,27 @@ export class SupabaseUserManager {
     }
   }
 
+  // Get user by email
+  static async getUserByEmail(email: string): Promise<DbUser | null> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error getting user by email:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error in getUserByEmail:', error)
+      return null
+    }
+  }
+
   // Update user coins with daily limit check
   static async updateUserCoins(username: string, newBalance: number): Promise<boolean> {
     try {
@@ -275,6 +299,7 @@ export class SupabaseUserManager {
       return false
     }
   }
+
 
   // Update user plan
   static async updateUserPlan(username: string, planType: 'trial' | 'basic' | 'premium', status: 'trial' | 'active' | 'cancelled' | 'expired'): Promise<boolean> {
@@ -2188,5 +2213,252 @@ export class SupabaseLearningManager {
       console.error('Error in deleteExercise:', error)
       return false
     }
+  }
+}
+
+// Authentication Manager for Supabase Auth
+export class SupabaseAuthManager {
+  
+  // Sign up with email and temporary password
+  static async signUpUser(
+    email: string, 
+    temporaryPassword: string,
+    userData: {
+      username: string
+      user_type: string
+      coach: string
+      age: number
+      confidence_score: number
+    }
+  ): Promise<{ success: boolean; error?: string; user?: any }> {
+    try {
+      // Create auth user with temporary password
+      const { data, error } = await supabaseAuth.signUp({
+        email,
+        password: temporaryPassword,
+        options: {
+          data: {
+            username: userData.username,
+            user_type: userData.user_type,
+            coach: userData.coach,
+            age: userData.age,
+            confidence_score: userData.confidence_score,
+            display_name: userData.username,  // Add display name for Supabase dashboard
+            full_name: userData.username,     // Some systems expect full_name
+            temporary_password: temporaryPassword  // Include temp password in metadata for email template
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        console.error('Supabase Auth signup error:', error)
+        return { success: false, error: error.message }
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'Failed to create user account' }
+      }
+
+      // Create user profile in our users table
+      const userProfile = await SupabaseUserManager.upsertUser({
+        id: data.user.id, // Use Supabase auth ID
+        username: userData.username,
+        email: email,
+        user_type: userData.user_type as any,
+        coach: userData.coach as any,
+        age: userData.age,
+        confidence_score: userData.confidence_score,
+        coins: 200,
+        current_plan: 'trial',
+        subscription_status: 'trial'
+      })
+
+      if (!userProfile) {
+        return { success: false, error: 'Failed to create user profile' }
+      }
+
+      console.log('✅ User created successfully:', data.user.email)
+      return { 
+        success: true, 
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          ...userData
+        }
+      }
+    } catch (error) {
+      console.error('Error in signUpUser:', error)
+      return { success: false, error: 'Unexpected error during signup' }
+    }
+  }
+
+  // Sign in with email and password
+  static async signInUser(email: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
+    try {
+      const { data, error } = await supabaseAuth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        console.error('Supabase Auth signin error:', error)
+        
+        // Check if error is due to email not confirmed
+        if (error.message.includes('Email not confirmed')) {
+          return { 
+            success: false, 
+            error: 'Please check your email and click the confirmation link. If you didn\'t receive it, contact support or try signing up again.' 
+          }
+        }
+        
+        return { success: false, error: error.message }
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'Invalid login credentials' }
+      }
+
+      // Get full user profile from our users table
+      const userProfile = await SupabaseUserManager.getUserByEmail(email)
+      
+      if (!userProfile) {
+        return { success: false, error: 'User profile not found' }
+      }
+
+      console.log('✅ User signed in successfully:', data.user.email)
+      return { 
+        success: true, 
+        user: userProfile
+      }
+    } catch (error) {
+      console.error('Error in signInUser:', error)
+      return { success: false, error: 'Unexpected error during signin' }
+    }
+  }
+
+  // Sign in with Google
+  static async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await supabaseAuth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        console.error('Google OAuth error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('🔄 Redirecting to Google OAuth...')
+      return { success: true }
+    } catch (error) {
+      console.error('Error in signInWithGoogle:', error)
+      return { success: false, error: 'Unexpected error during Google signin' }
+    }
+  }
+
+  // Sign out
+  static async signOut(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabaseAuth.signOut()
+      
+      if (error) {
+        console.error('Supabase signout error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ User signed out successfully')
+      return { success: true }
+    } catch (error) {
+      console.error('Error in signOut:', error)
+      return { success: false, error: 'Unexpected error during signout' }
+    }
+  }
+
+  // Get current auth session
+  static async getCurrentSession() {
+    try {
+      const { data: { session }, error } = await supabaseAuth.getSession()
+      
+      if (error) {
+        console.error('Error getting session:', error)
+        return null
+      }
+
+      return session
+    } catch (error) {
+      console.error('Error in getCurrentSession:', error)
+      return null
+    }
+  }
+
+  // Get current auth user
+  static async getCurrentAuthUser() {
+    try {
+      const { data: { user }, error } = await supabaseAuth.getUser()
+      
+      if (error) {
+        console.error('Error getting auth user:', error)
+        return null
+      }
+
+      return user
+    } catch (error) {
+      console.error('Error in getCurrentAuthUser:', error)
+      return null
+    }
+  }
+
+  // Reset password (send email)
+  static async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabaseAuth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+
+      if (error) {
+        console.error('Password reset error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Password reset email sent')
+      return { success: true }
+    } catch (error) {
+      console.error('Error in resetPassword:', error)
+      return { success: false, error: 'Unexpected error during password reset' }
+    }
+  }
+
+  // Update password (for authenticated user)
+  static async updatePassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabaseAuth.updateUser({
+        password: newPassword
+      })
+
+      if (error) {
+        console.error('Password update error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Password updated successfully')
+      return { success: true }
+    } catch (error) {
+      console.error('Error in updatePassword:', error)
+      return { success: false, error: 'Unexpected error during password update' }
+    }
+  }
+
+  // Generate temporary password
+  static generateTemporaryPassword(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+    let result = ''
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
   }
 }

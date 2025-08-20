@@ -4,16 +4,19 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, Suspense, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp } from 'lucide-react'
-import { useAlphaRise, withUserAuth } from '@/lib/user-context'
 import { 
   SupabaseQuestionManager, 
   SupabaseAnswerManager, 
   SupabaseUserManager,
-  supabaseHelpers 
+  SupabaseAuthManager,
+  supabaseHelpers,
+  supabase,
+  DbUser
 } from '@/lib/supabase'
-import { simpleCoinHelpers, simpleCoinManager } from '@/lib/simple-coin-system'
-import { SimpleAnswerVoting, QuestionCostDisplay } from '@/components/SimpleCoinIntegration'
+// Removed simple coin system dependencies - using Supabase only
+import CoinAnimation from '@/components/CoinAnimation'
 
 interface QuestionWithAnswers {
   id: string
@@ -50,7 +53,9 @@ interface QuestionWithAnswers {
 type AnswerSortType = 'best-first' | 'newest-first' | 'most-helpful'
 
 function CommunityContent() {
-  const { user, avatar, navigation, updateUser } = useAlphaRise()
+  const router = useRouter()
+  const [user, setUser] = useState<DbUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('all')
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [showNewQuestion, setShowNewQuestion] = useState(false)
@@ -68,6 +73,10 @@ function CommunityContent() {
 
   // Answer display management - simplified to show/hide
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
+  
+  // Coin animation state
+  const [showCoinAnimation, setShowCoinAnimation] = useState(false)
+  const [coinAnimationAmount, setCoinAnimationAmount] = useState(0)
   const [visibleAnswersCount, setVisibleAnswersCount] = useState<Record<string, number>>({})
   const INITIAL_ANSWERS_SHOW = 3
   const LOAD_MORE_INCREMENT = 5
@@ -237,52 +246,65 @@ function CommunityContent() {
     return validQuestions
   }
 
-  // FIXED: Utility function to sync coin systems
-  const syncCoinSystems = async (username: string) => {
+  // Utility function to get fresh user coins from Supabase
+  const refreshUserCoins = async (username: string) => {
     try {
-      // Get fresh data from Supabase
       const updatedUser = await SupabaseUserManager.getUserByUsername(username);
       if (updatedUser) {
         setSupabaseCoins(updatedUser.coins || 0);
-        console.log('💰 Synced coins from Supabase:', updatedUser.coins);
-        
-        // CRITICAL: Sync simple coin system with Supabase coins
-        const simpleProfile = simpleCoinManager.getUserProfile(username);
-        if (simpleProfile) {
-          // Update simple coin system balance to match Supabase
-          simpleProfile.currentBalance = updatedUser.coins || 0;
-          simpleCoinManager.userProfiles.set(username, simpleProfile);
-          console.log('🔄 Synced simple coin system:', updatedUser.coins);
-        }
-        
-        const simpleCoins = simpleCoinHelpers.getUserCoins(username);
-        setUserCoins(simpleCoins);
-        
+        console.log('💰 Refreshed coins from Supabase:', updatedUser.coins);
         return updatedUser.coins;
       }
     } catch (error) {
-      console.error('❌ Error syncing coin systems:', error);
+      console.error('❌ Error refreshing coins:', error);
     }
     return null;
   }
 
-  // Initialize user in database and load questions
+  // Trigger coin animation
+  const showCoinChangeAnimation = (amount: number) => {
+    setCoinAnimationAmount(amount)
+    setShowCoinAnimation(true)
+  }
+
+  // Load user session and initialize data
   useEffect(() => {
-    if (user?.userName) {
-      console.log('🐛 Debug - User effect triggered:', {
-        userName: user.userName,
-        currentSupabaseCoins: supabaseCoins,
-        currentUserCoins: userCoins
-      });
-      
-      initializeUserInDB()
-      loadQuestions()
-      
-      // Load user coins from simple system as fallback
-      const coins = simpleCoinHelpers.getUserCoins(user.userName)
-      setUserCoins(coins)
+    const loadUserAndData = async () => {
+      try {
+        setIsLoading(true)
+        
+        // Get current session from Supabase Auth
+        const session = await SupabaseAuthManager.getCurrentSession()
+        if (!session || !session.user) {
+          console.log('No valid session, redirecting to login...')
+          router.push('/login')
+          return
+        }
+        
+        // Get user profile from our users table using the email
+        const userData = await SupabaseUserManager.getUserByEmail(session.user.email!)
+        if (!userData) {
+          console.error('User profile not found for:', session.user.email)
+          router.push('/signup')
+          return
+        }
+        
+        console.log('✅ User authenticated for community:', userData.username)
+        setUser(userData)
+        
+        // Load questions
+        await loadQuestions()
+        
+      } catch (error) {
+        console.error('Error loading user data:', error)
+        router.push('/login')
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [user, activeTab, sortBy])
+
+    loadUserAndData()
+  }, [activeTab, sortBy])
 
   // Initialize visible counts when questions load
   useEffect(() => {
@@ -293,19 +315,19 @@ function CommunityContent() {
 
   // FIXED: Initialize user in Supabase with proper coin loading
   const initializeUserInDB = async () => {
-    if (!user?.userName) return
+    if (!user?.username) return
 
     try {
       console.log('🔄 Initializing user in DB:', {
-        userName: user.userName,
-        userEmail: user.userEmail,
-        avatarType: user.avatarType
+        userName: user.username,
+        userEmail: user.email,
+        avatarType: user.coach
       })
 
       const dbUser = await supabaseHelpers.initializeUser(
-        user.userName,
-        user.userEmail || `${user.userName}@alpharise.com`,
-        user.avatarType
+        user.username,
+        user.email || `${user.username}@alpharise.com`,
+        user.coach
       )
 
       if (dbUser) {
@@ -316,33 +338,7 @@ function CommunityContent() {
         console.log('✅ User initialized in DB:', dbUser)
         console.log('💰 Coins loaded from Supabase:', dbUser.coins)
         
-        // CRITICAL FIX: Initialize user in simple coin system if not exists
-        const simpleProfile = simpleCoinHelpers.getUserStats(user.userName)
-        if (!simpleProfile) {
-          console.log('🔧 Creating user in simple coin system...')
-          // Create user profile in simple coin system with current Supabase balance
-          const newProfile = {
-            userId: user.userName,
-            username: user.userName,
-            currentBalance: dbUser.coins || 0,
-            totalEarned: dbUser.coins || 0,
-            totalSpent: 0,
-            subscriptionType: 'trial' as const,
-            streak: 1,
-            lastActivity: new Date(),
-            monthlyEarnings: 0,
-          }
-          simpleCoinManager.userProfiles.set(user.userName, newProfile)
-          console.log('✅ User created in simple coin system with', dbUser.coins, 'coins')
-        }
-        
-        // Process daily login in simple coin system
-        const dailyReward = simpleCoinHelpers.dailyLogin(user.userName)
-        if (dailyReward) {
-          console.log('🎉 Daily login reward:', dailyReward)
-          // Sync both systems after daily reward
-          await syncCoinSystems(user.userName)
-        }
+        // No simple coin system initialization needed anymore
       }
     } catch (error) {
       console.error('❌ Error initializing user:', error)
@@ -416,9 +412,9 @@ function CommunityContent() {
     saveScrollPosition()
     await loadQuestions()
     
-    // Also sync coins on refresh
-    if (user?.userName) {
-      await syncCoinSystems(user.userName)
+    // Also refresh coins on refresh
+    if (user?.username) {
+      await refreshUserCoins(user.username)
     }
     
     restoreScrollPosition()
@@ -427,16 +423,16 @@ function CommunityContent() {
 
   // FIXED: Handle asking new question with proper coin sync
   const handleAskQuestion = async () => {
-    if (!user?.userName || !newQuestionTitle.trim() || !newQuestionBody.trim()) {
+    if (!user?.username || !newQuestionTitle.trim() || !newQuestionBody.trim()) {
       console.log('❌ Missing required data for question')
       return;
     }
 
     // VALIDATE: Ensure user exists in database before allowing question creation
     try {
-      const userExists = await SupabaseUserManager.getUserByUsername(user.userName)
+      const userExists = await SupabaseUserManager.getUserByUsername(user.username)
       if (!userExists) {
-        console.error('❌ User not found in database:', user.userName)
+        console.error('❌ User not found in database:', user.username)
         alert('Account verification required. Please refresh the page and try again.')
         return;
       }
@@ -449,25 +445,25 @@ function CommunityContent() {
     setLoading(true);
 
     try {
-      // Use simple coin system for question posting
-      const result = simpleCoinHelpers.askQuestion(user.userName, selectedQuestionType);
-      
-      if (!result.success) {
-        alert(result.message);
-        setLoading(false);
-        return;
+      // Check if user has enough coins
+      const questionCost = selectedQuestionType === 'urgent' ? 5 : 2
+      if ((user.coins || 0) < questionCost) {
+        alert(`Not enough coins! You need ${questionCost} coins to post this question.`)
+        setLoading(false)
+        return
       }
+
+      console.log('🚀 Creating question with Supabase...')
 
       // Create question in Supabase
       const newQuestion = await SupabaseQuestionManager.createQuestion({
         title: newQuestionTitle,
         body: newQuestionBody,
-        author_id: user.userName,
-        author_name: user.userName,
+        author_id: user.username,
+        author_name: user.username,
         category: activeTab === 'all' ? 'confidence-building' : activeTab,
         question_type: selectedQuestionType as any,
-        coin_cost: simpleCoinHelpers.canAffordQuestion(user.userName, selectedQuestionType) ? 
-                   (selectedQuestionType === 'urgent' ? 5 : 2) : 0,
+        coin_cost: questionCost,
         coin_bounty: 0,
         tags: [],
         views: 0,
@@ -481,13 +477,18 @@ function CommunityContent() {
       });
 
       if (newQuestion) {
-        // CRITICAL: Update Supabase coins to match simple coin system
-        const updatedBalance = simpleCoinHelpers.getUserCoins(user.userName);
-        await SupabaseUserManager.updateUserCoins(user.userName, updatedBalance);
-        console.log('💰 Updated Supabase coins after question:', updatedBalance);
+        // Deduct coins from user in Supabase
+        const newBalance = (user.coins || 0) - questionCost
+        await SupabaseUserManager.updateUserCoins(user.username, newBalance)
         
-        // FIXED: Sync both coin systems
-        await syncCoinSystems(user.userName);
+        // Update local user state
+        setUser(prev => prev ? { ...prev, coins: newBalance } : null)
+        
+        // Show coin animation for cost
+        showCoinChangeAnimation(-questionCost)
+        
+        console.log('✅ Question created successfully:', newQuestion.id)
+        console.log('💰 Coins deducted. New balance:', newBalance)
         
         setNewQuestionTitle('');
         setNewQuestionBody('');
@@ -496,7 +497,6 @@ function CommunityContent() {
         saveScrollPosition();
         await loadQuestions();
         restoreScrollPosition();
-        alert(result.message);
       } else {
         throw new Error('Failed to create question');
       }
@@ -511,13 +511,13 @@ function CommunityContent() {
 
   // FIXED: Handle answering question with proper coin sync
   const handleAnswerQuestion = async () => {
-    if (!user?.userName || !selectedQuestion || !newAnswerContent.trim()) {
+    if (!user?.username || !selectedQuestion || !newAnswerContent.trim()) {
       console.log('❌ Missing required data for answer')
       return;
     }
 
     // Check if answering own question (no coin reward, but allowed for clarifications)
-    const isOwnQuestion = selectedQuestion.author_id === user.userName;
+    const isOwnQuestion = selectedQuestion.author_id === user.username;
 
     setLoading(true);
     saveScrollPosition();
@@ -525,8 +525,8 @@ function CommunityContent() {
     try {
       const newAnswer = await SupabaseAnswerManager.createAnswer({
         question_id: selectedQuestion.id,
-        author_id: user.userName,
-        author_name: user.userName,
+        author_id: user.username,
+        author_name: user.username,
         content: newAnswerContent,
         rating: 0,
         rated_by: [],
@@ -540,24 +540,21 @@ function CommunityContent() {
       if (newAnswer) {
         // ANTI-FRAUD: Only reward coins if answering someone else's question
         if (!isOwnQuestion) {
-          // Reward user with simple coin system (1 coin for posting answer)
-          const answerReward = simpleCoinHelpers.answerPosted(
-            user.userName, 
-            selectedQuestion.id, 
-            newAnswer.id
-          );
+          // Reward user with 1 coin for posting answer
+          const rewardAmount = 1
+          const newBalance = (user.coins || 0) + rewardAmount
+          await SupabaseUserManager.updateUserCoins(user.username, newBalance)
           
-          console.log('🪙 Answer posted reward:', answerReward);
+          // Update local user state
+          setUser(prev => prev ? { ...prev, coins: newBalance } : null)
           
-          // CRITICAL: Update Supabase coins to match simple coin system
-          const updatedBalance = simpleCoinHelpers.getUserCoins(user.userName);
-          await SupabaseUserManager.updateUserCoins(user.userName, updatedBalance);
-          console.log('💰 Updated Supabase coins after answer:', updatedBalance);
+          // Show coin animation for reward
+          showCoinChangeAnimation(+1)
           
-          // FIXED: Sync both coin systems
-          await syncCoinSystems(user.userName);
+          console.log('🪙 Answer posted reward: +1 coin')
+          console.log('💰 Updated coins after answer:', newBalance)
         } else {
-          console.log('💬 Answer posted to own question - no coin reward');
+          console.log('💬 Answer posted to own question - no coin reward')
         }
 
         setNewAnswerContent('');
@@ -586,12 +583,6 @@ function CommunityContent() {
 
         restoreScrollPosition();
         console.log('✅ Answer submitted successfully');
-        
-        if (!isOwnQuestion) {
-          alert(`Answer submitted! You earned 1 AlphaCoin. Total: ${supabaseCoins || userCoins} coins.`);
-        } else {
-          alert('Answer submitted! (No coins earned for answering your own question)');
-        }
       } else {
         throw new Error('Failed to create answer');
       }
@@ -608,20 +599,9 @@ function CommunityContent() {
   const handleVoteSuccess = async (answerId: string, coinsEarned: number, totalVotes: number, isBestAnswer: boolean) => {
     console.log('🎉 Vote successful:', { answerId, coinsEarned, totalVotes, isBestAnswer });
     
-    // Update the answer author's coins in Supabase if they earned any
-    if (coinsEarned > 0) {
-      // Find the answer author
-      const answerData = simpleCoinHelpers.getAnswerData(answerId);
-      if (answerData && answerData.authorId) {
-        const updatedBalance = simpleCoinHelpers.getUserCoins(answerData.authorId);
-        await SupabaseUserManager.updateUserCoins(answerData.authorId, updatedBalance);
-        console.log('💰 Updated answer author coins in Supabase:', answerData.authorId, updatedBalance);
-      }
-    }
-    
-    // Sync current user's coin systems (in case they voted)
-    if (user?.userName) {
-      await syncCoinSystems(user.userName);
+    // Refresh current user's coins if needed
+    if (user?.username) {
+      await refreshUserCoins(user.username);
     }
     
     // Update question data to reflect new vote counts and best answer status
@@ -663,7 +643,135 @@ function CommunityContent() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
 
-  if (!user || !avatar) {
+  // Handle voting on answers
+  const handleVoteAnswer = async (answerId: string, voteType: 'helpful') => {
+    if (!user?.username) return
+
+    try {
+      console.log('🗳️ Voting on answer:', answerId, voteType)
+      
+      // Update answer votes in Supabase
+      const { data, error } = await supabase
+        .from('answers')
+        .select('votes, voted_by, author_id')
+        .eq('id', answerId)
+        .single()
+
+      if (error || !data) {
+        console.error('Error getting answer data:', error)
+        return
+      }
+
+      const votedBy = data.voted_by || []
+      
+      // Check if user already voted
+      if (votedBy.includes(user.username)) {
+        alert('You have already voted on this answer!')
+        return
+      }
+
+      // Update votes
+      const newVotes = (data.votes || 0) + 1
+      const newVotedBy = [...votedBy, user.username]
+
+      const { error: updateError } = await supabase
+        .from('answers')
+        .update({
+          votes: newVotes,
+          voted_by: newVotedBy
+        })
+        .eq('id', answerId)
+
+      if (updateError) {
+        console.error('Error updating vote:', updateError)
+        return
+      }
+
+      // Reward answer author with coins for helpful vote
+      if (data.author_id && data.author_id !== user.username) {
+        const authorData = await SupabaseUserManager.getUserByUsername(data.author_id)
+        if (authorData) {
+          const newAuthorBalance = (authorData.coins || 0) + 1
+          await SupabaseUserManager.updateUserCoins(data.author_id, newAuthorBalance)
+          console.log('💰 Rewarded answer author:', data.author_id, '+1 coin')
+          
+          // Animation will be shown when that user logs in and sees updated balance
+        }
+      }
+
+      // Update UI
+      setQuestions(prevQuestions => {
+        return prevQuestions.map(question => {
+          const updatedAnswers = question.answers.map(answer => {
+            if (answer.id === answerId) {
+              return {
+                ...answer,
+                votes: newVotes,
+                voted_by: newVotedBy
+              }
+            }
+            return answer
+          })
+          return { ...question, answers: updatedAnswers }
+        })
+      })
+
+      console.log('✅ Vote recorded successfully')
+      
+    } catch (error) {
+      console.error('Error voting on answer:', error)
+    }
+  }
+
+  // Handle marking answer as best
+  const handleMarkBestAnswer = async (answerId: string) => {
+    if (!user?.username || !selectedQuestion) return
+
+    try {
+      console.log('⭐ Marking best answer:', answerId)
+
+      // Update answer as best answer
+      const { error } = await supabase
+        .from('answers')
+        .update({ is_best_answer: true })
+        .eq('id', answerId)
+
+      if (error) {
+        console.error('Error marking best answer:', error)
+        return
+      }
+
+      // Remove best answer from other answers of the same question
+      await supabase
+        .from('answers')
+        .update({ is_best_answer: false })
+        .eq('question_id', selectedQuestion.id)
+        .neq('id', answerId)
+
+      // Update UI
+      setQuestions(prevQuestions => {
+        return prevQuestions.map(question => {
+          if (question.id === selectedQuestion.id) {
+            const updatedAnswers = question.answers.map(answer => {
+              return {
+                ...answer,
+                is_best_answer: answer.id === answerId
+              }
+            })
+            return { ...question, answers: updatedAnswers }
+          }
+          return question
+        })
+      })
+
+      console.log('✅ Best answer marked successfully')
+      
+    } catch (error) {
+      console.error('Error marking best answer:', error)
+    }
+  }
+
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
@@ -683,7 +791,7 @@ function CommunityContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 lg:gap-4">
             <button 
-              onClick={navigation.goToDashboard}
+              onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 px-3 py-2 bg-purple-700/50 hover:bg-purple-600/50 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -693,7 +801,7 @@ function CommunityContent() {
             </button>
             
             <button 
-              onClick={navigation.goToDashboard}
+              onClick={() => router.push('/dashboard')}
               className="text-xl lg:text-2xl font-black text-white hover:opacity-80 transition-opacity"
             >
               AlphaRise
@@ -711,11 +819,19 @@ function CommunityContent() {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             {/* FIXED: Display Supabase coins as primary, with fallback */}
-            <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold border border-purple-500/30">
+            <div className="relative flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold border border-purple-500/30">
               <Coins className="w-4 h-4" />
-              <span>{supabaseCoins || userCoins}</span>
+              <span>{user?.coins || 0}</span>
+              <CoinAnimation
+                show={showCoinAnimation}
+                amount={coinAnimationAmount}
+                onComplete={() => {
+                  setShowCoinAnimation(false)
+                  setCoinAnimationAmount(0)
+                }}
+              />
             </div>
-            <div className="text-sm opacity-70 hidden lg:block">Hey {user.userName || 'User'}!</div>
+            <div className="text-sm opacity-70 hidden lg:block">Hey {user?.username || 'User'}!</div>
           </div>
         </div>
       </header>
@@ -904,15 +1020,29 @@ function CommunityContent() {
                           <p className="text-sm leading-relaxed mb-4">{answer.content}</p>
                           
                           {/* Simple Answer Voting Component */}
-                          <SimpleAnswerVoting
-                            answerId={answer.id}
-                            authorId={answer.author_id}
-                            currentUserId={user?.userName || ''}
-                            questionAuthorId={question.author_id}
-                            onVoteSuccess={(coinsEarned, totalVotes, isBestAnswer) => 
-                              handleVoteSuccess(answer.id, coinsEarned, totalVotes, isBestAnswer)
-                            }
-                          />
+                          {/* Supabase Voting System */}
+                          <div className="flex items-center gap-4 mt-4">
+                            <button
+                              onClick={() => handleVoteAnswer(answer.id, 'helpful')}
+                              className="flex items-center gap-2 px-3 py-1 bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 rounded-lg transition-colors text-sm"
+                            >
+                              <ThumbsUp className="w-4 h-4" />
+                              <span>Helpful ({answer.votes || 0})</span>
+                            </button>
+                            
+                            {selectedQuestion?.author_id === user?.username && (
+                              <button
+                                onClick={() => handleMarkBestAnswer(answer.id)}
+                                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                                  answer.is_best_answer 
+                                    ? 'bg-yellow-600/40 border border-yellow-500/50 text-yellow-200'
+                                    : 'bg-gray-600/20 hover:bg-yellow-600/20 border border-gray-500/30'
+                                }`}
+                              >
+                                {answer.is_best_answer ? '✅ Best Answer' : 'Mark as Best'}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                       
@@ -959,7 +1089,7 @@ function CommunityContent() {
                       </div>
                       
                       {/* Simplified answer button */}
-                      {question.author_id === user?.userName ? (
+                      {question.author_id === user?.username ? (
                         <button
                           onClick={() => {
                             setSelectedQuestion(question)
@@ -1007,12 +1137,33 @@ function CommunityContent() {
               <h3 className="text-2xl font-bold mb-6 text-purple-400">Ask Your Question</h3>
               
               {/* Question Cost Display - Simple Coin System */}
-              <div className="mb-6">
-                <QuestionCostDisplay
-                  questionType={selectedQuestionType}
-                  userCoins={supabaseCoins || userCoins}
-                  onChange={setSelectedQuestionType}
-                />
+              {/* Question cost display */}
+              <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-purple-400">Question Type</h4>
+                    <p className="text-sm text-gray-400">
+                      {selectedQuestionType === 'urgent' ? 'Urgent (5 coins)' : 'Regular (2 coins)'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedQuestionType('regular')}
+                      className={`px-3 py-1 rounded text-sm ${selectedQuestionType === 'regular' ? 'bg-purple-600' : 'bg-gray-600'}`}
+                    >
+                      Regular
+                    </button>
+                    <button
+                      onClick={() => setSelectedQuestionType('urgent')}
+                      className={`px-3 py-1 rounded text-sm ${selectedQuestionType === 'urgent' ? 'bg-purple-600' : 'bg-gray-600'}`}
+                    >
+                      Urgent
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Your balance: {user?.coins || 0} coins
+                </p>
               </div>
               
               <div className="space-y-4 mb-6">
@@ -1052,7 +1203,7 @@ function CommunityContent() {
                     !newQuestionTitle.trim() || 
                     !newQuestionBody.trim() || 
                     loading || 
-                    !simpleCoinHelpers.canAffordQuestion(user?.userName || '', selectedQuestionType)
+                    (user?.coins || 0) < (selectedQuestionType === 'urgent' ? 5 : 2)
                   }
                   className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 rounded-lg font-semibold disabled:opacity-50 transition-all flex items-center justify-center gap-1"
                 >
@@ -1082,7 +1233,7 @@ function CommunityContent() {
               exit={{ opacity: 0, scale: 0.9 }}
             >
               <h3 className="text-2xl font-bold mb-4 text-purple-400">
-                {selectedQuestion.author_id === user?.userName ? 'Add Clarification' : 'Answer Question'}
+                {selectedQuestion.author_id === user?.username ? 'Add Clarification' : 'Answer Question'}
               </h3>
               
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-6">
@@ -1092,10 +1243,10 @@ function CommunityContent() {
               
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-purple-400 mb-2">
-                  {selectedQuestion.author_id === user?.userName ? 'Your Clarification' : 'Your Answer'}
+                  {selectedQuestion.author_id === user?.username ? 'Your Clarification' : 'Your Answer'}
                 </label>
                 <textarea 
-                  placeholder={selectedQuestion.author_id === user?.userName ? "Add more details or clarify your question..." : "Share your experience and advice..."}
+                  placeholder={selectedQuestion.author_id === user?.username ? "Add more details or clarify your question..." : "Share your experience and advice..."}
                   value={newAnswerContent}
                   onChange={(e) => setNewAnswerContent(e.target.value)}
                   rows={6}
@@ -1103,7 +1254,7 @@ function CommunityContent() {
                 />
                 <div className="text-xs opacity-60 mt-2 flex items-center gap-1">
                   <Coins className="w-3 h-3" />
-                  {selectedQuestion.author_id === user?.userName 
+                  {selectedQuestion.author_id === user?.username 
                     ? "No coins earned for clarifying your own question" 
                     : "You'll earn 1 AlphaCoin for posting this answer, plus more coins for helpful votes!"
                   }
@@ -1128,9 +1279,9 @@ function CommunityContent() {
                 >
                   {loading ? 'Submitting...' : (
                     <>
-                      {selectedQuestion.author_id === user?.userName ? 'Submit Clarification' : 'Submit Answer'}
+                      {selectedQuestion.author_id === user?.username ? 'Submit Clarification' : 'Submit Answer'}
                       <div className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
-                        {selectedQuestion.author_id === user?.userName ? 'No coins' : (
+                        {selectedQuestion.author_id === user?.username ? 'No coins' : (
                           <>+1 <Coins className="w-3 h-3" /></>
                         )}
                       </div>
@@ -1147,8 +1298,6 @@ function CommunityContent() {
 }
 
 export default function CommunityPage() {
-  const CommunityWithAuth = withUserAuth(CommunityContent);
-  
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
@@ -1160,7 +1309,7 @@ export default function CommunityPage() {
         </div>
       </div>
     }>
-      <CommunityWithAuth />
+      <CommunityContent />
     </Suspense>
   )
 }

@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useState, useEffect, Suspense } from 'react'
-import { supabaseHelpers, SupabaseUserManager, SupabaseCoachManager, supabase, SupabasePricingManager, DbCoach } from '@/lib/supabase'
+import { supabaseHelpers, SupabaseUserManager, SupabaseCoachManager, supabase, SupabasePricingManager, DbCoach, SupabaseAuthManager } from '@/lib/supabase'
 import { ArrowRight, Sparkles, Crown } from 'lucide-react'
 import Image from 'next/image'
 
@@ -355,70 +355,70 @@ function SignupContent() {
     setIsLoading(true)
 
     try {
-      console.log('🚀 Starting signup process...')
+      console.log('🚀 Starting Supabase Auth signup process...')
       console.log('Data:', { userName: userName.trim(), email: email.trim(), coach })
       
-      // Check environment variables
-      console.log('🔧 Environment check:', {
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        supabaseKeyPrefix: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...',
-        urlIsValid: process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co'),
-        keyIsValid: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ')
-      })
+      // Generate temporary password
+      const temporaryPassword = SupabaseAuthManager.generateTemporaryPassword()
+      console.log('🔑 Generated temporary password:', temporaryPassword.substring(0, 3) + '...')
       
-      // First, test if we can read from the users table
-      console.log('🔍 Testing table access...')
-      const { data: testSelect, error: selectError } = await supabase
-        .from('users')
-        .select('*')
-        .limit(1)
-      
-      if (selectError) {
-        console.error('❌ Table select failed:', selectError)
-        console.error('❌ This might mean the users table does not exist')
-        throw new Error(`Table access failed: ${selectError.message}`)
-      }
-      
-      console.log('✅ Table access successful, existing users:', testSelect?.length || 0)
-      
-      // Use helper function to create user with confidence test data
-      console.log('📝 Creating user with confidence test data:', { userName, email, coach, userType })
-      
-      const newUser = await supabaseHelpers.initializeUser(
-        userName.trim(),
-        email.trim(), 
-        userType, // Confidence test result
-        coach, // Original coach name
-        age, // User age
-        confidenceScore // Calculated confidence score from confidence test
+      // Create user with Supabase Auth
+      const authResult = await SupabaseAuthManager.signUpUser(
+        email.trim(),
+        temporaryPassword,
+        {
+          username: userName.trim(),
+          user_type: userType,
+          coach: coach,
+          age: age,
+          confidence_score: confidenceScore
+        }
       )
       
-      if (!newUser) {
-        throw new Error('Failed to create user account')
+      if (!authResult.success) {
+        throw new Error(authResult.error || 'Failed to create account')
       }
 
-      if (newUser) {
-        console.log('✅ User created successfully:', newUser)
+      console.log('✅ User created with Supabase Auth successfully!')
+      
+      // Check if user is automatically signed in (email confirmation disabled)
+      const session = await SupabaseAuthManager.getCurrentSession()
+      
+      if (session && session.user) {
+        console.log('✅ User automatically logged in (email confirmation disabled)')
+        console.log('🔑 Redirecting to password setup...')
         
-        // No need to store locally - everything comes from database now
-        
-        router.push(`/dashboard?welcome=true&username=${encodeURIComponent(newUser.username)}`)
-      } else {
-        throw new Error('Failed to create user account')
+        // Auto-login successful, but user needs to set password first
+        router.push('/auth/reset-password?flow=setup')
+        return
       }
+      
+      // Email confirmation required - show message and redirect to login
+      console.log('📧 Email confirmation required')
+      setErrors({
+        general: `🎉 Account created! Check your email (${email}) for confirmation instructions. You'll receive a temporary password and can set a new one.`
+      })
+      
+      // Redirect to login page with email pre-filled
+      setTimeout(() => {
+        router.push(`/login?message=check-email&email=${encodeURIComponent(email)}`)
+      }, 3000)
+      
     } catch (error: any) {
       console.error('❌ Signup error:', error)
       
-      if (error.message?.includes('duplicate key')) {
+      if (error.message?.includes('User already registered')) {
+        setErrors(prev => ({ ...prev, email: 'Email already registered. Already have an account? Sign in here.' }))
+      } else if (error.message?.includes('duplicate') || error.message?.includes('already exists')) {
         if (error.message.includes('username')) {
           setErrors(prev => ({ ...prev, userName: 'Username already taken. Try another one! Already registered? Sign in here.' }))
-        } else if (error.message.includes('email')) {
+        } else {
           setErrors(prev => ({ ...prev, email: 'Email already registered. Already have an account? Sign in here.' }))
         }
       } else {
         setErrors(prev => ({ 
           ...prev, 
-          general: 'Something went wrong. Please try again.' 
+          general: error.message || 'Something went wrong. Please try again.' 
         }))
       }
     } finally {

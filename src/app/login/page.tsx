@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2 } from 'lucide-react'
-import { SupabaseUserManager, supabase } from '@/lib/supabase' // FIXED: Added supabase import
+import { SupabaseUserManager, supabase, SupabaseAuthManager } from '@/lib/supabase' // FIXED: Added supabase import
 
 export default function LoginPage() {
   const router = useRouter()
   const [loginMethod, setLoginMethod] = useState<'username' | 'email'>('username')
   const [formData, setFormData] = useState({
     identifier: '', // username or email
+    password: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,59 +24,67 @@ export default function LoginPage() {
       return
     }
 
+    if (!formData.password.trim()) {
+      setError('Please enter your password')
+      return
+    }
+
     setIsLoading(true)
     setError('')
 
     try {
-      // Try to find user by username or email
-      let user = null
+      let email = formData.identifier.trim()
       
-      if (formData.identifier.includes('@')) {
-        // Email login - FIXED: Use proper method
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', formData.identifier.trim())
-          .single()
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error('Email lookup error:', error)
-          throw new Error('Database error')
+      // If identifier is not an email, look up email by username
+      if (!email.includes('@')) {
+        console.log('🔍 Looking up email for username:', email)
+        const user = await SupabaseUserManager.getUserByUsername(email)
+        if (!user) {
+          setError('Username not found. Please check your username or create a new account.')
+          return
         }
-        
-        user = data
-      } else {
-        // Username login - FIXED: Already correct
-        user = await SupabaseUserManager.getUserByUsername(formData.identifier.trim())
+        email = user.email
+      }
+      
+      console.log('🔐 Attempting login with email:', email)
+      
+      // Use Supabase Auth to sign in
+      const authResult = await SupabaseAuthManager.signInUser(email, formData.password)
+      
+      if (!authResult.success) {
+        if (authResult.error?.includes('Invalid login credentials')) {
+          setError('Invalid password. Please check your password or reset it.')
+        } else {
+          setError(authResult.error || 'Login failed. Please try again.')
+        }
+        return
       }
 
-      if (user) {
-        // Update last active time
-
-        // Store user info in sessionStorage
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('alpharise_user', JSON.stringify({
-            username: user.username,
-            email: user.email,
-            user_type: user.user_type,
-            coach: user.coach,
-            age: user.age,
-            coins: user.coins,
-            created_at: user.created_at,
-            level: user.level,
-            streak: user.streak,
-            confidence_score: user.confidence_score
-          }))
-        }
-
-        // Redirect to dashboard
-        router.push(`/dashboard?welcome=true&username=${encodeURIComponent(user.username)}`)
-      } else {
-        setError('User not found. Please check your username/email or create a new account.')
+      console.log('✅ Login successful!')
+      const user = authResult.user
+      
+      // Store user info in sessionStorage (for compatibility with existing code)
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('alpharise_user', JSON.stringify({
+          username: user.username,
+          email: user.email,
+          user_type: user.user_type,
+          coach: user.coach,
+          age: user.age,
+          coins: user.coins,
+          created_at: user.created_at,
+          level: user.level,
+          streak: user.streak,
+          confidence_score: user.confidence_score
+        }))
       }
-    } catch (error) {
+
+      // Redirect to dashboard
+      router.push('/dashboard')
+      
+    } catch (error: any) {
       console.error('Login error:', error)
-      setError('Login failed. Please try again.')
+      setError(error.message || 'Login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -158,7 +167,29 @@ export default function LoginPage() {
                   type={loginMethod === 'email' ? 'email' : 'text'}
                   placeholder={loginMethod === 'username' ? 'Enter your username' : 'Enter your email'}
                   value={formData.identifier}
-                  onChange={(e) => setFormData({ identifier: e.target.value })}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, identifier: e.target.value }))
+                    if (error) setError('') // Clear error when user types
+                  }}
+                  className="w-full p-4 bg-black/60 border border-purple-500/30 rounded-lg text-white placeholder-white/60 focus:border-magenta-500 focus:outline-none transition-colors duration-300"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm font-semibold text-transparent bg-gradient-to-r from-purple-400 to-magenta-400 bg-clip-text mb-2">
+                  Password
+                </label>
+                <input 
+                  type="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, password: e.target.value }))
+                    if (error) setError('') // Clear error when user types
+                  }}
                   className="w-full p-4 bg-black/60 border border-purple-500/30 rounded-lg text-white placeholder-white/60 focus:border-magenta-500 focus:outline-none transition-colors duration-300"
                   required
                   disabled={isLoading}
@@ -177,15 +208,58 @@ export default function LoginPage() {
               )}
 
               {/* Submit Button */}
+              {/* Forgot Password Link */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formData.identifier.trim()) {
+                      setError('Please enter your email address first')
+                      return
+                    }
+                    
+                    let email = formData.identifier.trim()
+                    
+                    // If identifier is username, look up email
+                    if (!email.includes('@')) {
+                      try {
+                        const user = await SupabaseUserManager.getUserByUsername(email)
+                        if (!user) {
+                          setError('Username not found. Please check your username.')
+                          return
+                        }
+                        email = user.email
+                      } catch (error) {
+                        setError('Error looking up account. Please try again.')
+                        return
+                      }
+                    }
+                    
+                    // Send password reset
+                    const resetResult = await SupabaseAuthManager.resetPassword(email)
+                    if (resetResult.success) {
+                      setError(`Password reset email sent to ${email}`)
+                    } else {
+                      setError(resetResult.error || 'Failed to send password reset email')
+                    }
+                  }}
+                  className="text-sm text-gray-400 hover:text-purple-400 transition-colors"
+                  disabled={isLoading}
+                >
+                  Forgot your password?
+                </button>
+              </div>
+
+              {/* Submit Button */}
               <motion.button 
                 type="submit"
-                disabled={isLoading || !formData.identifier.trim()}
+                disabled={isLoading || !formData.identifier.trim() || !formData.password.trim()}
                 className={`w-full p-4 rounded-lg font-bold text-xl transition-all duration-300 ease-out ${
-                  isLoading || !formData.identifier.trim()
+                  isLoading || !formData.identifier.trim() || !formData.password.trim()
                     ? 'bg-gray-600 cursor-not-allowed opacity-50' 
                     : 'bg-gradient-to-r from-purple-600 via-magenta-600 to-pink-600 hover:from-purple-700 hover:via-magenta-700 hover:to-pink-700'
                 }`}
-                whileHover={!isLoading && formData.identifier.trim() ? { 
+                whileHover={!isLoading && formData.identifier.trim() && formData.password.trim() ? { 
                   scale: 1.02
                 } : {}}
                 whileTap={{ scale: 0.98 }}
@@ -199,6 +273,7 @@ export default function LoginPage() {
                   "CONTINUE MY ALPHA JOURNEY"
                 )}
               </motion.button>
+
             </form>
 
             {/* Signup Link */}
