@@ -147,7 +147,7 @@ JSON format:
 
   private static buildQuestionUserPrompt(context: CommunityContext): string {
     // Topics naturale, în română, gen TikTok
-    const topicsByCategory = {
+    const topicsByCategory: Record<string, string[]> = {
       'confidence-building': [
         'cum să nu mai tremur când vorbesc în public',
         'de ce îmi e frică să mă înscriu la sală',
@@ -424,7 +424,7 @@ Be genuine and practical. Focus on actionable advice they can use.`
       }
 
       return {
-        recentQuestions: recentQuestions?.map(q => ({
+        recentQuestions: recentQuestions?.map((q: any) => ({
           title: q.title,
           body: q.body,
           author: q.author_id,

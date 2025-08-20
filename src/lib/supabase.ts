@@ -66,6 +66,11 @@ export interface DbQuestion {
   created_at: string
   updated_at: string
   last_activity: string
+  is_bot_generated?: boolean
+  moderation_status?: 'pending' | 'approved' | 'rejected'
+  moderated_by?: string
+  moderated_at?: string
+  moderation_notes?: string
 }
 
 export interface DbAnswer {
@@ -83,6 +88,11 @@ export interface DbAnswer {
   voted_by: string[]
   created_at: string
   updated_at: string
+  is_bot_generated?: boolean
+  moderation_status?: 'pending' | 'approved' | 'rejected'
+  moderated_by?: string
+  moderated_at?: string
+  moderation_notes?: string
 }
 
 export interface DbCoinTransaction {
