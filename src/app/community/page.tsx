@@ -77,6 +77,7 @@ function CommunityContent() {
   // Coin animation state
   const [showCoinAnimation, setShowCoinAnimation] = useState(false)
   const [coinAnimationAmount, setCoinAnimationAmount] = useState(0)
+  const [coinAnimationPosition, setCoinAnimationPosition] = useState({ x: 0, y: 0 })
   const [visibleAnswersCount, setVisibleAnswersCount] = useState<Record<string, number>>({})
   const INITIAL_ANSWERS_SHOW = 3
   const LOAD_MORE_INCREMENT = 5
@@ -208,43 +209,6 @@ function CommunityContent() {
     })
   }
 
-  // CLEAN: Filter out questions from non-existent users
-  const filterValidQuestions = async (questions: QuestionWithAnswers[]): Promise<QuestionWithAnswers[]> => {
-    const validQuestions: QuestionWithAnswers[] = []
-    
-    // Define known phantom users to filter out
-    const phantomUsers = ['BuildingMyself', 'StrugglingGuy_25', 'Anonymous', 'user_struggling', 'user_building', 'user_anon']
-    
-    for (const question of questions) {
-      try {
-        // First check against known phantom users (check both author_id and author_name)
-        if (phantomUsers.includes(question.author_id) || phantomUsers.includes(question.author_name)) {
-          console.log('🧹 Filtering out question from known phantom user:', question.author_id, question.author_name, question.title)
-          continue
-        }
-        
-        // Then check if user exists in Supabase
-        const userExists = await SupabaseUserManager.getUserByUsername(question.author_id)
-        if (userExists && userExists.username) {
-          validQuestions.push(question)
-        } else {
-          console.log('🧹 Filtering out question from non-existent user:', question.author_id, question.title)
-        }
-      } catch (error) {
-        console.error('❌ Error checking user existence:', question.author_id, error)
-        // For phantom users, don't keep them even on error
-        if (phantomUsers.includes(question.author_id) || phantomUsers.includes(question.author_name)) {
-          console.log('🧹 Filtering out phantom user on error:', question.author_id, question.author_name)
-          continue
-        }
-        // Keep real questions if we can't verify (to avoid losing data due to temporary errors)
-        validQuestions.push(question)
-      }
-    }
-    
-    console.log(`🧹 Filtered questions: ${questions.length} → ${validQuestions.length}`)
-    return validQuestions
-  }
 
   // Utility function to get fresh user coins from Supabase
   const refreshUserCoins = async (username: string) => {
@@ -262,9 +226,31 @@ function CommunityContent() {
   }
 
   // Trigger coin animation
-  const showCoinChangeAnimation = (amount: number) => {
+  const showCoinChangeAnimation = (amount: number, position: { x: number; y: number }) => {
     setCoinAnimationAmount(amount)
+    setCoinAnimationPosition(position)
     setShowCoinAnimation(true)
+  }
+
+  // Helper to get click position from event
+  const getClickPosition = (event: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
+    let clientX: number, clientY: number
+    
+    if ('touches' in event && event.touches.length > 0) {
+      // Touch event
+      clientX = event.touches[0].clientX
+      clientY = event.touches[0].clientY
+    } else if ('changedTouches' in event && event.changedTouches.length > 0) {
+      // Touch end event
+      clientX = event.changedTouches[0].clientX
+      clientY = event.changedTouches[0].clientY
+    } else {
+      // Mouse event
+      clientX = (event as MouseEvent).clientX
+      clientY = (event as MouseEvent).clientY
+    }
+    
+    return { x: clientX, y: clientY }
   }
 
   // Load user session and initialize data
@@ -395,9 +381,7 @@ function CommunityContent() {
         loadedQuestions = await supabaseHelpers.getQuestionsWithAnswers(filters)
       }
 
-      // CLEAN: Filter out questions from non-existent users
-      const validQuestions = await filterValidQuestions(loadedQuestions)
-      setQuestions(validQuestions)
+      setQuestions(loadedQuestions)
     } catch (error) {
       console.error('❌ Error loading questions:', error)
       setQuestions([])
@@ -422,7 +406,7 @@ function CommunityContent() {
   }
 
   // FIXED: Handle asking new question with proper coin sync
-  const handleAskQuestion = async () => {
+  const handleAskQuestion = async (event?: React.MouseEvent | React.TouchEvent) => {
     if (!user?.username || !newQuestionTitle.trim() || !newQuestionBody.trim()) {
       console.log('❌ Missing required data for question')
       return;
@@ -485,7 +469,8 @@ function CommunityContent() {
         setUser(prev => prev ? { ...prev, coins: newBalance } : null)
         
         // Show coin animation for cost
-        showCoinChangeAnimation(-questionCost)
+        const position = event ? getClickPosition(event) : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+        showCoinChangeAnimation(-questionCost, position)
         
         console.log('✅ Question created successfully:', newQuestion.id)
         console.log('💰 Coins deducted. New balance:', newBalance)
@@ -510,7 +495,7 @@ function CommunityContent() {
   };
 
   // FIXED: Handle answering question with proper coin sync
-  const handleAnswerQuestion = async () => {
+  const handleAnswerQuestion = async (event?: React.MouseEvent | React.TouchEvent) => {
     if (!user?.username || !selectedQuestion || !newAnswerContent.trim()) {
       console.log('❌ Missing required data for answer')
       return;
@@ -549,7 +534,8 @@ function CommunityContent() {
           setUser(prev => prev ? { ...prev, coins: newBalance } : null)
           
           // Show coin animation for reward
-          showCoinChangeAnimation(+1)
+          const position = event ? getClickPosition(event) : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+          showCoinChangeAnimation(+1, position)
           
           console.log('🪙 Answer posted reward: +1 coin')
           console.log('💰 Updated coins after answer:', newBalance)
@@ -670,6 +656,12 @@ function CommunityContent() {
         return
       }
 
+      // ANTI-FRAUD: Prevent self-voting
+      if (data.author_id === user.username) {
+        alert('You cannot vote on your own answer!')
+        return
+      }
+
       // Update votes
       const newVotes = (data.votes || 0) + 1
       const newVotedBy = [...votedBy, user.username]
@@ -771,6 +763,184 @@ function CommunityContent() {
     }
   }
 
+  // Delete answer with coin penalty
+  const handleDeleteAnswer = async (answerId: string) => {
+    if (!user?.username) return
+
+    try {
+      console.log('🗑️ Deleting answer:', answerId)
+
+      // Get answer details to check for coin penalties
+      const { data: answerData, error: fetchError } = await supabase
+        .from('answers')
+        .select('author_id, votes, coin_earnings, created_at')
+        .eq('id', answerId)
+        .single()
+
+      if (fetchError || !answerData) {
+        console.error('Error fetching answer data:', fetchError)
+        alert('Failed to delete answer. Please try again.')
+        return
+      }
+
+      // Verify ownership
+      if (answerData.author_id !== user.username) {
+        alert('You can only delete your own answers!')
+        return
+      }
+
+      // Calculate coin penalty
+      let coinPenalty = 0
+      
+      // If answer earned coins from votes or was rewarded, apply penalty
+      if (answerData.votes > 0) {
+        coinPenalty += answerData.votes // 1 coin per helpful vote
+      }
+      if (answerData.coin_earnings > 0) {
+        coinPenalty += answerData.coin_earnings
+      }
+      
+      // Show confirmation with penalty warning
+      const confirmMessage = coinPenalty > 0 
+        ? `Delete this answer? This will cost you ${coinPenalty} coins (earned from votes/rewards).`
+        : 'Delete this answer? This action cannot be undone.'
+      
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      // Check if user has enough coins to pay penalty
+      if (coinPenalty > 0 && (user.coins || 0) < coinPenalty) {
+        alert(`Insufficient coins! You need ${coinPenalty} coins to delete this answer.`)
+        return
+      }
+
+      // Delete the answer
+      const { error: deleteError } = await supabase
+        .from('answers')
+        .delete()
+        .eq('id', answerId)
+
+      if (deleteError) {
+        console.error('Error deleting answer:', deleteError)
+        alert('Failed to delete answer. Please try again.')
+        return
+      }
+
+      // Apply coin penalty if applicable
+      if (coinPenalty > 0) {
+        const newBalance = (user.coins || 0) - coinPenalty
+        await SupabaseUserManager.updateUserCoins(user.username, newBalance)
+        setUser(prev => prev ? { ...prev, coins: newBalance } : null)
+        
+        // Show coin animation for penalty at center (no click event for delete)
+        const position = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+        showCoinChangeAnimation(-coinPenalty, position)
+        
+        console.log(`💰 Applied coin penalty: -${coinPenalty}, new balance: ${newBalance}`)
+      }
+
+      // Update UI - remove answer from questions
+      setQuestions(prevQuestions => {
+        return prevQuestions.map(question => {
+          return {
+            ...question,
+            answers: question.answers.filter(answer => answer.id !== answerId)
+          }
+        })
+      })
+
+      console.log('✅ Answer deleted successfully')
+      
+    } catch (error) {
+      console.error('Error deleting answer:', error)
+      alert('Failed to delete answer. Please try again.')
+    }
+  }
+
+  // Delete question with time/condition restrictions
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (!user?.username) return
+
+    try {
+      console.log('🗑️ Deleting question:', questionId)
+
+      // Get question details
+      const { data: questionData, error: fetchError } = await supabase
+        .from('questions')
+        .select('author_id, created_at, coin_cost, answers!inner(count)')
+        .eq('id', questionId)
+        .single()
+
+      if (fetchError || !questionData) {
+        console.error('Error fetching question data:', fetchError)
+        alert('Failed to delete question. Please try again.')
+        return
+      }
+
+      // Verify ownership
+      if (questionData.author_id !== user.username) {
+        alert('You can only delete your own questions!')
+        return
+      }
+
+      // Check if question has answers
+      const { count: answerCount } = await supabase
+        .from('answers')
+        .select('id', { count: 'exact' })
+        .eq('question_id', questionId)
+
+      if (answerCount && answerCount > 0) {
+        alert(`Cannot delete question with ${answerCount} answers. This would disrupt the community conversation.`)
+        return
+      }
+
+      // Check time restriction (10 minutes grace period)
+      const createdAt = new Date(questionData.created_at)
+      const now = new Date()
+      const timeDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60) // minutes
+      const gracePeriod = 10
+
+      let confirmMessage = ''
+      if (timeDiff <= gracePeriod) {
+        confirmMessage = `Delete this question? You are within the ${gracePeriod}-minute grace period. Coins will NOT be refunded.`
+      } else {
+        confirmMessage = `Delete this question? Posted ${Math.round(timeDiff)} minutes ago. Coins will NOT be refunded.`
+      }
+
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      // Delete the question (coins are NEVER refunded)
+      const { error: deleteError } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId)
+
+      if (deleteError) {
+        console.error('Error deleting question:', deleteError)
+        alert('Failed to delete question. Please try again.')
+        return
+      }
+
+      // Update UI - remove question from list
+      setQuestions(prevQuestions => prevQuestions.filter(q => q.id !== questionId))
+
+      // Close modal if this question was selected
+      if (selectedQuestion?.id === questionId) {
+        setSelectedQuestion(null)
+        setShowAnswerModal(false)
+      }
+
+      console.log('✅ Question deleted successfully (no coin refund)')
+      
+    } catch (error) {
+      console.error('Error deleting question:', error)
+      alert('Failed to delete question. Please try again.')
+    }
+  }
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
@@ -819,17 +989,9 @@ function CommunityContent() {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             {/* FIXED: Display Supabase coins as primary, with fallback */}
-            <div className="relative flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold border border-purple-500/30">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold border border-purple-500/30">
               <Coins className="w-4 h-4" />
               <span>{user?.coins || 0}</span>
-              <CoinAnimation
-                show={showCoinAnimation}
-                amount={coinAnimationAmount}
-                onComplete={() => {
-                  setShowCoinAnimation(false)
-                  setCoinAnimationAmount(0)
-                }}
-              />
             </div>
             <div className="text-sm opacity-70 hidden lg:block">Hey {user?.username || 'User'}!</div>
           </div>
@@ -1022,13 +1184,24 @@ function CommunityContent() {
                           {/* Simple Answer Voting Component */}
                           {/* Supabase Voting System */}
                           <div className="flex items-center gap-4 mt-4">
-                            <button
-                              onClick={() => handleVoteAnswer(answer.id, 'helpful')}
-                              className="flex items-center gap-2 px-3 py-1 bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 rounded-lg transition-colors text-sm"
-                            >
-                              <ThumbsUp className="w-4 h-4" />
-                              <span>Helpful ({answer.votes || 0})</span>
-                            </button>
+                            {/* Show Helpful button only for answers by other users */}
+                            {answer.author_id !== user?.username && (
+                              <button
+                                onClick={() => handleVoteAnswer(answer.id, 'helpful')}
+                                className="flex items-center gap-2 px-3 py-1 bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 rounded-lg transition-colors text-sm"
+                              >
+                                <ThumbsUp className="w-4 h-4" />
+                                <span>Helpful ({answer.votes || 0})</span>
+                              </button>
+                            )}
+                            
+                            {/* Show vote count for own answers (without voting button) */}
+                            {answer.author_id === user?.username && answer.votes && answer.votes > 0 && (
+                              <div className="flex items-center gap-2 px-3 py-1 bg-gray-600/20 border border-gray-500/30 rounded-lg text-sm">
+                                <ThumbsUp className="w-4 h-4 text-gray-400" />
+                                <span>Helpful ({answer.votes})</span>
+                              </div>
+                            )}
                             
                             {selectedQuestion?.author_id === user?.username && (
                               <button
@@ -1040,6 +1213,17 @@ function CommunityContent() {
                                 }`}
                               >
                                 {answer.is_best_answer ? '✅ Best Answer' : 'Mark as Best'}
+                              </button>
+                            )}
+                            
+                            {/* Delete button for own answers */}
+                            {answer.author_id === user?.username && (
+                              <button
+                                onClick={() => handleDeleteAnswer(answer.id)}
+                                className="px-3 py-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg transition-colors text-sm text-red-300 hover:text-red-200"
+                                title={`Delete answer${answer.votes > 0 ? ` (costs ${answer.votes} coins)` : ''}`}
+                              >
+                                🗑️ Delete
                               </button>
                             )}
                           </div>
@@ -1088,19 +1272,30 @@ function CommunityContent() {
                         <div className="text-sm font-medium text-gray-300">Help others & earn coins</div>
                       </div>
                       
-                      {/* Simplified answer button */}
+                      {/* Own question actions */}
                       {question.author_id === user?.username ? (
-                        <button
-                          onClick={() => {
-                            setSelectedQuestion(question)
-                            setShowAnswerModal(true)
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors text-sm"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="hidden sm:inline">Add Clarification</span>
-                          <span className="sm:hidden">Clarify</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedQuestion(question)
+                              setShowAnswerModal(true)
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors text-sm"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            <span className="hidden sm:inline">Add Clarification</span>
+                            <span className="sm:hidden">Clarify</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDeleteQuestion(question.id)}
+                            className="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg transition-colors text-sm text-red-300 hover:text-red-200"
+                            title={`Delete question${question.answers.length > 0 ? ' (requires no answers)' : ''}`}
+                          >
+                            <span className="hidden sm:inline">🗑️ Delete</span>
+                            <span className="sm:hidden">🗑️</span>
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => {
@@ -1198,7 +1393,7 @@ function CommunityContent() {
                   Cancel
                 </button>
                 <button 
-                  onClick={handleAskQuestion}
+                  onClick={(e) => handleAskQuestion(e)}
                   disabled={
                     !newQuestionTitle.trim() || 
                     !newQuestionBody.trim() || 
@@ -1273,7 +1468,7 @@ function CommunityContent() {
                   Cancel
                 </button>
                 <button 
-                  onClick={handleAnswerQuestion}
+                  onClick={(e) => handleAnswerQuestion(e)}
                   disabled={!newAnswerContent.trim() || loading}
                   className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 rounded-lg font-semibold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
@@ -1293,6 +1488,17 @@ function CommunityContent() {
           </div>
         )}
       </AnimatePresence>
+      
+      {/* Floating Coin Animation */}
+      <CoinAnimation
+        show={showCoinAnimation}
+        amount={coinAnimationAmount}
+        position={coinAnimationPosition}
+        onComplete={() => {
+          setShowCoinAnimation(false)
+          setCoinAnimationAmount(0)
+        }}
+      />
     </div>
   )
 }

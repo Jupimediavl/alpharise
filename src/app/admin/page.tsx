@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import { 
   Shield, Users, BookOpen, Trophy, Target, DollarSign, 
   MessageSquare, Settings, Plus, Edit, Trash2, Eye,
-  BarChart3, TrendingUp, Calendar, Activity 
+  BarChart3, TrendingUp, Calendar, Activity, Bot as BotIcon,
+  Play, Pause, Zap, Clock, Brain, AlertTriangle 
 } from 'lucide-react'
 import RichTextEditor from '@/components/RichTextEditor'
 import { 
@@ -20,6 +21,15 @@ import {
   DbMilestone,
   DbPricingPlan 
 } from '@/lib/supabase'
+import { 
+  BotManager, 
+  PersonalityManager, 
+  ScheduleManager,
+  Bot, 
+  BotPersonality, 
+  BotActivity 
+} from '@/lib/bot-system'
+import { BotAutomation } from '@/lib/bot-automation'
 
 interface AdminStats {
   totalUsers: number
@@ -30,7 +40,7 @@ interface AdminStats {
   recentSignups: number
 }
 
-type AdminSection = 'overview' | 'users' | 'coaches' | 'learning' | 'milestones' | 'pricing' | 'analytics'
+type AdminSection = 'overview' | 'users' | 'coaches' | 'learning' | 'milestones' | 'pricing' | 'analytics' | 'bots'
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState<AdminSection>('overview')
@@ -50,6 +60,11 @@ export default function AdminPage() {
   const [exercises, setExercises] = useState<DbExercise[]>([])
   const [milestones, setMilestones] = useState<DbMilestone[]>([])
   const [pricingPlans, setPricingPlans] = useState<DbPricingPlan[]>([])
+  const [bots, setBots] = useState<Bot[]>([])
+  const [personalities, setPersonalities] = useState<BotPersonality[]>([])
+  const [botActivities, setBotActivities] = useState<BotActivity[]>([])
+  const [botAnalytics, setBotAnalytics] = useState<any>({})
+  const [automationRunning, setAutomationRunning] = useState(false)
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,6 +81,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeSection === 'learning') {
       loadLearningData()
+    }
+    if (activeSection === 'bots') {
+      loadBotData()
     }
   }, [activeSection])
 
@@ -137,6 +155,53 @@ export default function AdminPage() {
     }
   }
 
+  const loadBotData = async () => {
+    try {
+      // Try to load each component separately to handle missing tables gracefully
+      try {
+        const botsData = await BotManager.getAllBots()
+        setBots(botsData || [])
+      } catch (error) {
+        console.warn('Bot tables not yet deployed - this is expected on first setup')
+        setBots([])
+      }
+
+      try {
+        const personalitiesData = await PersonalityManager.getAllPersonalities()
+        setPersonalities(personalitiesData || [])
+      } catch (error) {
+        console.warn('Personality tables not yet deployed')
+        setPersonalities([])
+      }
+
+      try {
+        const analyticsData = await BotManager.getBotAnalytics()
+        setBotAnalytics(analyticsData || {})
+      } catch (error) {
+        console.warn('Analytics not available - tables may not be deployed yet')
+        setBotAnalytics({
+          totalBots: 0,
+          activeBots: 0,
+          totalQuestions: 0,
+          totalAnswers: 0,
+          totalInteractions: 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading bot data:', error)
+      // Set empty state if there's a general error
+      setBots([])
+      setPersonalities([])
+      setBotAnalytics({
+        totalBots: 0,
+        activeBots: 0,
+        totalQuestions: 0,
+        totalAnswers: 0,
+        totalInteractions: 0
+      })
+    }
+  }
+
   const navigationItems = [
     { id: 'overview' as AdminSection, label: 'Overview', icon: BarChart3, color: 'text-blue-600' },
     { id: 'users' as AdminSection, label: 'Users', icon: Users, color: 'text-green-600' },
@@ -145,6 +210,7 @@ export default function AdminPage() {
     { id: 'milestones' as AdminSection, label: 'Milestones', icon: Trophy, color: 'text-yellow-600' },
     { id: 'pricing' as AdminSection, label: 'Pricing', icon: DollarSign, color: 'text-red-600' },
     { id: 'analytics' as AdminSection, label: 'Analytics', icon: TrendingUp, color: 'text-indigo-600' },
+    { id: 'bots' as AdminSection, label: 'Bot Management', icon: BotIcon, color: 'text-emerald-600' },
   ]
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle }: {
@@ -978,6 +1044,793 @@ export default function AdminPage() {
     </div>
   )
 
+  const BotsSection = () => {
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [editingBot, setEditingBot] = useState<Bot | null>(null)
+    const [showBotDetails, setShowBotDetails] = useState<Bot | null>(null)
+    const [botFormData, setBotFormData] = useState<any>({})
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [selectedBot, setSelectedBot] = useState<string | null>(null)
+    const [customExpertise, setCustomExpertise] = useState('')
+
+    // Predefined expertise areas based on community categories + bot-specific
+    const predefinedExpertise = [
+      // Community categories
+      'confidence-building',
+      'sexual-performance', 
+      'dating-apps',
+      'relationships',
+      // Bot-specific extras
+      'social-anxiety',
+      'career-confidence',
+      'body-confidence',
+      'communication-skills',
+      'self-esteem',
+      'public-speaking',
+      'intimacy',
+      'mindset'
+    ]
+
+    const addExpertiseArea = (area: string) => {
+      if (!area.trim()) return
+      
+      const currentAreas = botFormData.expertise_areas || []
+      if (currentAreas.length >= 5) {
+        alert('Maximum 5 expertise areas allowed')
+        return
+      }
+      
+      if (currentAreas.includes(area)) {
+        alert('This expertise area is already added')
+        return
+      }
+      
+      setBotFormData({
+        ...botFormData,
+        expertise_areas: [...currentAreas, area]
+      })
+      setCustomExpertise('')
+    }
+
+    const removeExpertiseArea = (areaToRemove: string) => {
+      const currentAreas = botFormData.expertise_areas || []
+      setBotFormData({
+        ...botFormData,
+        expertise_areas: currentAreas.filter(area => area !== areaToRemove)
+      })
+    }
+
+    const handleCreateBot = () => {
+      const newBotData = {
+        name: '',
+        username: '',
+        type: 'mixed' as const,
+        personality: {},
+        personality_id: '',
+        status: 'active' as const,
+        activity_level: 5,
+        openai_model: 'gpt-3.5-turbo',
+        avatar_url: '',
+        bio: '',
+        expertise_areas: []
+      }
+      setBotFormData(newBotData)
+      setEditingBot(null)
+      setCustomExpertise('')
+      setShowCreateModal(true)
+    }
+
+    const handleEditBot = (bot: Bot) => {
+      const editData = { 
+        ...bot, 
+        personality_id: bot.personality?.id || '' 
+      }
+      setBotFormData(editData)
+      setEditingBot(bot)
+      setCustomExpertise('')
+      setShowCreateModal(true)
+    }
+
+    const handleSubmitBot = async () => {
+      setIsSubmitting(true)
+      try {
+        // Prepare bot data with personality reference
+        const botData = { ...botFormData }
+        
+        // Store personality ID in the personality field for easy access
+        if (botData.personality_id) {
+          botData.personality = { id: botData.personality_id }
+        }
+        
+        // Remove the temporary personality_id field
+        delete botData.personality_id
+        
+        if (editingBot) {
+          await BotManager.updateBot(editingBot.id, botData)
+        } else {
+          await BotManager.createBot(botData)
+        }
+        
+        setShowCreateModal(false)
+        setEditingBot(null)
+        setBotFormData({})
+        await loadBotData()
+      } catch (error) {
+        console.error('Error saving bot:', error)
+        alert(`Error ${editingBot ? 'updating' : 'creating'} bot: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      } finally {
+        setIsSubmitting(false)
+      }
+    }
+
+    const handleToggleBotStatus = async (bot: Bot) => {
+      try {
+        await BotManager.toggleBotStatus(bot.id)
+        await loadBotData()
+      } catch (error) {
+        console.error('Error toggling bot status:', error)
+        alert('Error updating bot status')
+      }
+    }
+
+    const handleDeleteBot = async (bot: Bot) => {
+      if (!confirm(`Are you sure you want to delete bot "${bot.name}"? This action cannot be undone.`)) return
+      
+      try {
+        await BotManager.deleteBot(bot.id)
+        await loadBotData()
+      } catch (error) {
+        console.error('Error deleting bot:', error)
+        alert('Error deleting bot')
+      }
+    }
+
+    const handleTriggerBotAction = async (botId: string, action: 'question' | 'answer' | 'vote') => {
+      try {
+        const result = await BotAutomation.triggerBotAction(botId, action)
+        if (result.success) {
+          alert(`Bot action "${action}" triggered successfully!`)
+          await loadBotData()
+        } else {
+          alert(`Failed to trigger bot action: ${result.error}`)
+        }
+      } catch (error) {
+        console.error('Error triggering bot action:', error)
+        alert('Error triggering bot action')
+      }
+    }
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'active': return 'bg-green-100 text-green-800'
+        case 'paused': return 'bg-yellow-100 text-yellow-800'
+        case 'archived': return 'bg-gray-100 text-gray-800'
+        default: return 'bg-gray-100 text-gray-800'
+      }
+    }
+
+    const getTypeColor = (type: string) => {
+      switch (type) {
+        case 'questioner': return 'bg-blue-100 text-blue-800'
+        case 'answerer': return 'bg-green-100 text-green-800'
+        case 'mixed': return 'bg-purple-100 text-purple-800'
+        default: return 'bg-gray-100 text-gray-800'
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Setup Notice */}
+        {bots.length === 0 && personalities.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-amber-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-amber-900">Bot System Setup Required</h3>
+                <p className="text-amber-800 mt-1">
+                  The bot management tables haven't been deployed yet. Please run the SQL schema from <code>supabase_bot_system.sql</code> in your Supabase SQL editor to enable bot management.
+                </p>
+                <p className="text-amber-700 text-sm mt-2">
+                  📖 See <code>BOT_SYSTEM_DEPLOYMENT_GUIDE.md</code> for complete setup instructions.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bot Analytics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatCard 
+            title="Total Bots" 
+            value={botAnalytics.totalBots || 0} 
+            icon={BotIcon} 
+            color="text-emerald-600"
+            subtitle={`${botAnalytics.activeBots || 0} active`}
+          />
+          <StatCard 
+            title="Questions Posted" 
+            value={botAnalytics.totalQuestions || 0} 
+            icon={MessageSquare} 
+            color="text-blue-600" 
+          />
+          <StatCard 
+            title="Answers Posted" 
+            value={botAnalytics.totalAnswers || 0} 
+            icon={MessageSquare} 
+            color="text-green-600" 
+          />
+          <StatCard 
+            title="Interactions" 
+            value={botAnalytics.totalInteractions || 0} 
+            icon={Activity} 
+            color="text-purple-600"
+            subtitle="Votes & reactions"
+          />
+        </div>
+
+        {/* Automation Control */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="h-6 w-6 text-orange-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Bot Automation Engine</h3>
+                <p className="text-sm text-gray-600">Control automated bot behaviors and scheduling</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                automationRunning ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {automationRunning ? 'Running' : 'Stopped'}
+              </span>
+              <button
+                onClick={() => {
+                  if (automationRunning) {
+                    BotAutomation.stop()
+                    setAutomationRunning(false)
+                  } else {
+                    BotAutomation.start(5) // 5 minute intervals
+                    setAutomationRunning(true)
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  automationRunning 
+                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {automationRunning ? 'Stop' : 'Start'} Automation
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bot Management */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Bot Management</h3>
+            <button 
+              onClick={handleCreateBot}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Create Bot
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Bot</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Type</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Status</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Activity</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Stats</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bots.map((bot) => (
+                  <tr key={bot.id} className="border-b border-gray-50 hover:bg-gray-25">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-blue-500 flex items-center justify-center">
+                          <span className="text-white font-medium text-xs">
+                            {bot.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{bot.name}</p>
+                          <p className="text-sm text-gray-500">@{bot.username}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(bot.type)}`}>
+                        {bot.type}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bot.status)}`}>
+                        {bot.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900">Level {bot.activity_level}/10</div>
+                        <div className="text-xs text-gray-500">
+                          {bot.stats.last_active ? 
+                            `Last: ${new Date(bot.stats.last_active).toLocaleDateString()}` : 
+                            'Never active'
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm">
+                        <div className="text-gray-900">{bot.stats.questions_posted}Q / {bot.stats.answers_posted}A</div>
+                        <div className="text-xs text-gray-500">{bot.stats.helpful_votes_received} helpful votes</div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleBotStatus(bot)}
+                          className={`p-1 rounded hover:bg-gray-100 ${
+                            bot.status === 'active' ? 'text-red-600' : 'text-green-600'
+                          }`}
+                          title={bot.status === 'active' ? 'Pause Bot' : 'Activate Bot'}
+                        >
+                          {bot.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => setShowBotDetails(bot)}
+                          className="p-1 rounded hover:bg-gray-100 text-blue-600"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditBot(bot)}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                          title="Edit Bot"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBot(bot)}
+                          className="p-1 rounded hover:bg-gray-100 text-red-600"
+                          title="Delete Bot"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Personalities */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Bot Personalities</h3>
+            <p className="text-sm text-gray-600 mt-1">Predefined personality templates for bot behavior</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {personalities.map((personality) => (
+                <div key={personality.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900">{personality.name}</h4>
+                    <Brain className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">{personality.description}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Traits:</span>
+                    {Object.entries(personality.traits || {}).slice(0, 3).map(([key, value]) => (
+                      <span key={key} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                        {key}: {value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Create/Edit Bot Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div 
+              className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {editingBot ? 'Edit Bot' : 'Create New Bot'}
+                </h3>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={botFormData.name || ''}
+                      onChange={(e) => setBotFormData({ ...botFormData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="Bot display name..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input
+                      type="text"
+                      value={botFormData.username || ''}
+                      onChange={(e) => setBotFormData({ ...botFormData, username: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="@username for community..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                      value={botFormData.type || 'mixed'}
+                      onChange={(e) => setBotFormData({ ...botFormData, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    >
+                      <option value="questioner">Questioner (Pune doar întrebări)</option>
+                      <option value="answerer">Answerer (Răspunde doar la întrebări)</option>
+                      <option value="mixed">Mixed (Întrebări + Răspunsuri)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Activity Level (1-10)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={botFormData.activity_level || 5}
+                      onChange={(e) => setBotFormData({ ...botFormData, activity_level: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Personality</label>
+                  <select
+                    value={botFormData.personality_id || ''}
+                    onChange={(e) => setBotFormData({ ...botFormData, personality_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                  >
+                    <option value="">Select personality...</option>
+                    {personalities.map((personality) => (
+                      <option key={personality.id} value={personality.id}>
+                        {personality.name} - {personality.description}
+                      </option>
+                    ))}
+                  </select>
+                  {botFormData.personality_id && (
+                    <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      {(() => {
+                        const selectedPersonality = personalities.find(p => p.id === botFormData.personality_id)
+                        if (!selectedPersonality) return null
+                        return (
+                          <div>
+                            <p className="text-sm text-purple-800 font-medium">{selectedPersonality.name}</p>
+                            <p className="text-xs text-purple-700 mt-1">{selectedPersonality.description}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {Object.entries(selectedPersonality.traits || {}).slice(0, 3).map(([key, value]) => (
+                                <span key={key} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                                  {key}: {value}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                  <textarea
+                    value={botFormData.bio || ''}
+                    onChange={(e) => setBotFormData({ ...botFormData, bio: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    placeholder="Bot biography and personality description..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expertise Areas (max 5)
+                  </label>
+                  
+                  {/* Custom Input */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={customExpertise}
+                      onChange={(e) => setCustomExpertise(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addExpertiseArea(customExpertise.trim())
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="Type custom expertise area..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addExpertiseArea(customExpertise.trim())}
+                      disabled={!customExpertise.trim() || (botFormData.expertise_areas?.length || 0) >= 5}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {/* Quick Tags */}
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-600 mb-2">Quick select:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {predefinedExpertise.map((area) => (
+                        <button
+                          key={area}
+                          type="button"
+                          onClick={() => addExpertiseArea(area)}
+                          disabled={(botFormData.expertise_areas?.length || 0) >= 5 || 
+                                   (botFormData.expertise_areas || []).includes(area)}
+                          className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                            (botFormData.expertise_areas || []).includes(area)
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed'
+                              : (botFormData.expertise_areas?.length || 0) >= 5
+                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer'
+                          }`}
+                        >
+                          {area}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Selected Areas */}
+                  {(botFormData.expertise_areas?.length || 0) > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-600 mb-2">Selected ({botFormData.expertise_areas?.length || 0}/5):</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(botFormData.expertise_areas || []).map((area, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-800 text-sm rounded-full"
+                          >
+                            {area}
+                            <button
+                              type="button"
+                              onClick={() => removeExpertiseArea(area)}
+                              className="text-emerald-600 hover:text-emerald-800 ml-1"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">OpenAI Model</label>
+                    <select
+                      value={botFormData.openai_model || 'gpt-3.5-turbo'}
+                      onChange={(e) => setBotFormData({ ...botFormData, openai_model: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    >
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={botFormData.status || 'active'}
+                      onChange={(e) => setBotFormData({ ...botFormData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    >
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitBot}
+                  disabled={isSubmitting || !botFormData.name || !botFormData.username}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isSubmitting || !botFormData.name || !botFormData.username
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  {isSubmitting ? 'Saving...' : editingBot ? 'Update Bot' : 'Create Bot'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Bot Details Modal */}
+        {showBotDetails && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div 
+              className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{showBotDetails.name}</h3>
+                    <p className="text-gray-600">@{showBotDetails.username}</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowBotDetails(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Bot Information</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Type:</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(showBotDetails.type)}`}>
+                          {showBotDetails.type}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(showBotDetails.status)}`}>
+                          {showBotDetails.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Activity Level:</span>
+                        <span className="font-medium">{showBotDetails.activity_level}/10</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Model:</span>
+                        <span className="font-medium">{showBotDetails.openai_model}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Performance Stats</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Questions Posted:</span>
+                        <span className="font-medium text-blue-600">{showBotDetails.stats.questions_posted}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Answers Posted:</span>
+                        <span className="font-medium text-green-600">{showBotDetails.stats.answers_posted}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Helpful Votes:</span>
+                        <span className="font-medium text-purple-600">{showBotDetails.stats.helpful_votes_received}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Coins Earned:</span>
+                        <span className="font-medium text-yellow-600">{showBotDetails.stats.coins_earned}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Bio</h4>
+                  <p className="text-gray-700 bg-gray-50 p-3 rounded">{showBotDetails.bio || 'No bio provided'}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Expertise Areas</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {showBotDetails.expertise_areas.length > 0 ? (
+                      showBotDetails.expertise_areas.map((area, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                          {area}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-500 italic">No expertise areas defined</span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Manual Actions</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleTriggerBotAction(showBotDetails.id, 'question')}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    >
+                      Trigger Question
+                    </button>
+                    <button
+                      onClick={() => handleTriggerBotAction(showBotDetails.id, 'answer')}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      Trigger Answer
+                    </button>
+                    <button
+                      onClick={() => handleTriggerBotAction(showBotDetails.id, 'vote')}
+                      className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                    >
+                      Trigger Vote
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowBotDetails(null)
+                    handleEditBot(showBotDetails)
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Edit Bot
+                </button>
+                <button
+                  onClick={() => setShowBotDetails(null)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'overview':
@@ -1002,6 +1855,8 @@ export default function AdminPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Dashboard</h3>
           <p className="text-gray-600">Advanced analytics and reporting coming soon...</p>
         </div>
+      case 'bots':
+        return <BotsSection />
       default:
         return <OverviewSection />
     }
