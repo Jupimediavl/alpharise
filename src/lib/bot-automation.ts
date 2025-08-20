@@ -1,6 +1,7 @@
 // Bot Automation Engine - Orchestrates bot behaviors
 import { BotManager, Bot, PersonalityManager, ScheduleManager } from './bot-system'
 import { BotIntelligence } from './bot-intelligence'
+import { BotUserInteractionSystem } from './bot-user-interactions'
 import { 
   SupabaseQuestionManager, 
   SupabaseAnswerManager, 
@@ -110,6 +111,10 @@ export class BotAutomation {
       // Log cycle results
       const successful = results.filter(r => r.success).length
       console.log(`✅ Automation cycle complete: ${successful}/${results.length} actions successful`)
+
+      // Process user interactions (bot follow-ups)
+      console.log('🔄 Checking for user interactions with bot content...')
+      await BotUserInteractionSystem.processUserInteractions()
 
       // Trigger cross-bot interactions
       await this.triggerBotInteractions(activeBots)

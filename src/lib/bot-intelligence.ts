@@ -121,25 +121,29 @@ export class BotIntelligence {
       ? `Recent community discussions include: ${context.trendingTopics.join(', ')}.`
       : ''
 
-    return `You are ${bot.name}, a regular guy with confidence issues seeking help. ${expertiseContext}
+    return `You are ${bot.name}, a regular guy from the US with confidence issues seeking help. ${expertiseContext}
 
 ${communityContext}
 
+IMPORTANT: You MUST write ONLY in ENGLISH. Never use any other language.
+
 Write in English, very naturally like on TikTok or Reddit - casual, direct, authentic.
 
-Generate a short and authentic question about confidence and self-improvement. Avoid repeating: ${context.recentQuestions.map(q => q.title).join(', ')}
+Generate a short and authentic question about confidence and self-improvement. 
+
+CRITICAL: Your response must be 100% in English. Do not use any Romanian or other languages.
 
 STYLE:
-- Natural language, relaxed, conversational
-- Title VERY short (max 6-8 words)
+- Natural English language, relaxed, conversational
+- Title VERY short (max 6-8 words) - IN ENGLISH ONLY
 - Concrete, real question like talking to a friend
 - No long or complicated sentences
 - Examples: "help", "how to", "why do I", "what to do when"
 
-JSON format:
+JSON format (ENGLISH ONLY):
 {
-  "title": "Short, natural title (max 50 chars)",
-  "body": "Brief details, 1-2 sentences max, very casual",
+  "title": "Short, natural English title (max 50 chars)",
+  "body": "Brief English details, 1-2 sentences max, very casual",
   "type": "regular",
   "category": "confidence-building, relationships, dating-apps, sexual-performance"
 }`
@@ -223,12 +227,14 @@ Create a question that will generate helpful responses from the community.`
       ? `Your areas of expertise include: ${bot.expertise_areas.join(', ')}.`
       : ''
 
-    return `You are ${bot.name}, a cool community member who helps others. ${expertiseContext}
+    return `You are ${bot.name}, a cool American community member who helps others. ${expertiseContext}
+
+CRITICAL: You MUST write ONLY in ENGLISH. Never use Romanian or any other language.
 
 Write in English, very naturally like on TikTok/Reddit - relaxed, friendly, no formalities.
 
 RESPONSE STYLE:
-- Natural language, very casual
+- Natural English language ONLY, very casual
 - Short and to the point (max 2-3 sentences)
 - No formal language
 - Like you're answering a friend on WhatsApp
@@ -236,9 +242,11 @@ RESPONSE STYLE:
 - Concrete examples, not generic advice
 - Positive and motivational tone
 
-JSON format:
+IMPORTANT: Your entire response must be in English only.
+
+JSON format (ENGLISH ONLY):
 {
-  "content": "Short, natural, friendly response (max 2-3 sentences)",
+  "content": "Short, natural, friendly English response (max 2-3 sentences)",
   "tone": "helpful"
 }`
   }
@@ -251,12 +259,16 @@ JSON format:
 
 Details: ${question.body}
 
-Provide a helpful, supportive answer based on your personality and expertise. 
-Be genuine and practical. Focus on actionable advice they can use.`
+CRITICAL: You MUST respond ONLY in ENGLISH. Never use Romanian or any other language.
+
+Provide a helpful, supportive answer in English based on your personality and expertise. 
+Be genuine and practical. Focus on actionable advice they can use.
+
+Your entire response must be in English only - no exceptions.`
   }
 
   // Call OpenAI API
-  private static async callOpenAI(
+  static async callOpenAI(
     systemPrompt: string, 
     userPrompt: string, 
     model: string = 'gpt-3.5-turbo'
