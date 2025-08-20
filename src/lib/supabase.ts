@@ -8,6 +8,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVICE_KEY'
 
+// Environment variables configured
+
 // Config validated
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -2032,25 +2034,27 @@ export class SupabaseLearningManager {
     order_index: number
   }): Promise<DbProblem | null> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('problems')
-        .insert([{
-          ...problemData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single()
+      console.log('Attempting to create problem via API:', problemData)
+      
+      const response = await fetch('/api/admin/problems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(problemData)
+      })
 
-      if (error) {
-        console.error('Error creating problem:', error)
-        return null
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
+      const data = await response.json()
+      console.log('Successfully created problem via API:', data)
       return data
     } catch (error) {
       console.error('Error in createProblem:', error)
-      return null
+      throw error
     }
   }
 
@@ -2088,28 +2092,31 @@ export class SupabaseLearningManager {
     }
   }
 
-  // Update problem (for admin)
+  // Update problem (for admin) - via API route
   static async updateProblem(problemId: string, updates: Partial<DbProblem>): Promise<DbProblem | null> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('problems')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', problemId)
-        .select()
-        .single()
+      console.log('Attempting to update problem via API with ID:', problemId)
+      console.log('Update data:', updates)
 
-      if (error) {
-        console.error('Error updating problem:', error)
-        return null
+      const response = await fetch(`/api/admin/problems/${problemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
+      const data = await response.json()
+      console.log('Successfully updated problem via API:', data)
       return data
     } catch (error) {
       console.error('Error in updateProblem:', error)
-      return null
+      throw error
     }
   }
 
@@ -2140,23 +2147,26 @@ export class SupabaseLearningManager {
     }
   }
 
-  // Delete problem (for admin)
+  // Delete problem (for admin) - via API route
   static async deleteProblem(problemId: string): Promise<boolean> {
     try {
-      const { error } = await supabaseAdmin
-        .from('problems')
-        .delete()
-        .eq('id', problemId)
+      console.log('Attempting to delete problem via API with ID:', problemId)
+      
+      const response = await fetch(`/api/admin/problems/${problemId}`, {
+        method: 'DELETE',
+      })
 
-      if (error) {
-        console.error('Error deleting problem:', error)
-        return false
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
+      const data = await response.json()
+      console.log('Successfully deleted problem via API:', data)
       return true
     } catch (error) {
       console.error('Error in deleteProblem:', error)
-      return false
+      throw error
     }
   }
 

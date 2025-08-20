@@ -316,6 +316,7 @@ function DashboardContent() {
   const [currentCoach, setCurrentCoach] = useState<DbCoach | null>(null)
   const [currentTime, setCurrentTime] = useState('')
   const [userCoinStats, setUserCoinStats] = useState<any>(null)
+  const [coinData, setCoinData] = useState<any>(null)
   const [userAge, setUserAge] = useState<number>(25) // Default age
   const [problemsData, setProblemsData] = useState<any>(null)
   const [milestones, setMilestones] = useState<any[]>([])
@@ -412,6 +413,29 @@ function DashboardContent() {
     }
   }
 
+  // Load coin data function
+  const loadCoinData = async (username: string) => {
+    try {
+      // Validate username to prevent URL issues
+      if (!username || typeof username !== 'string' || username.trim() === '') {
+        console.warn('Invalid username for loadCoinData:', username)
+        return
+      }
+      
+      const cleanUsername = encodeURIComponent(username.trim())
+      const response = await fetch(`/api/coins/user/${cleanUsername}`)
+      const result = await response.json()
+      
+      if (result.success) {
+        setCoinData(result.coinData)
+      } else {
+        console.error('Failed to load coin data:', result.error)
+      }
+    } catch (error) {
+      console.error('Error loading coin data:', error)
+    }
+  }
+
   // Load user data and coin stats
   useEffect(() => {
     const loadUserData = async () => {
@@ -432,6 +456,9 @@ function DashboardContent() {
         }
 
         setUser(userData)
+        
+        // Load coin data for this user
+        await loadCoinData(username)
 
         // Load coaches from database
         const allCoaches = await supabaseHelpers.getAllCoaches()
@@ -1018,87 +1045,107 @@ function DashboardContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <h2 className="text-xl font-bold mb-4 text-white">Quick Actions</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* AI Coach Button */}
-            <button
-              onClick={() => (document.querySelector('input[placeholder*="What\'s on your mind"]') as HTMLInputElement)?.focus()}
-              className="group bg-gradient-to-br from-purple-600/15 to-purple-800/20 border border-purple-500/25 hover:border-purple-400/40 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-purple-500/15 rounded-full flex items-center justify-center">
-                  <span className="text-xl">🤖</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">Ask AI Coach</h3>
-                  <p className="text-xs text-gray-400">Get instant advice</p>
-                </div>
-              </div>
-            </button>
-
-            {/* Community Button */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Community Card - Enhanced */}
             <button
               onClick={goToCommunity}
-              className="group bg-gradient-to-br from-purple-600/10 to-purple-800/15 border border-purple-500/20 hover:border-purple-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
+              className="group relative bg-gradient-to-br from-blue-500/20 to-purple-600/25 border border-blue-400/30 hover:border-blue-300/50 rounded-xl p-6 transition-all hover:scale-[1.02] text-left overflow-hidden"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-purple-500/15 rounded-full flex items-center justify-center">
-                  <span className="text-xl">💬</span>
+              {/* Sparkle Effects */}
+              <div className="absolute top-2 right-2 text-blue-300 animate-pulse">🌟</div>
+              <div className="absolute bottom-2 left-2 text-purple-400 animate-pulse delay-500">💬</div>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full flex items-center justify-center border border-blue-400/30">
+                  <span className="text-3xl">🤝</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">Join Community</h3>
-                  <p className="text-xs text-gray-400">Connect & learn</p>
+                  <h3 className="text-xl font-bold text-white">Join Community</h3>
+                  <p className="text-sm text-blue-200/80">🔥 Connect with fellow Alphas</p>
                 </div>
+              </div>
+
+              {/* Stats Section */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-blue-300 mb-1">1,247</div>
+                  <div className="text-xs text-blue-200/70 uppercase tracking-wide">Active Members</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-purple-300 mb-1">24/7</div>
+                  <div className="text-xs text-purple-200/70 uppercase tracking-wide">Support Available</div>
+                </div>
+              </div>
+
+              {/* Motivational Section */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/20 rounded-lg p-4 mb-4">
+                <div className="text-center">
+                  <div className="text-blue-300 font-semibold text-sm mb-1">💪 Level Up Together!</div>
+                  <div className="text-blue-200/80 text-xs">
+                    Share experiences, get support, earn coins
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-blue-300 font-semibold text-sm">
+                  🚀 Join the conversation
+                </span>
+                <span className="text-white/70 group-hover:translate-x-1 transition-transform">→</span>
               </div>
             </button>
 
-            {/* Progress Button */}
-            <button
-              onClick={() => router.push('/analytics')}
-              className="group bg-gradient-to-br from-green-600/10 to-green-800/15 border border-green-500/20 hover:border-green-400/35 rounded-xl p-4 transition-all hover:scale-[1.02] text-left"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-green-500/15 rounded-full flex items-center justify-center">
-                  <span className="text-xl">📊</span>
+            {/* Coins Card - Enhanced */}
+            <div className="relative bg-gradient-to-br from-yellow-500/20 to-orange-600/25 border border-yellow-400/30 rounded-xl p-6 overflow-hidden">
+              {/* Sparkle Effects */}
+              <div className="absolute top-2 right-2 text-yellow-300 animate-pulse">✨</div>
+              <div className="absolute bottom-2 left-2 text-yellow-400 animate-pulse delay-700">💫</div>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-full flex items-center justify-center border border-yellow-400/30">
+                  <span className="text-3xl">🪙</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">View Progress</h3>
-                  <p className="text-xs text-gray-400">Track your growth</p>
+                  <h3 className="text-xl font-bold text-white">Your Coins</h3>
+                  <p className="text-sm text-yellow-200/80">💎 Premium rewards earned</p>
                 </div>
               </div>
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Quick Stats */}
-        <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <h2 className="text-lg font-bold mb-3 text-white">Your Progress</h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-yellow-300">{userCoinStats?.profile?.currentBalance || user?.coins || 0}</div>
-              <div className="text-xs text-gray-400">Coins</div>
-            </div>
-            
-            <div className="bg-blue-500/10 border border-blue-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{userCoinStats?.profile?.streak || 1}</div>
-              <div className="text-xs text-gray-400">Day Streak</div>
-            </div>
-            
-            <div className="bg-green-500/10 border border-green-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{1}</div>
-              <div className="text-xs text-gray-400">Level</div>
-            </div>
-            
-            <div className="bg-purple-500/10 border border-purple-500/25 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">{userCoinStats?.community?.answersGiven || 0}</div>
-              <div className="text-xs text-gray-400">Contributions</div>
+              
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="text-center">
+                  <div className="text-3xl font-black text-yellow-300 mb-1">
+                    {coinData?.totalCoins || user?.coins || 0}
+                  </div>
+                  <div className="text-xs text-yellow-200/70 uppercase tracking-wide">Total Coins</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-black text-green-400 mb-1">
+                    ${coinData?.dollarValue || ((user?.coins || 0) / 100).toFixed(2)}
+                  </div>
+                  <div className="text-sm text-green-300 font-semibold uppercase tracking-wide">
+                    💳 Discount Value
+                  </div>
+                  <div className="text-xs text-green-200/80 mt-1">
+                    Save on your subscription!
+                  </div>
+                </div>
+              </div>
+              
+              {/* Motivational Section */}
+              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-400/20 rounded-lg p-4 mb-4">
+                <div className="text-center">
+                  <div className="text-yellow-300 font-semibold text-sm mb-1">🎯 Keep Growing!</div>
+                  <div className="text-yellow-200/80 text-xs">
+                    Every coin brings you closer to premium benefits
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center">
+                <span className="text-white/70 bg-gradient-to-r from-yellow-500/15 to-orange-500/15 border border-yellow-400/20 px-4 py-2 rounded-full text-xs font-medium">
+                  🏆 {coinData?.coinSettings?.coins_per_dollar || 100} coins = $1 discount
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>

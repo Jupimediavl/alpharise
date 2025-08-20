@@ -172,10 +172,30 @@ export default function AdminPage() {
     </motion.div>
   )
 
-  const OverviewSection = () => (
-    <div className="space-y-8">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+  const OverviewSection = () => {
+    // Calculate stats
+    const stats = {
+      totalUsers: users.length,
+      totalCoaches: coaches.length, 
+      totalProblems: problems.length,
+      totalExercises: exercises.length,
+      totalMilestones: milestones.length,
+      recentSignups: users.filter(u => {
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        return new Date(u.created_at) > weekAgo
+      }).length
+    }
+    
+    // Calculate maximum points a user can earn
+    const maxExercisePoints = exercises.reduce((total, exercise) => total + exercise.points_reward, 0)
+    const maxAssessmentPoints = 40 // Maximum points from assessment
+    const maxTotalPoints = maxExercisePoints + maxAssessmentPoints
+    
+    return (
+      <div className="space-y-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard 
           title="Total Users" 
           value={stats.totalUsers} 
@@ -201,6 +221,13 @@ export default function AdminPage() {
           value={stats.totalMilestones} 
           icon={Trophy} 
           color="text-yellow-600" 
+        />
+        <StatCard 
+          title="Max Points" 
+          value={maxTotalPoints} 
+          icon={Target} 
+          color="text-emerald-600"
+          subtitle={`${maxExercisePoints} exercises + ${maxAssessmentPoints} assessment`}
         />
       </div>
 
@@ -239,6 +266,7 @@ export default function AdminPage() {
       </div>
     </div>
   )
+  }
 
   const UsersSection = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -405,6 +433,7 @@ export default function AdminPage() {
     }
 
     const handleEdit = (item: any) => {
+      console.log('handleEdit called with item:', item.title)
       setFormData({ ...item })
       setEditingItem(item)
       setShowCreateModal(true)
@@ -413,40 +442,41 @@ export default function AdminPage() {
     const handleSubmit = async () => {
       setIsSubmitting(true)
       try {
-        let success = false
+        console.log('handleSubmit called with activeTab:', activeTab)
+        console.log('editingItem:', editingItem)
+        console.log('formData:', formData)
         
         if (activeTab === 'problems') {
           if (editingItem) {
-            const result = await SupabaseLearningManager.updateProblem(editingItem.id, formData)
-            success = !!result
+            console.log('Updating problem...')
+            await SupabaseLearningManager.updateProblem(editingItem.id, formData)
           } else {
-            const result = await SupabaseLearningManager.createProblem(formData)
-            success = !!result
+            console.log('Creating problem...')
+            await SupabaseLearningManager.createProblem(formData)
           }
         } else {
           if (editingItem) {
-            console.log('Editing exercise:', editingItem.id, 'with formData:', formData)
-            const result = await SupabaseLearningManager.updateExercise(editingItem.id, formData)
-            success = !!result
+            console.log('Updating exercise...')
+            await SupabaseLearningManager.updateExercise(editingItem.id, formData)
           } else {
-            const result = await SupabaseLearningManager.createExercise(formData)
-            success = !!result
+            console.log('Creating exercise...')
+            await SupabaseLearningManager.createExercise(formData)
           }
         }
 
-        if (success) {
-          setShowCreateModal(false)
-          setEditingItem(null)
-          setFormData({})
-          // Reload data
-          await loadLearningData()
-          await loadAllData() // Update stats
-        } else {
-          console.error('Failed to save - no result returned')
-        }
+        // Success - close modal and reload data
+        setShowCreateModal(false)
+        setEditingItem(null)
+        setFormData({})
+        
+        console.log('Operation successful, reloading data...')
+        await loadLearningData()
+        await loadAllData()
+        
       } catch (error) {
         console.error('Error saving:', error)
-        alert('Error updating exercise: ' + (error as Error).message)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        alert(`Error ${editingItem ? 'updating' : 'creating'} ${activeTab.slice(0, -1)}: ${errorMessage}`)
       } finally {
         setIsSubmitting(false)
       }
@@ -456,19 +486,20 @@ export default function AdminPage() {
       if (!confirm(`Are you sure you want to delete this ${activeTab.slice(0, -1)}?`)) return
       
       try {
-        let success = false
         if (activeTab === 'problems') {
-          success = await SupabaseLearningManager.deleteProblem(item.id)
+          await SupabaseLearningManager.deleteProblem(item.id)
         } else {
-          success = await SupabaseLearningManager.deleteExercise(item.id)
+          await SupabaseLearningManager.deleteExercise(item.id)
         }
 
-        if (success) {
-          await loadLearningData()
-          await loadAllData()
-        }
+        // Reload data after successful deletion
+        await loadLearningData()
+        await loadAllData()
+        
+        console.log(`Successfully deleted ${activeTab.slice(0, -1)}:`, item.id)
       } catch (error) {
         console.error('Error deleting:', error)
+        alert(`Error deleting ${activeTab.slice(0, -1)}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
 

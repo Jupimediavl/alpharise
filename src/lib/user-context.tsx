@@ -214,19 +214,35 @@ export function AlphaRiseProvider({ children }: { children: React.ReactNode }) {
     goToDashboard: () => {
       console.log('🏠 Navigating to dashboard')
       if (typeof window !== 'undefined') {
-        window.location.href = '/dashboard'
+        const username = user?.username || user?.id || user?.userName
+        if (username && typeof username === 'string') {
+          const cleanUsername = encodeURIComponent(username.trim())
+          window.location.href = `/dashboard?username=${cleanUsername}`
+        } else {
+          window.location.href = '/dashboard'
+        }
       }
     },
     goToCommunity: () => {
       console.log('💬 Navigating to community')
       if (typeof window !== 'undefined') {
-        window.location.href = '/community'
+        const username = user?.username || user?.id || user?.userName
+        if (username) {
+          window.location.href = `/community?username=${username}`
+        } else {
+          window.location.href = '/community'
+        }
       }
     },
     goToProfile: () => {
       console.log('👤 Navigating to profile')
       if (typeof window !== 'undefined') {
-        window.location.href = '/profile'
+        const username = user?.username || user?.id || user?.userName
+        if (username) {
+          window.location.href = `/profile?username=${username}`
+        } else {
+          window.location.href = '/profile'
+        }
       }
     }
   }

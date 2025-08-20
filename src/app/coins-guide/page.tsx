@@ -1,297 +1,402 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Coins, TrendingUp, Gift, Award, Calendar, Users, MessageCircle, Star, Zap, ShoppingCart, Shield, Target, ArrowRight, CheckCircle, XCircle, Info } from 'lucide-react'
-import Link from 'next/link'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { 
+  Coins, 
+  TrendingUp, 
+  MessageCircle, 
+  Star, 
+  CreditCard, 
+  CheckCircle, 
+  ArrowRight, 
+  DollarSign,
+  Users,
+  Target,
+  Gift,
+  AlertTriangle,
+  Zap,
+  Calendar,
+  Trophy,
+  ThumbsUp,
+  Award
+} from 'lucide-react'
 
-export default function CoinsGuidePage() {
-  const earningActions = [
-    { icon: "📅", name: "Daily Login", coins: 1, description: "Log in every day to earn coins", frequency: "Daily" },
-    { icon: "🔥", name: "7-Day Streak", coins: 10, description: "Maintain a 7-day login streak", frequency: "Weekly" },
-    { icon: "💬", name: "Answer Posted", coins: 1, description: "Post an answer to help someone", frequency: "Per answer" },
-    { icon: "👍", name: "Helpful Votes", coins: 1, description: "Earn coins when others find your answer helpful", frequency: "From 5th vote onwards" },
-    { icon: "🏆", name: "Best Answer", coins: 5, description: "Automatic bonus when you get 7+ helpful votes", frequency: "Per best answer" },
-    { icon: "⭐", name: "Expert Answer", coins: 12, description: "5-star answer with 5+ votes", frequency: "Per expert answer" },
-    { icon: "👥", name: "Invite Friend", coins: 20, description: "Friend joins with your referral code", frequency: "Per referral" },
-    { icon: "📚", name: "Complete Lesson", coins: 2, description: "Finish a learning module", frequency: "Per lesson" },
-    { icon: "⚡", name: "Weekend Warrior", coins: 8, description: "Answer questions on weekends (2x multiplier)", frequency: "Weekend only" }
+function CoinsGuideContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [username, setUsername] = useState<string | null>(null)
+
+  useEffect(() => {
+    const usernameParam = searchParams.get('username')
+    setUsername(usernameParam)
+  }, [searchParams])
+
+  const goToDashboard = () => {
+    if (username) {
+      router.push(`/dashboard?username=${username}`)
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  const goToCommunity = () => {
+    if (username) {
+      router.push(`/community?username=${username}`)
+    } else {
+      router.push('/community')
+    }
+  }
+
+  // Current simplified earning methods based on actual implementation
+  const earningMethods = [
+    {
+      icon: <MessageCircle className="w-6 h-6 text-green-400" />,
+      emoji: "✍️",
+      title: "Post Answer",
+      coins: 1,
+      description: "Answer someone's question in the community (basic reward)",
+      frequency: "Per answer posted",
+      status: "active"
+    },
+    {
+      icon: <ThumbsUp className="w-6 h-6 text-purple-400" />,
+      emoji: "👍",
+      title: "Helpful Votes",
+      coins: 1,
+      description: "People vote your answer as 'Helpful' (rewards start from 5th vote)",
+      frequency: "Per vote (from 5th onwards)",
+      status: "active"
+    },
+    {
+      icon: <Award className="w-6 h-6 text-yellow-400" />,
+      emoji: "🏆",
+      title: "Best Answer",
+      coins: 5,
+      description: "Your answer gets 7+ helpful votes and becomes Best Answer",
+      frequency: "Automatic bonus",
+      status: "active"
+    }
   ]
 
-  const spendingActions = [
-    { icon: "❓", name: "Regular Question", coins: 2, description: "Post a new question to the community" },
-    { icon: "🚨", name: "Urgent Question", coins: 5, description: "Guaranteed response within 6 hours" },
-    { icon: "🔒", name: "Private Question", coins: 8, description: "Only verified experts can see and answer" },
-    { icon: "👑", name: "VIP Question", coins: 15, description: "Direct answer from avatar coaches (Marcus, Ryan, etc.)" },
-    { icon: "📌", name: "Boost Question", coins: 3, description: "Pin your question to the top for 24 hours" }
+  // Current spending methods based on actual implementation
+  const spendingMethods = [
+    {
+      icon: <MessageCircle className="w-6 h-6 text-blue-400" />,
+      emoji: "❓",
+      title: "Ask Regular Question",
+      coins: 2,
+      description: "Post a standard question in the community",
+      status: "active"
+    },
+    {
+      icon: <MessageCircle className="w-6 h-6 text-red-400" />,
+      emoji: "🚨",
+      title: "Ask Urgent Question",
+      coins: 5,
+      description: "Get priority response within 6 hours with higher visibility",
+      status: "active"
+    }
   ]
 
-  const fraudPrevention = [
-    { icon: <CheckCircle className="w-5 h-5 text-green-400" />, text: "Coins start flowing from the 5th helpful vote (prevents fake votes)" },
-    { icon: <CheckCircle className="w-5 h-5 text-green-400" />, text: "Best Answer becomes automatic at 7+ votes (no favoritism)" },
-    { icon: <CheckCircle className="w-5 h-5 text-green-400" />, text: "Can't vote for your own answers (prevents self-voting)" },
-    { icon: <XCircle className="w-5 h-5 text-red-400" />, text: "Can't vote twice for the same answer (one vote per user)" },
-    { icon: <XCircle className="w-5 h-5 text-red-400" />, text: "Can't vote for clarifications from question author (prevents abuse)" }
+  // How to get more coins
+  const coinStrategies = [
+    {
+      icon: <Users className="w-8 h-8 text-blue-400" />,
+      title: "Be Active in Community",
+      description: "Answer questions regularly to get more opportunities for ratings",
+      tip: "Quality answers get better ratings!"
+    },
+    {
+      icon: <Target className="w-8 h-8 text-green-400" />,
+      title: "Provide Detailed Answers",
+      description: "Longer, more helpful answers tend to receive higher star ratings",
+      tip: "Share personal experiences and practical tips"
+    },
+    {
+      icon: <Trophy className="w-8 h-8 text-yellow-400" />,
+      title: "Help Others Successfully",
+      description: "When your advice actually helps someone, they're more likely to rate it highly",
+      tip: "Follow up to see if your advice worked"
+    }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 py-16">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-6xl mx-auto px-4 text-center">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-3 mb-6"
+      <header className="p-6 border-b border-purple-500/20">
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
+          <button
+            onClick={goToDashboard}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-700/50 hover:bg-purple-600/50 rounded-lg transition-colors"
           >
-            <Coins className="w-12 h-12 text-yellow-400" />
-            <h1 className="text-5xl font-bold text-white">AlphaRise Coins</h1>
-          </motion.div>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl text-purple-100 max-w-3xl mx-auto"
-          >
-            Earn coins by helping others, spend them on premium features. Build confidence while building your coin balance.
-          </motion.p>
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            <span className="font-medium">Back to Dashboard</span>
+          </button>
           
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8 flex flex-wrap justify-center gap-6 text-purple-100"
+          <h1 className="text-2xl font-black text-white">
+            AlphaRise Coins Guide
+          </h1>
+          
+          <button
+            onClick={goToCommunity}
+            className="px-4 py-2 bg-blue-600/50 hover:bg-blue-500/50 rounded-lg font-medium transition-colors"
           >
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span>Community Driven</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              <span>Anti-Fraud Protected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              <span>Quality Focused</span>
-            </div>
-          </motion.div>
+            Try Community
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-12 space-y-16">
-        {/* How It Works */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center"
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        
+        {/* Hero Section */}
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl font-bold text-white mb-4">How It Works</h2>
-          <p className="text-gray-300 text-lg mb-12 max-w-3xl mx-auto">
-            AlphaRise Coins create a thriving community where knowledge sharing is rewarded and quality content rises to the top.
+          <div className="inline-flex items-center gap-3 mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-full flex items-center justify-center border border-yellow-400/30">
+              <Coins className="w-8 h-8 text-yellow-400" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                How Coins Work
+              </h1>
+              <p className="text-gray-400">Simple helpful voting system - Updated 2025</p>
+            </div>
+          </div>
+          
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            Earn coins by providing helpful answers and getting "Helpful" votes from the community. 
+            <span className="text-yellow-400 font-semibold"> Use coins to ask questions and get subscription discounts!</span>
           </p>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-6">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-green-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Earn Coins</h3>
-              <p className="text-gray-300">Help others by answering questions, logging in daily, and being an active community member.</p>
-            </div>
-            
-            <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-6">
-              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShoppingCart className="w-8 h-8 text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Spend Coins</h3>
-              <p className="text-gray-300">Ask questions, get priority support, access VIP features, and boost your content visibility.</p>
-            </div>
-            
-            <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-6">
-              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-blue-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Build Community</h3>
-              <p className="text-gray-300">Quality answers get rewarded, creating a positive feedback loop of helpful content.</p>
-            </div>
-          </div>
-        </motion.section>
+        </motion.div>
 
-        {/* Earning Coins */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">💰 Ways to Earn Coins</h2>
-            <p className="text-gray-300 text-lg">Be active, be helpful, be rewarded</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {earningActions.map((action, index) => (
-              <motion.div
-                key={action.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-6 hover:border-green-500/40 transition-all duration-300"
+        {/* Current Balance Preview */}
+        {username && (
+          <motion.div 
+            className="mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-600/25 border border-yellow-400/30 rounded-xl p-6 text-center">
+              <h3 className="text-xl font-bold text-white mb-2">Your Current Balance</h3>
+              <p className="text-yellow-200/80 text-sm mb-4">Check your dashboard for real-time balance</p>
+              <button
+                onClick={goToDashboard}
+                className="px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/40 rounded-lg font-semibold transition-colors"
               >
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">{action.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-white">{action.name}</h3>
-                      <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
-                        <Coins className="w-4 h-4 text-yellow-400" />
-                        <span className="text-green-400 font-semibold">+{action.coins}</span>
-                      </div>
-                    </div>
-                    <p className="text-gray-300 text-sm mb-2">{action.description}</p>
-                    <p className="text-green-400 text-xs font-medium">{action.frequency}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Spending Coins */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">💸 Ways to Spend Coins</h2>
-            <p className="text-gray-300 text-lg">Unlock premium features and priority support</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {spendingActions.map((action, index) => (
-              <motion.div
-                key={action.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-6 hover:border-purple-500/40 transition-all duration-300"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">{action.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-white">{action.name}</h3>
-                      <div className="flex items-center gap-1 bg-purple-500/20 px-3 py-1 rounded-full">
-                        <Coins className="w-4 h-4 text-yellow-400" />
-                        <span className="text-white font-bold">-{action.coins}</span>
-                      </div>
-                    </div>
-                    <p className="text-gray-300 text-sm">{action.description}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Anti-Fraud System */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gray-800/30 backdrop-blur border border-gray-700 rounded-2xl p-8"
-        >
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Shield className="w-8 h-8 text-blue-400" />
-              <h2 className="text-3xl font-bold text-white">🛡️ Anti-Fraud Protection</h2>
+                View My Coins →
+              </button>
             </div>
-            <p className="text-gray-300 text-lg">Fair play rules that keep the community healthy</p>
+          </motion.div>
+        )}
+
+        {/* How to Earn Coins */}
+        <motion.section 
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <div className="flex items-center gap-3 mb-8">
+            <TrendingUp className="w-8 h-8 text-green-400" />
+            <h2 className="text-3xl font-bold text-white">How to Earn Coins</h2>
           </div>
           
-          <div className="space-y-4 max-w-4xl mx-auto">
-            {fraudPrevention.map((rule, index) => (
+          <div className="grid md:grid-cols-1 gap-6">
+            {earningMethods.map((method, index) => (
               <motion.div
                 key={index}
+                className="bg-gradient-to-r from-green-500/10 to-emerald-500/15 border border-green-500/20 rounded-xl p-6 hover:border-green-400/30 transition-colors"
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg"
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
               >
-                {rule.icon}
-                <span className="text-gray-300">{rule.text}</span>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">{method.emoji}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-white">{method.title}</h3>
+                      <div className="px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
+                        <span className="text-green-400 font-bold text-sm">+{method.coins} coins</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-300 mb-2">{method.description}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-green-400">• {method.frequency}</span>
+                      <span className="px-2 py-1 bg-green-500/10 text-green-300 rounded text-xs">
+                        ✅ Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 bg-blue-500/10 border border-blue-400/20 rounded-xl p-6">
+            <div className="flex items-start gap-3">
+              <ThumbsUp className="w-6 h-6 text-blue-400 mt-1" />
+              <div>
+                <h4 className="text-lg font-semibold text-blue-400 mb-2">How Helpful Voting Works</h4>
+                <p className="text-blue-200/80 text-sm">
+                  After you answer a question, other members can click "Helpful" if your answer was useful. 
+                  Starting from the 5th helpful vote, you earn 1 coin per vote. At 7+ votes, your answer automatically becomes "Best Answer" earning you a 5 coin bonus!
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* How to Spend Coins */}
+        <motion.section 
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <div className="flex items-center gap-3 mb-8">
+            <CreditCard className="w-8 h-8 text-purple-400" />
+            <h2 className="text-3xl font-bold text-white">How to Spend Coins</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-1 gap-6">
+            {spendingMethods.map((method, index) => (
+              <motion.div
+                key={index}
+                className="bg-gradient-to-r from-purple-500/10 to-pink-500/15 border border-purple-500/20 rounded-xl p-6 hover:border-purple-400/30 transition-colors"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">{method.emoji}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-white">{method.title}</h3>
+                      <div className="px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
+                        <span className="text-purple-400 font-bold text-sm">-{method.coins} coins</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-300 mb-2">{method.description}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="px-2 py-1 bg-purple-500/10 text-purple-300 rounded text-xs">
+                        ✅ Available Now
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 bg-orange-500/10 border border-orange-400/20 rounded-xl p-6">
+            <div className="flex items-start gap-3">
+              <Gift className="w-6 h-6 text-orange-400 mt-1" />
+              <div>
+                <h4 className="text-lg font-semibold text-orange-400 mb-2">Best Value: Subscription Discounts</h4>
+                <p className="text-orange-200/80 text-sm">
+                  Instead of spending coins on questions, save them for subscription discounts! 
+                  <span className="font-semibold"> 100 coins = $1 off your monthly subscription.</span> 
+                  This is the most valuable way to use your coins.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Strategies to Get More Coins */}
+        <motion.section 
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <div className="flex items-center gap-3 mb-8">
+            <Target className="w-8 h-8 text-yellow-400" />
+            <h2 className="text-3xl font-bold text-white">Strategies to Earn More Coins</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {coinStrategies.map((strategy, index) => (
+              <motion.div
+                key={index}
+                className="bg-gradient-to-r from-yellow-500/10 to-orange-500/15 border border-yellow-500/20 rounded-xl p-6 hover:border-yellow-400/30 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+              >
+                <div className="text-center">
+                  {strategy.icon}
+                  <h3 className="text-lg font-bold text-white mt-4 mb-3">{strategy.title}</h3>
+                  <p className="text-gray-300 text-sm mb-4">{strategy.description}</p>
+                  <div className="bg-yellow-500/10 border border-yellow-400/20 rounded-lg p-3">
+                    <p className="text-yellow-300 text-sm font-semibold">💡 {strategy.tip}</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
         </motion.section>
 
-        {/* Subscription Benefits */}
+        {/* Current System Status */}
         <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">🎯 Subscription Tiers</h2>
-            <p className="text-gray-300 text-lg">Different monthly coin allocations based on your membership</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-gray-600/20 to-gray-700/20 border border-gray-600/30 rounded-xl p-8">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gray-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-gray-400" />
+          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/15 border border-green-500/20 rounded-xl p-8">
+            <div className="text-center">
+              <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-white mb-4">System Status: Fully Active ✅</h2>
+              <div className="grid md:grid-cols-2 gap-6 text-left">
+                <div>
+                  <h3 className="text-lg font-semibold text-green-400 mb-3">✅ What's Working:</h3>
+                  <ul className="space-y-2 text-sm text-gray-300">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Earning coins from answer ratings
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Spending coins on questions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Real-time balance updates
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Subscription discount calculation
+                    </li>
+                  </ul>
                 </div>
-                <h3 className="text-2xl font-bold text-white">Trial Member</h3>
-                <p className="text-gray-400">Free tier</p>
-              </div>
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-yellow-400" />
-                  <span className="text-gray-300"><span className="font-semibold text-white">50 coins</span> monthly allocation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-blue-400" />
-                  <span className="text-gray-300">Access to community</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-green-400" />
-                  <span className="text-gray-300">Daily coin earning</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-8 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Recommended
-              </div>
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Star className="w-8 h-8 text-purple-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-white">Premium Member</h3>
-                <p className="text-purple-300">Full access</p>
-              </div>
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-yellow-400" />
-                  <span className="text-gray-300"><span className="font-semibold text-purple-300">200 coins</span> monthly allocation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-yellow-400" />
-                  <span className="text-gray-300">Priority support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-yellow-400" />
-                  <span className="text-gray-300">Exclusive features</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Gift className="w-5 h-5 text-pink-400" />
-                  <span className="text-gray-300">Weekly bonus coins</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">🚧 Coming Soon:</h3>
+                  <ul className="space-y-2 text-sm text-gray-300">
+                    <li className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-yellow-400" />
+                      Weekly activity tracking
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-yellow-400" />
+                      Achievement badges
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-yellow-400" />
+                      Community leaderboards
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-yellow-400" />
+                      Bonus coin events
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -300,50 +405,53 @@ export default function CoinsGuidePage() {
 
         {/* Call to Action */}
         <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-2xl p-12"
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
         >
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to Start Earning?</h2>
-          <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
-            Join the AlphaRise community today and start building your confidence while earning coins for helping others.
-          </p>
-          
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
-              <Coins className="w-5 h-5" />
-              Go to Dashboard
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/25 border border-purple-500/30 rounded-xl p-8">
+            <h2 className="text-3xl font-bold text-white mb-4">Ready to Start Earning?</h2>
+            <p className="text-xl text-gray-300 mb-6">
+              Join the community and start helping others to earn your first coins!
+            </p>
             
-            <Link href="/community" className="inline-flex items-center gap-2 bg-gray-700/50 text-white border border-gray-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-600/50 transition-all duration-300">
-              <Users className="w-5 h-5" />
-              Join Community
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={goToCommunity}
+                className="px-8 py-4 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <Users className="w-6 h-6" />
+                Join Community
+              </button>
+              
+              <button
+                onClick={goToDashboard}
+                className="px-8 py-4 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/50 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <Coins className="w-6 h-6" />
+                View Dashboard
+              </button>
+            </div>
           </div>
         </motion.section>
 
-        {/* Info Box */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6"
-        >
-          <div className="flex items-start gap-4">
-            <Info className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-2">Important Note</h3>
-              <p className="text-gray-300">
-                AlphaRise Coins are currently focused on community engagement and do not have cash conversion. 
-                The real value comes from improved answers, better community participation, and the confidence-building journey.
-              </p>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function CoinsGuidePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Coins className="w-12 h-12 text-yellow-400 mx-auto mb-4 animate-spin" />
+          <h2 className="text-xl font-bold text-white">Loading Coins Guide...</h2>
+        </div>
+      </div>
+    }>
+      <CoinsGuideContent />
+    </Suspense>
   )
 }

@@ -355,6 +355,11 @@ export default function ConfidenceTestPage() {
     
     setCurrentQuestion(0) // Move to first actual question
     setShowAgeError(false)
+    
+    // Scroll to top when starting the assessment
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 100)
   }
 
   const currentQuestionData = currentQuestion >= 0 ? questions[currentQuestion] : null
@@ -377,6 +382,9 @@ export default function ConfidenceTestPage() {
     if (currentQuestion < 9) {
       setCurrentQuestion(prev => prev + 1)
       setSelectedAnswer(answers[currentQuestion + 1] ?? null)
+      
+      // Scroll to top smoothly when advancing to next question
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       // Last question - calculate user type and coach, then redirect
       const result = calculateUserTypeAndCoach()
@@ -388,6 +396,9 @@ export default function ConfidenceTestPage() {
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1)
       setSelectedAnswer(answers[currentQuestion - 1] ?? null)
+      
+      // Scroll to top smoothly when going to previous question
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
