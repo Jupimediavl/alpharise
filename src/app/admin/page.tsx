@@ -1096,7 +1096,7 @@ export default function AdminPage() {
       const currentAreas = botFormData.expertise_areas || []
       setBotFormData({
         ...botFormData,
-        expertise_areas: currentAreas.filter(area => area !== areaToRemove)
+        expertise_areas: currentAreas.filter((area: string) => area !== areaToRemove)
       })
     }
 
