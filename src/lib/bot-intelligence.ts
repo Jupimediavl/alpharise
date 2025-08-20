@@ -121,44 +121,96 @@ export class BotIntelligence {
       ? `Recent community discussions include: ${context.trendingTopics.join(', ')}.`
       : ''
 
-    return `${personality.prompt_template}
-
-You are ${bot.name}, a community member seeking genuine help with confidence building. ${expertiseContext}
+    return `Tu ești ${bot.name}, un tip/tipă normală care are probleme cu încrederea în sine. ${expertiseContext}
 
 ${communityContext}
 
-Community tone is ${context.communityTone}. Match this tone in your question.
+Scrie în română, foarte natural, ca pe TikTok sau Instagram - relaxat, direct, fără să fii formal.
 
-Personality traits: ${JSON.stringify(personality.traits)}
-Response style: ${JSON.stringify(personality.response_style)}
+Generate o întrebare scurtă și autentică despre încredere în sine. Evită să repeți: ${context.recentQuestions.map(q => q.title).join(', ')}
 
-Generate authentic questions that would genuinely help someone struggling with confidence. 
-Avoid duplicating recent topics: ${context.recentQuestions.map(q => q.title).join(', ')}
+STIL:
+- Limbaj natural, de stradă, relaxat (fără "domnule", "doamnă", etc.)
+- Titlu FOARTE scurt (max 6-8 cuvinte)
+- Întrebare konkretă, reală, ca și cum ai vorbi cu un prieten
+- Fără fraze lungi sau complicate
+- Gen: "help", "cum să", "de ce", "ce fac când"
 
-IMPORTANT: 
-- Ask real, relatable questions about confidence, social anxiety, self-esteem, relationships, career confidence, etc.
-- Be vulnerable and authentic like a real person would be
-- Questions should be specific enough to generate good discussions
-- Avoid generic or repetitive questions
-
-Format your response as JSON:
+JSON format:
 {
-  "title": "Question title (max 100 chars)",
-  "body": "Question details (2-4 sentences, be specific about the struggle)",
+  "title": "Titlu scurt, natural (max 50 chars)",
+  "body": "Detalii scurte, 1-2 propoziții max, very casual",
   "type": "regular",
-  "category": "confidence-building"
+  "category": "confidence-building, relationships, dating-apps, sexual-performance"
 }`
   }
 
   private static buildQuestionUserPrompt(context: CommunityContext): string {
-    return `Generate a new, authentic question about confidence building. 
+    // Topics naturale, în română, gen TikTok
+    const topicsByCategory = {
+      'confidence-building': [
+        'cum să nu mai tremur când vorbesc în public',
+        'de ce îmi e frică să mă înscriu la sală',
+        'cum să nu mai roșesc când vorbesc cu șeful',
+        'de ce îmi e teamă să îmi exprim părerea',
+        'cum să nu mai fiu timid la petreceri',
+        'ce fac când toți par mai buni ca mine',
+        'cum să am curaj să îmi schimb jobul'
+      ],
+      'dating-apps': [
+        'de ce match-urile nu îmi răspund',
+        'cum să fac poze bune pentru Tinder',
+        'ce să scriu ca să nu par desperată',
+        'de ce conversațiile mor după 2 mesaje',
+        'cum să nu par boring pe dating apps'
+      ],
+      'relationships': [
+        'cum să nu mai fiu geloasă pe tot',
+        'ce fac când partenerul nu îmi răspunde repede',
+        'cum să nu mă cert cu prietena mereu',
+        'de ce am probleme să mă deschid emoțional',
+        'cum să nu mai fiu clingy în relații'
+      ],
+      'sexual-performance': [
+        'cum să am încredere în corpul meu',
+        'de ce îmi e frică să încerc lucruri noi în pat',
+        'cum să vorbesc despre ce îmi place',
+        'ce fac când nu îmi place cum arăt',
+        'cum să nu mai fiu anxioasă în intimitate'
+      ]
+    }
 
-Recent community topics to avoid duplicating:
+    const writingStyles = [
+      'foarte casual, cu litere mici',
+      'normal dar prietenos', 
+      'puțin anxios, cu multe întrebări',
+      'direct la subiect',
+      'povestește ca la prieteni'
+    ]
+
+    // Randomly select a category and topic
+    const categories = Object.keys(topicsByCategory)
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)]
+    const topicsInCategory = topicsByCategory[randomCategory]
+    const randomTopic = topicsInCategory[Math.floor(Math.random() * topicsInCategory.length)]
+    const randomStyle = writingStyles[Math.floor(Math.random() * writingStyles.length)]
+
+    return `Generează o întrebare unică despre: ${randomTopic}
+
+Categoria: ${randomCategory}
+Stil de scriere: ${randomStyle}
+
+NU repeta aceste topicuri recente:
 ${context.recentQuestions.slice(0, 5).map(q => `- ${q.title}`).join('\n')}
 
-Trending topics you could relate to: ${context.trendingTopics.join(', ')}
+Cerințe:
+- Să pară o persoană reală care întreabă
+- Limbaj natural, conversațional, gen TikTok
+- Detalii specifice, nu generice
+- Arată vulnerabilitate și griji reale
+- IMPORTANT: category = "${randomCategory}"
 
-Create a question that would generate helpful, supportive responses from the community.`
+Creează o întrebare care să genereze răspunsuri utile de la comunitate.`
   }
 
   // Build system prompt for answer generation
@@ -171,26 +223,22 @@ Create a question that would generate helpful, supportive responses from the com
       ? `Your areas of expertise include: ${bot.expertise_areas.join(', ')}.`
       : ''
 
-    return `${personality.prompt_template}
+    return `Tu ești ${bot.name}, un membru cool al comunității care ajută pe alții. ${expertiseContext}
 
-You are ${bot.name}, an experienced community member helping others build confidence. ${expertiseContext}
+Scrie în română, foarte natural, ca pe TikTok - relaxat, prietenos, fără formalități.
 
-Personality traits: ${JSON.stringify(personality.traits)}
-Response style: ${JSON.stringify(personality.response_style)}
+STIL RĂSPUNS:
+- Limbaj natural, de stradă, foarte casual
+- Scurt și la obiect (max 2-3 propoziții)
+- Fără "domnule/doamnă" sau formalități
+- Ca și cum ai răspunde la un prieten pe WhatsApp
+- Folosește "bro", "frate", "dragă", "bestie" etc. natural
+- Exemple concrete, nu sfaturi generice
+- Ton pozitiv și motivational
 
-Community tone is ${context.communityTone}. Match this tone in your response.
-
-IMPORTANT Guidelines:
-- Give practical, actionable advice
-- Share personal insights or examples when appropriate
-- Be empathetic and supportive
-- Keep responses helpful but not overly long
-- Match the personality traits in your response style
-- Be authentic - don't sound like an AI
-
-Format your response as JSON:
+Format JSON:
 {
-  "content": "Your helpful response (3-6 sentences)",
+  "content": "Răspuns scurt, natural, prietenos (max 2-3 propoziții)",
   "tone": "helpful"
 }`
   }
@@ -356,12 +404,47 @@ Be genuine and practical. Focus on actionable advice they can use.`
 
   // Get community context for better bot responses
   static async getCommunityContext(): Promise<CommunityContext> {
-    // This would typically fetch from your community data
-    // For now, return a default context
-    return {
-      recentQuestions: [],
-      trendingTopics: ['confidence building', 'social anxiety', 'self-esteem', 'dating confidence', 'career confidence'],
-      communityTone: 'supportive'
+    try {
+      // Import supabase here to avoid circular dependencies
+      const { createClient } = require('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      
+      // Get recent questions to avoid duplicates
+      const { data: recentQuestions, error } = await supabase
+        .from('questions')
+        .select('title, body, author_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) {
+        console.error('Error fetching recent questions for context:', error)
+      }
+
+      return {
+        recentQuestions: recentQuestions?.map(q => ({
+          title: q.title,
+          body: q.body,
+          author: q.author_id,
+          created_at: q.created_at
+        })) || [],
+        trendingTopics: [
+          'confidence building', 'social anxiety', 'self-esteem', 
+          'dating confidence', 'career confidence', 'body confidence',
+          'communication skills', 'relationship anxiety', 'job interviews',
+          'public speaking', 'first dates', 'gym confidence'
+        ],
+        communityTone: 'supportive'
+      }
+    } catch (error) {
+      console.error('Error getting community context:', error)
+      return {
+        recentQuestions: [],
+        trendingTopics: ['confidence building', 'social anxiety', 'self-esteem', 'dating confidence', 'career confidence'],
+        communityTone: 'supportive'
+      }
     }
   }
 }

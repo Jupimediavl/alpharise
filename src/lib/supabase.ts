@@ -697,6 +697,7 @@ export class SupabaseQuestionManager {
       let query = supabase
         .from('questions')
         .select('*')
+        .eq('moderation_status', 'approved') // Only show approved content in community
 
       if (filters.category && filters.category !== 'all') {
         query = query.eq('category', filters.category)
@@ -775,6 +776,7 @@ export class SupabaseQuestionManager {
         .from('answers')
         .select('*')
         .eq('question_id', questionId)
+        .eq('moderation_status', 'approved') // Only show approved answers
         .order('created_at', { ascending: false })
 
       if (answersError) {
@@ -818,6 +820,7 @@ export class SupabaseQuestionManager {
         .from('questions')
         .select('*')
         .or(`title.ilike.%${query}%,body.ilike.%${query}%`)
+        .eq('moderation_status', 'approved') // Only search approved content
 
       if (category && category !== 'all') {
         supabaseQuery = supabaseQuery.eq('category', category)

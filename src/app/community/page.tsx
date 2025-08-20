@@ -1069,6 +1069,7 @@ function CommunityContent() {
               <div className="text-sm opacity-70">Be the first to ask a question in this category!</div>
             </div>
           ) : (
+            
             questions.map((question, index) => {
               const isExpanded = expandedQuestions.has(question.id)
               const sortedAnswers = sortAnswers(question.answers, 'best-first')

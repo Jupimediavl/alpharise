@@ -118,8 +118,8 @@ export class BotAutomation {
     const activityChance = bot.activity_level / 10 // Convert to 0-1 scale
     const randomFactor = Math.random()
 
-    // Lower chance of action = more realistic timing
-    if (randomFactor > activityChance * 0.3) {
+    // Lower chance of action = more realistic timing  
+    if (randomFactor > activityChance * 0.5) {
       return null // Bot decides to stay quiet this cycle
     }
 
@@ -132,29 +132,34 @@ export class BotAutomation {
       a => new Date().getTime() - new Date(a.created_at).getTime() < 60 * 60 * 1000 // Last hour
     )
     
-    if (recentActions.length >= 2) {
+    if (recentActions.length >= 3) {
       return null // Too active recently
     }
 
     // Decide action based on bot type
     switch (bot.type) {
       case 'questioner':
-        // 70% chance to ask question, 30% chance to vote
-        return randomFactor < 0.7 ? 'ask_question' : 'vote'
+        // 80% chance to ask question, 20% chance to vote
+        return randomFactor < 0.8 ? 'ask_question' : 'vote'
       
       case 'answerer':
-        // Prefer answering if there are unanswered questions
+        // ANSWERER bots should primarily answer, rarely ask questions
         if (recentQuestions.length > 0) {
-          return randomFactor < 0.8 ? 'answer_question' : 'vote'
+          // Questions available - 90% chance to answer, 10% chance to vote
+          return randomFactor < 0.9 ? 'answer_question' : 'vote'
+        } else {
+          // No questions to answer - 30% chance to ask one, 70% chance to vote/wait
+          return randomFactor < 0.3 ? 'ask_question' : 'vote'
         }
-        return 'vote'
       
       case 'mixed':
-        // Balanced approach
-        if (recentQuestions.length > 3) {
-          return randomFactor < 0.6 ? 'answer_question' : 'ask_question'
+        // Balanced approach - always willing to ask questions
+        if (recentQuestions.length > 2) {
+          // Many questions exist, prefer answering
+          return randomFactor < 0.5 ? 'answer_question' : 'ask_question'
         } else {
-          return randomFactor < 0.4 ? 'ask_question' : 'vote'
+          // Few or no questions, prefer asking
+          return randomFactor < 0.7 ? 'ask_question' : 'vote'
         }
       
       default:
@@ -225,7 +230,7 @@ export class BotAutomation {
         throw new Error('Failed to generate question')
       }
 
-      // Post question to community
+      // Post question to community (marked as bot-generated and pending moderation)
       const question = await SupabaseQuestionManager.createQuestion({
         title: questionData.title,
         body: questionData.body,
@@ -240,7 +245,9 @@ export class BotAutomation {
         is_answered: false,
         is_solved: false,
         is_private: false,
-        allowed_responders: []
+        allowed_responders: [],
+        is_bot_generated: true,
+        moderation_status: 'pending'
       })
 
       if (!question) {
@@ -255,6 +262,9 @@ export class BotAutomation {
         'question',
         { title: questionData.title, category: questionData.category }
       )
+
+      // Update bot stats manually (in case triggers don't work)
+      await BotManager.updateBotStats(bot.id, { questions_posted: 1 })
 
       console.log(`✨ Bot ${bot.name} posted question: "${questionData.title}"`)
 
@@ -337,7 +347,9 @@ export class BotAutomation {
         is_best_answer: false,
         is_helpful: false,
         votes: 0,
-        voted_by: []
+        voted_by: [],
+        is_bot_generated: true,
+        moderation_status: 'pending'
       })
 
       if (!answer) {
@@ -352,6 +364,9 @@ export class BotAutomation {
         'answer',
         { question_id: questionToAnswer.id, tone: answerData.tone }
       )
+
+      // Update bot stats manually 
+      await BotManager.updateBotStats(bot.id, { answers_posted: 1 })
 
       console.log(`💬 Bot ${bot.name} answered question: "${questionToAnswer.title}"`)
 
@@ -509,8 +524,16 @@ export class BotAutomation {
     try {
       const { data: questions, error } = await supabase
         .from('questions')
-        .select('id, title, body, author_id, created_at, answers!left(count)')
+        .select(`
+          id, 
+          title, 
+          body, 
+          author_id, 
+          created_at,
+          answers(id)
+        `)
         .eq('is_solved', false)
+        .in('moderation_status', ['approved', 'pending']) // Include both approved and pending questions
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
         .order('created_at', { ascending: false })
         .limit(20)
@@ -521,7 +544,9 @@ export class BotAutomation {
       }
 
       // Filter to truly unanswered questions
-      return questions.filter(q => q.answers.length === 0)
+      const unansweredQuestions = questions.filter(q => !q.answers || q.answers.length === 0)
+      console.log(`📋 Found ${unansweredQuestions.length} unanswered questions out of ${questions.length} total`)
+      return unansweredQuestions
     } catch (error) {
       console.error('Error fetching unanswered questions:', error)
       return []

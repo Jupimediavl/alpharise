@@ -19,7 +19,8 @@ import {
   DbProblem, 
   DbExercise, 
   DbMilestone,
-  DbPricingPlan 
+  DbPricingPlan,
+  supabase
 } from '@/lib/supabase'
 import { 
   BotManager, 
@@ -40,7 +41,7 @@ interface AdminStats {
   recentSignups: number
 }
 
-type AdminSection = 'overview' | 'users' | 'coaches' | 'learning' | 'milestones' | 'pricing' | 'analytics' | 'bots'
+type AdminSection = 'overview' | 'users' | 'coaches' | 'learning' | 'milestones' | 'pricing' | 'analytics' | 'bots' | 'moderation'
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState<AdminSection>('overview')
@@ -65,6 +66,23 @@ export default function AdminPage() {
   const [botActivities, setBotActivities] = useState<BotActivity[]>([])
   const [botAnalytics, setBotAnalytics] = useState<any>({})
   const [automationRunning, setAutomationRunning] = useState(false)
+
+  // Check automation status on component mount
+  useEffect(() => {
+    const checkAutomationStatus = () => {
+      // Check if automation is running in localStorage
+      const storedStatus = localStorage.getItem('bot_automation_running')
+      if (storedStatus === 'true') {
+        setAutomationRunning(true)
+        // Restart automation if it was running
+        BotAutomation.start(5)
+      }
+    }
+    
+    if (activeSection === 'bots') {
+      checkAutomationStatus()
+    }
+  }, [activeSection])
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -211,6 +229,7 @@ export default function AdminPage() {
     { id: 'pricing' as AdminSection, label: 'Pricing', icon: DollarSign, color: 'text-red-600' },
     { id: 'analytics' as AdminSection, label: 'Analytics', icon: TrendingUp, color: 'text-indigo-600' },
     { id: 'bots' as AdminSection, label: 'Bot Management', icon: BotIcon, color: 'text-emerald-600' },
+    { id: 'moderation' as AdminSection, label: 'Content Moderation', icon: Shield, color: 'text-red-500' },
   ]
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle }: {
@@ -1044,6 +1063,221 @@ export default function AdminPage() {
     </div>
   )
 
+  const ModerationSection = () => {
+    const [pendingContent, setPendingContent] = useState<any[]>([])
+    const [moderationLoading, setModerationLoading] = useState(true)
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+
+    useEffect(() => {
+      if (activeSection === 'moderation') {
+        loadPendingContent()
+      }
+    }, [activeSection])
+
+    const loadPendingContent = async () => {
+      setModerationLoading(true)
+      try {
+        // Get pending questions
+        const { data: pendingQuestions, error: questionsError } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('moderation_status', 'pending')
+          .eq('is_bot_generated', true)
+          .order('created_at', { ascending: false })
+
+        // Get pending answers  
+        const { data: pendingAnswers, error: answersError } = await supabase
+          .from('answers')
+          .select('*, questions(title)')
+          .eq('moderation_status', 'pending')
+          .eq('is_bot_generated', true)
+          .order('created_at', { ascending: false })
+
+        const allPending = [
+          ...(pendingQuestions || []).map(q => ({ ...q, content_type: 'question' })),
+          ...(pendingAnswers || []).map(a => ({ ...a, content_type: 'answer' }))
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+        setPendingContent(allPending)
+      } catch (error) {
+        console.error('Error loading pending content:', error)
+      } finally {
+        setModerationLoading(false)
+      }
+    }
+
+    const moderateContent = async (contentId: string, contentType: 'question' | 'answer', action: 'approved' | 'rejected') => {
+      try {
+        const table = contentType === 'question' ? 'questions' : 'answers'
+        
+        if (action === 'rejected') {
+          // Delete rejected content
+          await supabase.from(table).delete().eq('id', contentId)
+        } else {
+          // Approve content
+          await supabase
+            .from(table)
+            .update({ 
+              moderation_status: 'approved',
+              moderated_by: 'admin',
+              moderated_at: new Date().toISOString()
+            })
+            .eq('id', contentId)
+        }
+
+        // Reload pending content
+        await loadPendingContent()
+        
+        // Log the moderation action
+        await supabase.from('moderation_log').insert({
+          content_type: contentType,
+          content_id: contentId,
+          action: action,
+          moderator: 'admin',
+          new_status: action
+        })
+
+      } catch (error) {
+        console.error('Error moderating content:', error)
+        alert('Error moderating content')
+      }
+    }
+
+    const bulkModerate = async (action: 'approved' | 'rejected') => {
+      if (selectedItems.size === 0) return
+      
+      try {
+        for (const itemId of selectedItems) {
+          const item = pendingContent.find(c => c.id === itemId)
+          if (item) {
+            await moderateContent(item.id, item.content_type, action)
+          }
+        }
+        setSelectedItems(new Set())
+      } catch (error) {
+        console.error('Error in bulk moderation:', error)
+      }
+    }
+
+    const toggleSelection = (itemId: string) => {
+      const newSelection = new Set(selectedItems)
+      if (newSelection.has(itemId)) {
+        newSelection.delete(itemId)
+      } else {
+        newSelection.add(itemId)
+      }
+      setSelectedItems(newSelection)
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Content Moderation</h3>
+              <p className="text-sm text-gray-600 mt-1">Review and moderate bot-generated content</p>
+            </div>
+            <div className="flex gap-2">
+              {selectedItems.size > 0 && (
+                <>
+                  <button
+                    onClick={() => bulkModerate('approved')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Approve Selected ({selectedItems.size})
+                  </button>
+                  <button
+                    onClick={() => bulkModerate('rejected')}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Reject Selected ({selectedItems.size})
+                  </button>
+                </>
+              )}
+              <button
+                onClick={loadPendingContent}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {moderationLoading ? (
+            <div className="p-8 text-center text-gray-500">Loading pending content...</div>
+          ) : pendingContent.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No pending content to moderate</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {pendingContent.map((item) => (
+                <div key={item.id} className="p-6">
+                  <div className="flex items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(item.id)}
+                      onChange={() => toggleSelection(item.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          item.content_type === 'question' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {item.content_type}
+                        </span>
+                        <span className="text-sm text-gray-500">by {item.author_name}</span>
+                        <span className="text-sm text-gray-400">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      {item.content_type === 'question' ? (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
+                          <p className="text-gray-700 text-sm">{item.body}</p>
+                          <span className="inline-block mt-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                            {item.category}
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-gray-700 text-sm mb-1">
+                            <span className="font-medium">Answer to:</span> {item.questions?.title}
+                          </p>
+                          <p className="text-gray-900">{item.content}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => moderateContent(item.id, item.content_type, 'approved')}
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => moderateContent(item.id, item.content_type, 'rejected')}
+                        className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const BotsSection = () => {
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [editingBot, setEditingBot] = useState<Bot | null>(null)
@@ -1289,9 +1523,11 @@ export default function AdminPage() {
                   if (automationRunning) {
                     BotAutomation.stop()
                     setAutomationRunning(false)
+                    localStorage.setItem('bot_automation_running', 'false')
                   } else {
                     BotAutomation.start(5) // 5 minute intervals
                     setAutomationRunning(true)
+                    localStorage.setItem('bot_automation_running', 'true')
                   }
                 }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -1617,7 +1853,7 @@ export default function AdminPage() {
                     <div>
                       <p className="text-xs text-gray-600 mb-2">Selected ({botFormData.expertise_areas?.length || 0}/5):</p>
                       <div className="flex flex-wrap gap-2">
-                        {(botFormData.expertise_areas || []).map((area, index) => (
+                        {(botFormData.expertise_areas || []).map((area: string, index: number) => (
                           <span
                             key={index}
                             className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-800 text-sm rounded-full"
@@ -1771,7 +2007,7 @@ export default function AdminPage() {
                   <h4 className="font-semibold text-gray-900 mb-3">Expertise Areas</h4>
                   <div className="flex flex-wrap gap-2">
                     {showBotDetails.expertise_areas.length > 0 ? (
-                      showBotDetails.expertise_areas.map((area, idx) => (
+                      showBotDetails.expertise_areas.map((area: string, idx: number) => (
                         <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
                           {area}
                         </span>
@@ -1857,6 +2093,8 @@ export default function AdminPage() {
         </div>
       case 'bots':
         return <BotsSection />
+      case 'moderation':
+        return <ModerationSection />
       default:
         return <OverviewSection />
     }
