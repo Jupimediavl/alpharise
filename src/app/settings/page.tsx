@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { Settings, ArrowLeft, Bell, Shield, Palette, Moon, Sun, Volume2, VolumeX, Save, Eye, EyeOff, Globe, Smartphone } from 'lucide-react'
 import Link from 'next/link'
+import UserDropdownMenu from '@/components/UserDropdownMenu'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -202,13 +203,17 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            Save Changes
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Save Changes
+            </button>
+            
+            <UserDropdownMenu user={user} userCoins={user?.coins || 0} />
+          </div>
         </div>
       </div>
 

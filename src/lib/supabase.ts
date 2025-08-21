@@ -4,16 +4,27 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVICE_KEY'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+
+// Validate environment variables
+if (!supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE')) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+if (!supabaseAnonKey || supabaseAnonKey.includes('YOUR_SUPABASE')) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+}
+if (!supabaseServiceKey || supabaseServiceKey.includes('YOUR_SERVICE')) {
+  console.warn('Missing SUPABASE_SERVICE_ROLE_KEY environment variable - using anon key as fallback')
+}
 
 // Environment variables configured
 
 // Config validated
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey)
 
 // Auth configuration
 export const supabaseAuth = supabase.auth
@@ -43,6 +54,7 @@ export interface DbUser {
   created_at: string
   updated_at: string
   last_active: string
+  is_admin?: boolean // Admin privileges for moderation
 }
 
 export interface DbQuestion {

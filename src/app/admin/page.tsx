@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import EnhancedBotsSection from '@/components/admin/EnhancedBotsSection'
 import { 
   Shield, Users, BookOpen, Trophy, Target, DollarSign, 
   MessageSquare, Settings, Plus, Edit, Trash2, Eye,
@@ -9,11 +10,13 @@ import {
   Play, Pause, Zap, Clock, Brain, AlertTriangle 
 } from 'lucide-react'
 import RichTextEditor from '@/components/RichTextEditor'
+import UserDropdownMenu from '@/components/UserDropdownMenu'
 import { 
   SupabaseUserManager, 
   SupabaseCoachManager, 
   SupabaseLearningManager, 
   SupabasePricingManager,
+  SupabaseAuthManager,
   DbUser, 
   DbCoach, 
   DbProblem, 
@@ -74,8 +77,9 @@ export default function AdminPage() {
       const storedStatus = localStorage.getItem('bot_automation_running')
       if (storedStatus === 'true') {
         setAutomationRunning(true)
-        // Restart automation if it was running
-        BotAutomation.start(5)
+        // DISABLED: Do not auto-restart automation to prevent unwanted posting
+        // BotAutomation.start(5)
+        console.log('ℹ️ Automation was running but auto-restart is disabled for safety')
       }
     }
     
@@ -86,6 +90,7 @@ export default function AdminPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<DbUser | null>(null)
   
   // Filter state
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null)
@@ -110,6 +115,32 @@ export default function AdminPage() {
     setError(null)
     
     try {
+      // Load current user first and check admin status
+      const session = await SupabaseAuthManager.getCurrentSession()
+      if (!session?.user?.email) {
+        console.log('❌ No valid session, redirecting to landing page')
+        window.location.href = '/'
+        return
+      }
+
+      const userData = await SupabaseUserManager.getUserByEmail(session.user.email)
+      if (!userData) {
+        console.log('❌ User not found, redirecting to landing page')
+        window.location.href = '/'
+        return
+      }
+
+      // Check if user is admin
+      if (!userData.is_admin) {
+        console.log(`❌ User ${userData.username} is not admin, redirecting to landing page`)
+        alert('⚠️ Access Denied: You need admin privileges to access this page.')
+        window.location.href = '/'
+        return
+      }
+
+      console.log(`✅ Admin access granted for: ${userData.username}`)
+      setCurrentUser(userData)
+      
       // Load all data in parallel
       const [
         usersData,
@@ -229,7 +260,7 @@ export default function AdminPage() {
     { id: 'pricing' as AdminSection, label: 'Pricing', icon: DollarSign, color: 'text-red-600' },
     { id: 'analytics' as AdminSection, label: 'Analytics', icon: TrendingUp, color: 'text-indigo-600' },
     { id: 'bots' as AdminSection, label: 'Bot Management', icon: BotIcon, color: 'text-emerald-600' },
-    { id: 'moderation' as AdminSection, label: 'Content Moderation', icon: Shield, color: 'text-red-500' },
+    { id: 'moderation' as AdminSection, label: 'Bot Content Moderation', icon: Shield, color: 'text-red-500' },
   ]
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle }: {
@@ -1067,6 +1098,9 @@ export default function AdminPage() {
     const [pendingContent, setPendingContent] = useState<any[]>([])
     const [moderationLoading, setModerationLoading] = useState(true)
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+    const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'question' | 'answer'>('all')
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+    const [authorFilter, setAuthorFilter] = useState<string>('')
 
     useEffect(() => {
       if (activeSection === 'moderation') {
@@ -1169,37 +1203,141 @@ export default function AdminPage() {
       setSelectedItems(newSelection)
     }
 
+    const selectAll = () => {
+      const filteredItems = getFilteredContent()
+      if (selectedItems.size === filteredItems.length) {
+        // Deselect all
+        setSelectedItems(new Set())
+      } else {
+        // Select all filtered items
+        setSelectedItems(new Set(filteredItems.map(item => item.id)))
+      }
+    }
+
+    const getFilteredContent = () => {
+      return pendingContent.filter(item => {
+        // Content type filter
+        if (contentTypeFilter !== 'all' && item.content_type !== contentTypeFilter) {
+          return false
+        }
+
+        // Date filter
+        if (dateFilter !== 'all') {
+          const itemDate = new Date(item.created_at)
+          const now = new Date()
+          
+          switch (dateFilter) {
+            case 'today':
+              if (itemDate.toDateString() !== now.toDateString()) return false
+              break
+            case 'week':
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+              if (itemDate < weekAgo) return false
+              break
+            case 'month':
+              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+              if (itemDate < monthAgo) return false
+              break
+          }
+        }
+
+        // Author filter
+        if (authorFilter && !item.author_name.toLowerCase().includes(authorFilter.toLowerCase())) {
+          return false
+        }
+
+        return true
+      })
+    }
+
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Content Moderation</h3>
-              <p className="text-sm text-gray-600 mt-1">Review and moderate bot-generated content</p>
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Bot Content Moderation</h3>
+                <p className="text-sm text-gray-600 mt-1">Review and moderate bot-generated content</p>
+              </div>
+              <div className="flex gap-2">
+                {selectedItems.size > 0 && (
+                  <>
+                    <button
+                      onClick={() => bulkModerate('approved')}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Approve Selected ({selectedItems.size})
+                    </button>
+                    <button
+                      onClick={() => bulkModerate('rejected')}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Reject Selected ({selectedItems.size})
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={loadPendingContent}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              {selectedItems.size > 0 && (
-                <>
-                  <button
-                    onClick={() => bulkModerate('approved')}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    Approve Selected ({selectedItems.size})
-                  </button>
-                  <button
-                    onClick={() => bulkModerate('rejected')}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Reject Selected ({selectedItems.size})
-                  </button>
-                </>
-              )}
+
+            {/* Filters Section */}
+            <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Content Type:</label>
+                <select
+                  value={contentTypeFilter}
+                  onChange={(e) => setContentTypeFilter(e.target.value as any)}
+                  className="border border-gray-300 rounded px-3 py-1 text-sm text-gray-900"
+                >
+                  <option value="all">All Types</option>
+                  <option value="question">Questions</option>
+                  <option value="answer">Answers</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Date:</label>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value as any)}
+                  className="border border-gray-300 rounded px-3 py-1 text-sm text-gray-900"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Author:</label>
+                <input
+                  type="text"
+                  value={authorFilter}
+                  onChange={(e) => setAuthorFilter(e.target.value)}
+                  placeholder="Search by author..."
+                  className="border border-gray-300 rounded px-3 py-1 text-sm w-40 text-gray-900 placeholder-gray-400"
+                />
+              </div>
+
               <button
-                onClick={loadPendingContent}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={selectAll}
+                className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
               >
-                Refresh
+                {selectedItems.size === getFilteredContent().length && getFilteredContent().length > 0 
+                  ? 'Deselect All' 
+                  : `Select All (${getFilteredContent().length})`
+                }
               </button>
+
+              <div className="text-sm text-gray-500">
+                Showing {getFilteredContent().length} of {pendingContent.length} items
+              </div>
             </div>
           </div>
 
@@ -1210,9 +1348,14 @@ export default function AdminPage() {
               <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>No pending content to moderate</p>
             </div>
+          ) : getFilteredContent().length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No content matches the current filters</p>
+            </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {pendingContent.map((item) => (
+              {getFilteredContent().map((item) => (
                 <div key={item.id} className="p-6">
                   <div className="flex items-start gap-4">
                     <input
@@ -1232,7 +1375,7 @@ export default function AdminPage() {
                         </span>
                         <span className="text-sm text-gray-500">by {item.author_name}</span>
                         <span className="text-sm text-gray-400">
-                          {new Date(item.created_at).toLocaleDateString()}
+                          {new Date(item.created_at).toLocaleDateString()} {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       
@@ -1408,14 +1551,41 @@ export default function AdminPage() {
     }
 
     const handleDeleteBot = async (bot: Bot) => {
-      if (!confirm(`Are you sure you want to delete bot "${bot.name}"? This action cannot be undone.`)) return
+      const confirmMessage = `⚠️ PERMANENT DELETION WARNING ⚠️
+
+Are you sure you want to delete bot "${bot.name}"?
+
+This will PERMANENTLY DELETE:
+• All questions posted by this bot
+• All answers posted by this bot  
+• All votes on bot's content
+• All votes cast by the bot
+• Bot's memory/learning data
+• Activity logs and schedules
+
+This action CANNOT be undone!
+
+Type "DELETE" to confirm:`
+
+      const userInput = prompt(confirmMessage)
+      if (userInput !== 'DELETE') {
+        alert('Deletion cancelled. Bot was not deleted.')
+        return
+      }
       
       try {
-        await BotManager.deleteBot(bot.id)
-        await loadBotData()
+        console.log(`🗑️ Admin requested deletion of bot: ${bot.name} (${bot.id})`)
+        const success = await BotManager.deleteBot(bot.id)
+        
+        if (success) {
+          alert(`✅ Successfully deleted bot "${bot.name}" and all associated data!`)
+          await loadBotData()
+        } else {
+          alert('❌ Error deleting bot. Check console for details.')
+        }
       } catch (error) {
         console.error('Error deleting bot:', error)
-        alert('Error deleting bot')
+        alert('❌ Error deleting bot. Check console for details.')
       }
     }
 
@@ -2092,7 +2262,7 @@ export default function AdminPage() {
           <p className="text-gray-600">Advanced analytics and reporting coming soon...</p>
         </div>
       case 'bots':
-        return <BotsSection />
+        return <EnhancedBotsSection />
       case 'moderation':
         return <ModerationSection />
       default:
@@ -2133,12 +2303,16 @@ export default function AdminPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-blue-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AlphaRise Admin</h1>
-              <p className="text-sm text-gray-600">Complete System Management</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AlphaRise Admin</h1>
+                <p className="text-sm text-gray-600">Complete System Management</p>
+              </div>
             </div>
+            
+            <UserDropdownMenu user={currentUser} userCoins={currentUser?.coins || 0} />
           </div>
         </div>
       </header>

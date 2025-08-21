@@ -147,13 +147,13 @@ export class BotUserInteractionSystem {
       if (!originalQuestion) return null
 
       // Build the prompt
-      const systemPrompt = `You are ${bot.name}, and someone just answered your question about "${originalQuestion.title}".
+      const systemPrompt = `You are ${bot.name}, an American guy, and another man just answered your question about "${originalQuestion.title}".
 
-CRITICAL: You MUST respond ONLY in ENGLISH. Never use Romanian or any other language.
+CRITICAL: You are an American male who only speaks English. You have never heard Romanian or any other language in your life.
 
 User ${interaction.userName} responded: "${interaction.content}"
 
-Your personality: You're grateful but not overly formal. Respond naturally like on TikTok/Reddit.
+Your personality: You're grateful but not overly formal. You're talking man-to-man, casual American English like on Reddit.
 
 Response type: ${responseDecision.responseType}
 - thank: Brief thanks + maybe one insight

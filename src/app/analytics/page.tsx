@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { BarChart3, ArrowLeft, TrendingUp, TrendingDown, Coins, Users, MessageCircle, Award, Calendar, Target, Zap, Star, Clock, Activity } from 'lucide-react'
 import Link from 'next/link'
+import UserDropdownMenu from '@/components/UserDropdownMenu'
 
 export default function AnalyticsPage() {
   const router = useRouter()
@@ -177,8 +178,9 @@ export default function AnalyticsPage() {
             </div>
           </div>
           
-          {/* Time Range Selector */}
-          <div className="flex bg-gray-800/50 rounded-lg p-1">
+          <div className="flex items-center gap-4">
+            {/* Time Range Selector */}
+            <div className="flex bg-gray-800/50 rounded-lg p-1">
             {(['7d', '30d', '90d', 'all'] as const).map((range) => (
               <button
                 key={range}
@@ -192,6 +194,9 @@ export default function AnalyticsPage() {
                 {range === 'all' ? 'All Time' : range.toUpperCase()}
               </button>
             ))}
+            </div>
+            
+            <UserDropdownMenu user={user} userCoins={user?.coins || 0} />
           </div>
         </div>
       </div>

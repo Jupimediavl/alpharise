@@ -199,9 +199,11 @@ export class BotManager {
     }
   }
 
-  // Delete bot
+  // Delete bot and ALL associated data
   static async deleteBot(id: string): Promise<boolean> {
     try {
+      console.log(`🗑️ Starting deletion process for bot ID: ${id}`)
+      
       // First get the bot to get its username
       const { data: bot, error: getBotError } = await supabase
         .from('bots')
@@ -214,8 +216,81 @@ export class BotManager {
         return false
       }
 
-      // Delete all content created by this bot
-      // Delete answers first (they might reference questions)
+      console.log(`🗑️ Deleting all content for bot: ${bot.username}`)
+
+      // Step 1: Delete bot memory (deduplication records)
+      const { error: memoryError } = await supabase
+        .from('bot_memory')
+        .delete()
+        .eq('bot_id', id)
+
+      if (memoryError) {
+        console.warn('Error deleting bot memory (table might not exist yet):', memoryError)
+      } else {
+        console.log('✅ Deleted bot memory records')
+      }
+
+      // Step 2: Delete votes on bot's answers and questions
+      // First get all question IDs by this bot
+      const { data: botQuestions } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('author_id', bot.username)
+
+      // Get all answer IDs by this bot
+      const { data: botAnswers } = await supabase
+        .from('answers')
+        .select('id')
+        .eq('author_id', bot.username)
+
+      // Delete votes on bot's questions
+      if (botQuestions && botQuestions.length > 0) {
+        const questionIds = botQuestions.map(q => q.id)
+        const { error: questionVotesError } = await supabase
+          .from('question_votes')
+          .delete()
+          .in('question_id', questionIds)
+
+        if (questionVotesError) {
+          console.warn('Error deleting question votes:', questionVotesError)
+        } else {
+          console.log(`✅ Deleted votes on ${questionIds.length} questions`)
+        }
+      }
+
+      // Delete votes on bot's answers
+      if (botAnswers && botAnswers.length > 0) {
+        const answerIds = botAnswers.map(a => a.id)
+        const { error: answerVotesError } = await supabase
+          .from('answer_votes')
+          .delete()
+          .in('answer_id', answerIds)
+
+        if (answerVotesError) {
+          console.warn('Error deleting answer votes:', answerVotesError)
+        } else {
+          console.log(`✅ Deleted votes on ${answerIds.length} answers`)
+        }
+      }
+
+      // Step 3: Delete bot's own votes (votes cast by the bot)
+      const { error: botVotesError1 } = await supabase
+        .from('question_votes')
+        .delete()
+        .eq('user_id', bot.username)
+
+      const { error: botVotesError2 } = await supabase
+        .from('answer_votes')
+        .delete()
+        .eq('user_id', bot.username)
+
+      if (botVotesError1 || botVotesError2) {
+        console.warn('Error deleting bot\'s own votes:', botVotesError1 || botVotesError2)
+      } else {
+        console.log('✅ Deleted bot\'s own votes')
+      }
+
+      // Step 4: Delete answers first (they might reference questions)
       const { error: answersError } = await supabase
         .from('answers')
         .delete()
@@ -223,9 +298,11 @@ export class BotManager {
 
       if (answersError) {
         console.error('Error deleting bot answers:', answersError)
+      } else {
+        console.log('✅ Deleted bot answers')
       }
 
-      // Delete questions
+      // Step 5: Delete questions
       const { error: questionsError } = await supabase
         .from('questions')
         .delete()
@@ -233,20 +310,55 @@ export class BotManager {
 
       if (questionsError) {
         console.error('Error deleting bot questions:', questionsError)
+      } else {
+        console.log('✅ Deleted bot questions')
       }
 
-      // Finally delete the bot itself (this will CASCADE delete bot_activities)
+      // Step 6: Delete bot activities (if the table exists)
+      const { error: activitiesError } = await supabase
+        .from('bot_activities')
+        .delete()
+        .eq('bot_id', id)
+
+      if (activitiesError) {
+        console.warn('Error deleting bot activities:', activitiesError)
+      } else {
+        console.log('✅ Deleted bot activities')
+      }
+
+      // Step 7: Delete bot schedules (if the table exists)
+      const { error: schedulesError } = await supabase
+        .from('bot_schedules')
+        .delete()
+        .eq('bot_id', id)
+
+      if (schedulesError) {
+        console.warn('Error deleting bot schedules:', schedulesError)
+      } else {
+        console.log('✅ Deleted bot schedules')
+      }
+
+      // Step 8: Finally delete the bot itself
       const { error } = await supabase
         .from('bots')
         .delete()
         .eq('id', id)
 
       if (error) {
-        console.error('Error deleting bot:', error)
+        console.error('Error deleting bot record:', error)
         return false
       }
 
-      console.log(`🗑️ Deleted bot ${bot.username} and all its content`)
+      console.log(`🎉 Successfully deleted bot ${bot.username} and ALL associated data:`)
+      console.log(`   - Bot memory records`)
+      console.log(`   - All votes on bot content`)
+      console.log(`   - Bot's own votes`)
+      console.log(`   - ${botAnswers?.length || 0} answers`)
+      console.log(`   - ${botQuestions?.length || 0} questions`)
+      console.log(`   - Activity logs`)
+      console.log(`   - Schedule records`)
+      console.log(`   - Bot record itself`)
+
       return true
     } catch (error) {
       console.error('Error deleting bot:', error)

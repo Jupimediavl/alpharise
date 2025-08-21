@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { SupabaseUserManager, DbUser, SupabaseAuthManager } from '@/lib/supabase'
 import { User, Mail, Calendar, Award, TrendingUp, Coins, Edit3, Save, X, ArrowLeft, Camera } from 'lucide-react'
 import Link from 'next/link'
+import UserDropdownMenu from '@/components/UserDropdownMenu'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -125,15 +126,19 @@ export default function ProfilePage() {
           </div>
           
           {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Profile
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit Profile
+              </button>
+              
+              <UserDropdownMenu user={user} userCoins={user?.coins || 0} />
+            </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleSave}
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
@@ -155,6 +160,8 @@ export default function ProfilePage() {
                 <X className="w-4 h-4" />
                 Cancel
               </button>
+              
+              <UserDropdownMenu user={user} userCoins={user?.coins || 0} />
             </div>
           )}
         </div>

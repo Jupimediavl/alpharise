@@ -5,7 +5,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp, Trash2, Shield, Bell } from 'lucide-react'
 import { 
   SupabaseQuestionManager, 
   SupabaseAnswerManager, 
@@ -17,6 +17,7 @@ import {
 } from '@/lib/supabase'
 // Removed simple coin system dependencies - using Supabase only
 import CoinAnimation from '@/components/CoinAnimation'
+import UserDropdownMenu from '@/components/UserDropdownMenu'
 
 interface QuestionWithAnswers {
   id: string
@@ -55,8 +56,9 @@ type AnswerSortType = 'best-first' | 'newest-first' | 'most-helpful'
 function CommunityContent() {
   const router = useRouter()
   const [user, setUser] = useState<DbUser | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'my-questions' | 'my-answers'>('all')
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [showNewQuestion, setShowNewQuestion] = useState(false)
   const [showAnswerModal, setShowAnswerModal] = useState(false)
@@ -85,10 +87,23 @@ function CommunityContent() {
   // FIXED: Coin system integration - prioritize Supabase coins
   const [userCoins, setUserCoins] = useState(0) // Simple coin system fallback
   const [supabaseCoins, setSupabaseCoins] = useState(0) // Primary source from Supabase
+  
+  // Personal content tracking
+  const [notifications, setNotifications] = useState<Array<{
+    id: string
+    type: 'new_answer' | 'helpful_vote' | 'best_answer'
+    message: string
+    question_id: string
+    created_at: string
+    read: boolean
+  }>>([])
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   // Ref to maintain scroll position
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const notificationsRef = useRef<HTMLDivElement>(null)
 
   // Simplified Communities - Consolidated from 8 to 4 core categories
   const communities = [
@@ -129,6 +144,20 @@ function CommunityContent() {
       icon: '⭐', 
       description: 'Real problems, real solutions from men who\'ve been there',
       color: 'from-purple-500 to-magenta-600'
+    },
+    { 
+      id: 'my-questions', 
+      name: 'My Questions', 
+      icon: '❓', 
+      description: 'Questions you\'ve posted and their current status',
+      color: 'from-blue-500 to-blue-600'
+    },
+    { 
+      id: 'my-answers', 
+      name: 'My Answers', 
+      icon: '💬', 
+      description: 'Questions you\'ve contributed answers to',
+      color: 'from-emerald-500 to-emerald-600'
     },
     ...communities
   ]
@@ -274,12 +303,19 @@ function CommunityContent() {
           router.push('/signup')
           return
         }
+
+        // Check admin status
+        setIsAdmin(userData.is_admin === true)
+        if (userData.is_admin) {
+          console.log(`👑 Admin access: ${userData.username} has moderation privileges`)
+        }
         
         console.log('✅ User authenticated for community:', userData.username)
         setUser(userData)
         
-        // Load questions
+        // Load questions and notifications
         await loadQuestions()
+        await loadNotifications()
         
       } catch (error) {
         console.error('Error loading user data:', error)
@@ -298,6 +334,20 @@ function CommunityContent() {
       initializeVisibleCount(question.id, question.answers.length)
     })
   }, [questions])
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false)
+      }
+    }
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNotifications])
 
   // FIXED: Initialize user in Supabase with proper coin loading
   const initializeUserInDB = async () => {
@@ -347,38 +397,102 @@ function CommunityContent() {
     }, 100)
   }
 
-  // Load questions from Supabase
+  // Load questions from Supabase with personal content filters
   const loadQuestions = async () => {
     setLoading(true)
     
     try {
       let loadedQuestions: QuestionWithAnswers[] = []
 
-      if (searchQuery.trim()) {
-        const searchResults = await SupabaseQuestionManager.searchQuestions(
-          searchQuery, 
-          activeTab === 'all' ? undefined : activeTab
-        )
-        
-        for (const question of searchResults) {
-          const { answers } = await SupabaseQuestionManager.getQuestionWithAnswers(question.id)
-          loadedQuestions.push({
-            ...question,
-            answers: answers || []
-          })
+      // Handle personal content filters
+      if (activeTab === 'my-questions') {
+        // Load only user's questions
+        if (user?.username) {
+          const { data, error } = await supabase
+            .from('questions')
+            .select(`
+              *,
+              answers(
+                id, author_id, author_name, content, rating, rated_by, 
+                coin_earnings, is_best_answer, votes, voted_by, created_at
+              )
+            `)
+            .eq('author_id', user.username)
+            .order('created_at', { ascending: false })
+            .limit(20)
+
+          if (!error && data) {
+            loadedQuestions = data.map(q => ({
+              ...q,
+              answers: q.answers || []
+            }))
+          }
+        }
+      } else if (activeTab === 'my-answers') {
+        // Load questions where user has answered
+        if (user?.username) {
+          const { data, error } = await supabase
+            .from('questions')
+            .select(`
+              *,
+              answers!inner(
+                id, author_id, author_name, content, rating, rated_by, 
+                coin_earnings, is_best_answer, votes, voted_by, created_at
+              )
+            `)
+            .eq('answers.author_id', user.username)
+            .order('created_at', { ascending: false })
+            .limit(20)
+
+          if (!error && data) {
+            // Get all answers for these questions, not just user's answers
+            const questionIds = data.map(q => q.id)
+            const { data: allAnswers } = await supabase
+              .from('answers')
+              .select('*')
+              .in('question_id', questionIds)
+              .order('created_at', { ascending: true })
+
+            const answersByQuestion = allAnswers?.reduce((acc, answer) => {
+              if (!acc[answer.question_id]) acc[answer.question_id] = []
+              acc[answer.question_id].push(answer)
+              return acc
+            }, {} as Record<string, any[]>) || {}
+
+            loadedQuestions = data.map(q => ({
+              ...q,
+              answers: answersByQuestion[q.id] || []
+            }))
+          }
         }
       } else {
-        const filters: any = {
-          category: activeTab === 'all' ? undefined : activeTab,
-          limit: 20,
-          sortBy: sortBy === 'unsolved' ? 'newest' : sortBy
-        }
+        // Standard loading for 'all' tab
+        if (searchQuery.trim()) {
+          const searchResults = await SupabaseQuestionManager.searchQuestions(
+            searchQuery, 
+            activeTab === 'all' ? undefined : activeTab
+          )
+          
+          for (const question of searchResults) {
+            const { answers } = await SupabaseQuestionManager.getQuestionWithAnswers(question.id)
+            loadedQuestions.push({
+              ...question,
+              answers: answers || []
+            })
+          }
+        } else {
+          const filters: any = {
+            category: activeTab === 'all' ? undefined : activeTab,
+            limit: 20,
+            sortBy: sortBy === 'unsolved' ? 'newest' : sortBy
+          }
 
-        if (sortBy === 'unsolved') {
-          filters.is_answered = false
-        }
+          if (sortBy === 'unsolved') {
+            filters.is_answered = false
+          }
 
-        loadedQuestions = await supabaseHelpers.getQuestionsWithAnswers(filters)
+          loadedQuestions = await supabaseHelpers.getQuestionsWithAnswers(filters)
+        }
       }
 
       setQuestions(loadedQuestions)
@@ -390,15 +504,172 @@ function CommunityContent() {
     }
   }
 
+  // Process notifications for smart grouping and summarization
+  const processNotificationsForDisplay = (rawNotifications: typeof notifications) => {
+    if (rawNotifications.length <= 5) {
+      // Show all individual notifications if 5 or fewer
+      return {
+        individual: rawNotifications,
+        groups: []
+      }
+    }
+
+    // Group notifications by type and question
+    const newAnswersByQuestion = rawNotifications
+      .filter(n => n.type === 'new_answer')
+      .reduce((acc, n) => {
+        const key = n.question_id
+        if (!acc[key]) acc[key] = []
+        acc[key].push(n)
+        return acc
+      }, {} as Record<string, typeof rawNotifications>)
+
+    const helpfulVotes = rawNotifications.filter(n => n.type === 'helpful_vote')
+    
+    const groups = []
+    const individual = []
+
+    // Show max 3 most recent individual notifications
+    const recentIndividual = rawNotifications.slice(0, 3)
+    individual.push(...recentIndividual)
+
+    // Group multiple answers to same question
+    Object.values(newAnswersByQuestion).forEach(answers => {
+      if (answers.length > 1) {
+        const questionTitle = answers[0].message.split('"')[1] || 'your question'
+        groups.push({
+          id: `grouped-answers-${answers[0].question_id}`,
+          type: 'grouped_answers',
+          count: answers.length,
+          message: `${answers.length} new answers to "${questionTitle}"`,
+          question_id: answers[0].question_id,
+          created_at: answers[0].created_at,
+          items: answers
+        })
+      }
+    })
+
+    // Group helpful votes
+    if (helpfulVotes.length > 3) {
+      const totalVotes = helpfulVotes.reduce((sum, vote) => {
+        const voteMatch = vote.message.match(/(\d+) helpful vote/)
+        return sum + (voteMatch ? parseInt(voteMatch[1]) : 1)
+      }, 0)
+      
+      groups.push({
+        id: 'grouped-votes',
+        type: 'grouped_votes',
+        count: helpfulVotes.length,
+        message: `Your answers received ${totalVotes} helpful votes`,
+        question_id: '',
+        created_at: helpfulVotes[0].created_at,
+        items: helpfulVotes
+      })
+    }
+
+    return { individual: individual.slice(0, 3), groups }
+  }
+
+  // Clear all notifications
+  const clearAllNotifications = () => {
+    setNotifications([])
+    setUnreadNotifications(0)
+    setShowNotifications(false)
+  }
+
+  // Load user notifications
+  const loadNotifications = async () => {
+    if (!user?.username) {
+      console.log('🔔 Cannot load notifications: no username')
+      return
+    }
+
+    console.log('🔔 Loading notifications for user:', user.username)
+
+    try {
+      // Get new answers to user's questions
+      const { data: newAnswers } = await supabase
+        .from('answers')
+        .select(`
+          id, content, created_at, question_id,
+          questions(title, author_id)
+        `)
+        .eq('questions.author_id', user.username)
+        .neq('author_id', user.username) // Don't notify about own answers
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+        .order('created_at', { ascending: false })
+
+      // Get helpful votes on user's answers  
+      const { data: helpfulVotes } = await supabase
+        .from('answers')
+        .select(`
+          id, votes, voted_by, created_at, question_id,
+          questions(title)
+        `)
+        .eq('author_id', user.username)
+        .gte('votes', 1)
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+
+      const notificationsList = []
+
+      // Process new answers
+      if (newAnswers) {
+        for (const answer of newAnswers) {
+          notificationsList.push({
+            id: `answer-${answer.id}`,
+            type: 'new_answer' as const,
+            message: `New answer to your question "${(answer.questions as any)?.title}"`,
+            question_id: answer.question_id,
+            created_at: answer.created_at,
+            read: false
+          })
+        }
+      }
+
+      // Process helpful votes (simplified - just show if has votes)
+      if (helpfulVotes) {
+        for (const vote of helpfulVotes) {
+          if (vote.votes > 0) {
+            notificationsList.push({
+              id: `vote-${vote.id}`,
+              type: 'helpful_vote' as const,
+              message: `Your answer got ${vote.votes} helpful vote${vote.votes > 1 ? 's' : ''}`,
+              question_id: vote.question_id,
+              created_at: vote.created_at,
+              read: false
+            })
+          }
+        }
+      }
+
+      // Sort by newest first and limit to 10
+      notificationsList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      const limitedNotifications = notificationsList.slice(0, 10)
+
+      console.log('🔔 Found notifications:', {
+        newAnswers: newAnswers?.length || 0,
+        helpfulVotes: helpfulVotes?.length || 0,
+        total: limitedNotifications.length
+      })
+
+      setNotifications(limitedNotifications)
+      setUnreadNotifications(limitedNotifications.length)
+
+    } catch (error) {
+      console.error('🔔 Error loading notifications:', error)
+    }
+  }
+
   // Refresh questions
   const refreshQuestions = async () => {
     setRefreshing(true)
     saveScrollPosition()
     await loadQuestions()
     
-    // Also refresh coins on refresh
+    // Also refresh coins and notifications on refresh
     if (user?.username) {
       await refreshUserCoins(user.username)
+      await loadNotifications()
     }
     
     restoreScrollPosition()
@@ -680,14 +951,36 @@ function CommunityContent() {
       }
 
       // Reward answer author with coins for helpful vote
+      let coinsEarned = 0
+      let isBestAnswer = false
+      
       if (data.author_id && data.author_id !== user.username) {
         const authorData = await SupabaseUserManager.getUserByUsername(data.author_id)
         if (authorData) {
-          const newAuthorBalance = (authorData.coins || 0) + 1
-          await SupabaseUserManager.updateUserCoins(data.author_id, newAuthorBalance)
-          console.log('💰 Rewarded answer author:', data.author_id, '+1 coin')
+          // Starting from 5th vote, earn 1 coin per vote
+          if (newVotes >= 5) {
+            coinsEarned = 1
+          }
           
-          // Animation will be shown when that user logs in and sees updated balance
+          // At 7+ votes, automatically becomes Best Answer and earns 5 coin bonus
+          if (newVotes >= 7) {
+            isBestAnswer = true
+            coinsEarned = 6 // 1 for vote + 5 bonus for best answer
+            
+            // Update answer as best answer in database
+            await supabase
+              .from('answers')
+              .update({ is_best_answer: true })
+              .eq('id', answerId)
+            
+            console.log('🏆 Auto Best Answer at 7+ votes:', answerId)
+          }
+          
+          if (coinsEarned > 0) {
+            const newAuthorBalance = (authorData.coins || 0) + coinsEarned
+            await SupabaseUserManager.updateUserCoins(data.author_id, newAuthorBalance)
+            console.log(`💰 Rewarded answer author: ${data.author_id}, +${coinsEarned} coins`)
+          }
         }
       }
 
@@ -699,12 +992,21 @@ function CommunityContent() {
               return {
                 ...answer,
                 votes: newVotes,
-                voted_by: newVotedBy
+                voted_by: newVotedBy,
+                is_best_answer: isBestAnswer || answer.is_best_answer
               }
             }
             return answer
           })
-          return { ...question, answers: updatedAnswers }
+          
+          // Update question's best_answer_id if this became best answer
+          const updatedQuestion = { ...question, answers: updatedAnswers }
+          if (isBestAnswer) {
+            updatedQuestion.best_answer_id = answerId
+            updatedQuestion.is_solved = true
+          }
+          
+          return updatedQuestion
         })
       })
 
@@ -712,6 +1014,136 @@ function CommunityContent() {
       
     } catch (error) {
       console.error('Error voting on answer:', error)
+    }
+  }
+
+  // ADMIN: Delete question (admin version)
+  const handleAdminDeleteQuestion = async (questionId: string, questionTitle: string) => {
+    if (!isAdmin) {
+      alert('⚠️ Access denied: Admin privileges required')
+      return
+    }
+
+    const confirmDelete = prompt(`🗑️ DELETE QUESTION
+    
+Are you sure you want to permanently delete this question?
+
+"${questionTitle}"
+
+This will also delete:
+• All answers to this question
+• All votes on the question and answers
+• This action CANNOT be undone!
+
+Type "DELETE" to confirm:`)
+
+    if (confirmDelete !== 'DELETE') {
+      alert('Deletion cancelled')
+      return
+    }
+
+    try {
+      console.log(`🗑️ Admin ${user?.username} deleting question: ${questionId}`)
+      
+      // Get all answers for this question (for logging purposes)
+      const { data: questionAnswers } = await supabase
+        .from('answers')
+        .select('id')
+        .eq('question_id', questionId)
+
+      // Delete all answers for this question
+      // (votes are stored in voted_by arrays within answers, so they'll be deleted automatically)
+      const { error: answersError } = await supabase
+        .from('answers')
+        .delete()
+        .eq('question_id', questionId)
+
+      if (answersError) {
+        console.error('Error deleting answers:', answersError)
+      } else {
+        console.log(`🗑️ Deleted ${questionAnswers?.length || 0} answers with their votes`)
+      }
+
+      // Delete the question itself
+      const { error: questionError } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId)
+
+      if (questionError) {
+        console.error('Error deleting question:', questionError)
+        alert('❌ Error deleting question')
+        return
+      }
+
+      // Update UI - remove question from list
+      setQuestions(prev => prev.filter(q => q.id !== questionId))
+      
+      console.log(`✅ Admin deleted question: ${questionTitle}`)
+      alert(`✅ Question "${questionTitle}" has been permanently deleted`)
+      
+    } catch (error) {
+      console.error('Error deleting question:', error)
+      alert('❌ Error deleting question')
+    }
+  }
+
+  // ADMIN: Delete answer (admin version)
+  const handleAdminDeleteAnswer = async (answerId: string, questionId: string) => {
+    if (!isAdmin) {
+      alert('⚠️ Access denied: Admin privileges required')
+      return
+    }
+
+    const confirmDelete = prompt(`🗑️ DELETE ANSWER
+    
+Are you sure you want to permanently delete this answer?
+
+This will also delete:
+• All votes on this answer
+• This action CANNOT be undone!
+
+Type "DELETE" to confirm:`)
+
+    if (confirmDelete !== 'DELETE') {
+      alert('Deletion cancelled')
+      return
+    }
+
+    try {
+      console.log(`🗑️ Admin ${user?.username} deleting answer: ${answerId}`)
+      
+      // Delete the answer itself (votes are stored in voted_by array, so they'll be deleted automatically)
+      const { error: answerError } = await supabase
+        .from('answers')
+        .delete()
+        .eq('id', answerId)
+
+      if (answerError) {
+        console.error('Error deleting answer:', answerError)
+        alert('❌ Error deleting answer')
+        return
+      }
+
+      // Update UI - remove answer from question
+      setQuestions(prev => 
+        prev.map(question => {
+          if (question.id === questionId) {
+            return {
+              ...question,
+              answers: question.answers.filter(a => a.id !== answerId)
+            }
+          }
+          return question
+        })
+      )
+      
+      console.log(`✅ Admin deleted answer: ${answerId}`)
+      alert('✅ Answer has been permanently deleted')
+      
+    } catch (error) {
+      console.error('Error deleting answer:', error)
+      alert('❌ Error deleting answer')
     }
   }
 
@@ -988,12 +1420,140 @@ function CommunityContent() {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
-            {/* FIXED: Display Supabase coins as primary, with fallback */}
-            <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-magenta-500/20 text-white px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-semibold border border-purple-500/30">
-              <Coins className="w-4 h-4" />
-              <span>{user?.coins || 0}</span>
+
+            {/* Notifications */}
+            <div className="relative" ref={notificationsRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 bg-white/10 hover:bg-purple-500/20 rounded-lg transition-colors relative"
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notifications Dropdown - Mobile Responsive */}
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-screen max-w-sm sm:w-96 sm:max-w-none bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto -mr-4 sm:mr-0">
+                  <div className="p-3 border-b border-gray-700 flex justify-between items-center">
+                    <h3 className="font-medium text-white">Recent Activity ({notifications.length})</h3>
+                    <div className="flex gap-2">
+                      {notifications.length > 0 ? (
+                        <button
+                          onClick={clearAllNotifications}
+                          className="text-xs text-gray-400 hover:text-white transition-colors"
+                        >
+                          Clear All
+                        </button>
+                      ) : (
+                        <button
+                          onClick={loadNotifications}
+                          className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Refresh
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {(() => {
+                    if (notifications.length === 0) {
+                      return (
+                        <div className="p-6 text-center">
+                          <Bell className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                          <p className="text-gray-400 text-sm">No recent activity</p>
+                          <p className="text-gray-500 text-xs mt-1">You'll see new answers and votes here</p>
+                        </div>
+                      )
+                    }
+
+                    const { individual, groups } = processNotificationsForDisplay(notifications)
+                    return (
+                      <div className="divide-y divide-gray-700">
+                        {/* Grouped Notifications */}
+                        {groups.map((group) => (
+                          <div 
+                            key={group.id}
+                            className="p-3 hover:bg-gray-800 cursor-pointer"
+                            onClick={() => {
+                              if (group.question_id) {
+                                const questionElement = document.getElementById(`question-${group.question_id}`)
+                                if (questionElement) {
+                                  questionElement.scrollIntoView({ behavior: 'smooth' })
+                                  setShowNotifications(false)
+                                }
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-2">
+                              {group.type === 'grouped_answers' && <MessageCircle className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />}
+                              {group.type === 'grouped_votes' && <ThumbsUp className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs font-medium">
+                                    {group.count}
+                                  </span>
+                                  <p className="text-sm text-white font-medium">{group.message}</p>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(group.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Individual Notifications */}
+                        {individual.map((notification) => (
+                          <div 
+                            key={notification.id} 
+                            className="p-3 hover:bg-gray-800 cursor-pointer"
+                            onClick={() => {
+                              const questionElement = document.getElementById(`question-${notification.question_id}`)
+                              if (questionElement) {
+                                questionElement.scrollIntoView({ behavior: 'smooth' })
+                                setShowNotifications(false)
+                                // Mark as read
+                                setNotifications(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n))
+                                setUnreadNotifications(prev => Math.max(0, prev - 1))
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-2">
+                              {notification.type === 'new_answer' && <MessageCircle className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />}
+                              {notification.type === 'helpful_vote' && <ThumbsUp className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />}
+                              <div className="flex-1">
+                                <p className="text-sm text-white">{notification.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(notification.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Show summary if many notifications */}
+                        {notifications.length > 8 && (
+                          <div className="p-3 border-t border-gray-700 text-center">
+                            <p className="text-xs text-gray-400">
+                              Showing recent activity • {notifications.length} total notifications
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
-            <div className="text-sm opacity-70 hidden lg:block">Hey {user?.username || 'User'}!</div>
+            
+            {/* User Dropdown Menu */}
+            <UserDropdownMenu user={user} userCoins={user?.coins || 0} />
           </div>
         </div>
       </header>
@@ -1080,6 +1640,7 @@ function CommunityContent() {
               return (
                 <motion.div
                   key={question.id}
+                  id={`question-${question.id}`}
                   className="bg-gradient-to-r from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-lg"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1090,15 +1651,34 @@ function CommunityContent() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-lg font-bold">{question.title}</h3>
-                        {question.is_solved && (
+                        
+                        {/* Answer Status Indicators */}
+                        {question.answers.length === 0 ? (
+                          <div className="bg-orange-500/20 text-orange-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            <span>No Answers</span>
+                          </div>
+                        ) : question.is_solved ? (
                           <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
                             ✓ Solved
                           </div>
+                        ) : (
+                          <div className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            <span>{question.answers.length} Answer{question.answers.length !== 1 ? 's' : ''}</span>
+                          </div>
                         )}
+                        
                         {question.question_type === 'urgent' && (
                           <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             <span>Urgent</span>
+                          </div>
+                        )}
+                        {isAdmin && (
+                          <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            <span>ADMIN</span>
                           </div>
                         )}
                       </div>
@@ -1126,6 +1706,19 @@ function CommunityContent() {
                       
                       <p className="text-base opacity-90 leading-relaxed">{question.body}</p>
                     </div>
+
+                    {/* Admin Controls */}
+                    {isAdmin && (
+                      <div className="flex flex-col gap-2 ml-4">
+                        <button
+                          onClick={() => handleAdminDeleteQuestion(question.id, question.title)}
+                          className="p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete Question (Admin Only)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* View Answers Button */}
@@ -1214,6 +1807,18 @@ function CommunityContent() {
                                 }`}
                               >
                                 {answer.is_best_answer ? '✅ Best Answer' : 'Mark as Best'}
+                              </button>
+                            )}
+                            
+                            {/* Admin delete button */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleAdminDeleteAnswer(answer.id, question.id)}
+                                className="px-3 py-1 bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 rounded-lg transition-colors text-sm text-red-300 hover:text-red-200 flex items-center gap-1"
+                                title="Delete Answer (Admin Only)"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Admin Delete</span>
                               </button>
                             )}
                             

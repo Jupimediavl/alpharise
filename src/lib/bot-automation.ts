@@ -20,6 +20,7 @@ interface BotActionResult {
 export class BotAutomation {
   private static isRunning = false
   private static intervalId: NodeJS.Timeout | null = null
+  private static allIntervalIds: NodeJS.Timeout[] = []
 
   // Start the automation engine
   static start(intervalMinutes: number = 5): void {
@@ -34,6 +35,9 @@ export class BotAutomation {
     this.intervalId = setInterval(async () => {
       await this.runAutomationCycle()
     }, intervalMinutes * 60 * 1000)
+    
+    // Track all intervals
+    this.allIntervalIds.push(this.intervalId)
 
     // Run initial cycle
     this.runAutomationCycle()
@@ -41,21 +45,37 @@ export class BotAutomation {
 
   // Stop the automation engine
   static stop(): void {
-    if (!this.isRunning) return
+    console.log('🛑 Attempting to stop bot automation...')
+    console.log(`Current isRunning: ${this.isRunning}`)
+    console.log(`Active intervals: ${this.allIntervalIds.length}`)
 
-    console.log('🛑 Stopping bot automation')
-    
+    // Clear main interval
     if (this.intervalId) {
       clearInterval(this.intervalId)
       this.intervalId = null
+      console.log('✅ Cleared main interval')
     }
     
+    // Clear all tracked intervals
+    this.allIntervalIds.forEach((intervalId, index) => {
+      clearInterval(intervalId)
+      console.log(`✅ Cleared interval ${index + 1}`)
+    })
+    this.allIntervalIds = []
+    
     this.isRunning = false
+    console.log('🛑 Bot automation stopped completely')
   }
 
   // Main automation cycle
   static async runAutomationCycle(): Promise<void> {
     try {
+      // Safety check - exit immediately if automation is stopped
+      if (!this.isRunning) {
+        console.log('⏹️ Automation cycle aborted - automation is stopped')
+        return
+      }
+      
       console.log('🔄 Running bot automation cycle at:', new Date().toISOString())
       
       const activeBots = await BotManager.getActiveBots()
@@ -138,7 +158,7 @@ export class BotAutomation {
     }
 
     // Get recent community activity
-    const recentQuestions = await this.getRecentUnansweredQuestions()
+    const recentQuestions = await this.getRecentAnswerableQuestions()
     const myRecentActivity = await BotManager.getBotActivities(bot.id, 5)
     
     // Avoid spam - limit actions per time period
@@ -153,26 +173,34 @@ export class BotAutomation {
     // Decide action based on bot type
     switch (bot.type) {
       case 'questioner':
-        // 80% chance to ask question, 20% chance to vote
-        return randomFactor < 0.8 ? 'ask_question' : 'vote'
+        // QUESTIONER bots should primarily ask questions, never answer
+        // 70% chance to ask question, 30% chance to vote
+        return randomFactor < 0.7 ? 'ask_question' : 'vote'
       
       case 'answerer':
-        // ANSWERER bots should primarily answer, rarely ask questions
+        // ANSWERER bots should ONLY answer questions, NEVER ask them
         if (recentQuestions.length > 0) {
-          // Questions available - 90% chance to answer, 10% chance to vote
-          return randomFactor < 0.9 ? 'answer_question' : 'vote'
+          // Questions available - 85% chance to answer, 15% chance to vote
+          return randomFactor < 0.85 ? 'answer_question' : 'vote'
         } else {
-          // No questions to answer - 30% chance to ask one, 70% chance to vote/wait
-          return randomFactor < 0.3 ? 'ask_question' : 'vote'
+          // No questions to answer - just vote or stay quiet
+          return randomFactor < 0.2 ? 'vote' : null
         }
       
       case 'mixed':
-        // Balanced approach - always willing to ask questions
+        // MIXED bots have balanced behavior - can both ask and answer
         if (recentQuestions.length > 2) {
-          // Many questions exist, prefer answering
-          return randomFactor < 0.5 ? 'answer_question' : 'ask_question'
+          // Many questions exist, prefer answering (60% answer, 30% ask, 10% vote)
+          if (randomFactor < 0.6) return 'answer_question'
+          else if (randomFactor < 0.9) return 'ask_question'
+          else return 'vote'
+        } else if (recentQuestions.length > 0) {
+          // Some questions exist (40% answer, 40% ask, 20% vote)
+          if (randomFactor < 0.4) return 'answer_question'
+          else if (randomFactor < 0.8) return 'ask_question'
+          else return 'vote'
         } else {
-          // Few or no questions, prefer asking
+          // No questions to answer - focus on asking (70% ask, 30% vote)
           return randomFactor < 0.7 ? 'ask_question' : 'vote'
         }
       
@@ -238,13 +266,18 @@ export class BotAutomation {
       }
 
       // Generate question using AI
+      console.log(`🤖 Generating question for bot ${bot.name}...`)
       const questionData = await BotIntelligence.generateQuestion(bot, personality, context)
       
       if (!questionData) {
+        console.error(`❌ Bot ${bot.name} - Failed to generate question`)
         throw new Error('Failed to generate question')
       }
+      
+      console.log(`✅ Bot ${bot.name} - Generated question: "${questionData.title}"`)
 
       // Post question to community (marked as bot-generated and pending moderation)
+      console.log(`📝 Bot ${bot.name} - Creating question in database...`)
       const question = await SupabaseQuestionManager.createQuestion({
         title: questionData.title,
         body: questionData.body,
@@ -265,8 +298,11 @@ export class BotAutomation {
       })
 
       if (!question) {
+        console.error(`❌ Bot ${bot.name} - Failed to create question in database`)
         throw new Error('Failed to create question in database')
       }
+      
+      console.log(`🎉 Bot ${bot.name} - Successfully created question in database with ID: ${question.id}`)
 
       // Log activity
       await BotManager.logActivity(
@@ -303,8 +339,8 @@ export class BotAutomation {
   // Execute answer posting
   private static async executeBotAnswer(bot: Bot, context: any): Promise<BotActionResult> {
     try {
-      // Get recent unanswered questions (not by this bot)
-      const questions = await this.getRecentUnansweredQuestions()
+      // Get recent answerable questions (not by this bot)
+      const questions = await this.getRecentAnswerableQuestions()
       const questionsNotByThisBot = questions.filter(q => q.author_id !== bot.username)
       
       if (questionsNotByThisBot.length === 0) {
@@ -533,8 +569,8 @@ export class BotAutomation {
     }
   }
 
-  // Helper: Get recent unanswered questions
-  private static async getRecentUnansweredQuestions(): Promise<any[]> {
+  // Helper: Get recent answerable questions (including those with existing answers)
+  private static async getRecentAnswerableQuestions(): Promise<any[]> {
     try {
       const { data: questions, error } = await supabase
         .from('questions')
@@ -557,13 +593,68 @@ export class BotAutomation {
         return []
       }
 
-      // Filter to truly unanswered questions
-      const unansweredQuestions = questions.filter(q => !q.answers || q.answers.length === 0)
-      console.log(`📋 Found ${unansweredQuestions.length} unanswered questions out of ${questions.length} total`)
-      return unansweredQuestions
+      // Filter to questions that can still receive more answers (max 4 answers per question)
+      const answerableQuestions = questions.filter(q => !q.answers || q.answers.length < 4)
+      console.log(`📋 Found ${answerableQuestions.length} answerable questions out of ${questions.length} total (allowing up to 4 answers per question)`)
+      return answerableQuestions
     } catch (error) {
-      console.error('Error fetching unanswered questions:', error)
+      console.error('Error fetching answerable questions:', error)
       return []
+    }
+  }
+
+  // Manual bulk trigger - run all active bots without schedule restrictions
+  static async runAllActiveBotsManually(): Promise<void> {
+    try {
+      console.log('🚀 Manual bulk trigger: Running all active bots...')
+      
+      const activeBots = await BotManager.getActiveBots()
+      console.log(`🤖 Found ${activeBots.length} active bots for manual execution`)
+      
+      if (activeBots.length === 0) {
+        console.log('⚠️ No active bots found')
+        return
+      }
+
+      const results: BotActionResult[] = []
+
+      // Process each active bot - skip schedule restrictions for manual trigger
+      for (const bot of activeBots) {
+        try {
+          console.log(`🔍 Manual processing bot: ${bot.name} (${bot.type})`)
+
+          // Get community context
+          const context = await BotIntelligence.getCommunityContext()
+
+          // Decide what action to take (same logic as automation)
+          const action = await this.decideBotAction(bot, context)
+          
+          if (action) {
+            console.log(`🚀 Manual executing action "${action}" for ${bot.name}`)
+            const result = await this.executeBotAction(bot, action, context)
+            console.log(`📝 Manual action result for ${bot.name}:`, result.success ? '✅ Success' : '❌ Failed', result.error || '')
+            results.push(result)
+          } else {
+            console.log(`😴 Bot ${bot.name} decided to stay quiet this cycle`)
+          }
+
+        } catch (error) {
+          console.error(`Error manually processing bot ${bot.name}:`, error)
+          results.push({
+            success: false,
+            action: 'error',
+            botId: bot.id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })
+        }
+      }
+
+      // Log results
+      const successful = results.filter(r => r.success).length
+      console.log(`✅ Manual bulk execution complete: ${successful}/${results.length} actions successful`)
+
+    } catch (error) {
+      console.error('Error in manual bulk execution:', error)
     }
   }
 
@@ -583,14 +674,9 @@ export class BotAutomation {
         }
       }
 
-      if (bot.status !== 'active') {
-        return {
-          success: false,
-          action,
-          botId,
-          error: 'Bot is not active'
-        }
-      }
+      // Manual triggers work for both active and paused bots
+      console.log(`🎯 Manual trigger: ${action} for bot ${bot.name} (status: ${bot.status})`)
+      console.log(`Bot details:`, { id: bot.id, type: bot.type, openai_model: bot.openai_model })
 
       const context = await BotIntelligence.getCommunityContext()
       
