@@ -32,6 +32,8 @@ export interface BotPersonality {
   traits: Record<string, any>
   prompt_template: string
   response_style: Record<string, any>
+  tone?: string
+  communication_style?: string
   created_at: string
 }
 

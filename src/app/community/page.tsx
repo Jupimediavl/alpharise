@@ -661,8 +661,8 @@ function CommunityContent() {
         .order('created_at', { ascending: false })
 
       // Filter for answers to user's questions and get question titles
-      let userQuestionAnswers = []
-      if (newAnswers?.length > 0) {
+      let userQuestionAnswers: any[] = []
+      if (newAnswers && newAnswers.length > 0) {
         const questionIds = [...new Set(newAnswers.map(a => a.question_id))]
         const { data: questions } = await supabase
           .from('questions')
