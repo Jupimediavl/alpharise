@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Bot, BotIcon, Plus, Edit, Trash2, Play, Pause, Search, 
   Filter, ChevronDown, ChevronUp, Check, X, AlertCircle,
@@ -60,6 +60,8 @@ export default function EnhancedBotsSection() {
   useEffect(() => {
     loadBotData()
     checkAutomationStatus()
+    
+    // Cleanup is handled by countdown timer useEffect
   }, [])
   
   // Apply filters
@@ -155,17 +157,32 @@ export default function EnhancedBotsSection() {
     let interval: NodeJS.Timeout
 
     if (automationRunning && nextActionCountdown > 0) {
-      interval = setInterval(() => {
+      interval = setInterval(async () => {
         setNextActionCountdown(prev => {
-          const newValue = prev <= 1 ? automationInterval * 60 : prev - 1
+          const willExecute = prev <= 1
+          const newValue = willExecute ? automationInterval * 60 : prev - 1
           
           console.log('⏱️ Countdown tick:', {
             prev,
             newValue,
-            willReset: prev <= 1,
+            willExecute,
             automationInterval,
             resetTo: automationInterval * 60
           })
+          
+          // Execute automation cycle when countdown reaches 0
+          if (willExecute) {
+            console.log('🚀 Countdown reached 0! Executing automation cycle...')
+            // Execute automation cycle asynchronously
+            fetch('/api/bots/automation/cycle', { method: 'POST' })
+              .then(response => response.json())
+              .then(result => {
+                console.log('✅ Countdown-triggered automation cycle result:', result)
+              })
+              .catch(error => {
+                console.error('❌ Error in countdown-triggered automation cycle:', error)
+              })
+          }
           
           // Save countdown and timestamp to localStorage
           localStorage.setItem('bot_automation_countdown', newValue.toString())
@@ -199,7 +216,19 @@ export default function EnhancedBotsSection() {
   
   const checkAutomationStatus = () => {
     const storedStatus = localStorage.getItem('bot_automation_running')
-    setAutomationRunning(storedStatus === 'true')
+    const storedInterval = localStorage.getItem('bot_automation_interval')
+    
+    if (storedStatus === 'true' && storedInterval) {
+      const intervalMinutes = parseInt(storedInterval)
+      setAutomationRunning(true)
+      setAutomationInterval(intervalMinutes)
+      
+      // Automation will be handled by countdown timer from loadUserSettings
+      console.log('🔄 Restoring automation on page load:', intervalMinutes, 'minutes')
+      console.log('📖 Loaded interval from localStorage:', storedInterval)
+    } else {
+      setAutomationRunning(false)
+    }
   }
   
   // Pagination logic
@@ -505,6 +534,7 @@ export default function EnhancedBotsSection() {
                 }}
                 className="px-3 py-2 bg-white/20 rounded-lg text-white border-none outline-none"
               >
+                <option value={1}>1 min (testing)</option>
                 <option value={5}>5 min</option>
                 <option value={10}>10 min</option>
                 <option value={15}>15 min</option>
@@ -513,18 +543,33 @@ export default function EnhancedBotsSection() {
               </select>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (automationRunning) {
-                    BotAutomation.stop()
+                    // Stop automation
                     setAutomationRunning(false)
                     localStorage.setItem('bot_automation_running', 'false')
                     localStorage.removeItem('bot_automation_countdown')
                     localStorage.removeItem('bot_automation_timestamp')
+                    console.log('🛑 Bot automation stopped')
                   } else {
-                    BotAutomation.start(automationInterval)
+                    // Start automation
                     setAutomationRunning(true)
                     localStorage.setItem('bot_automation_running', 'true')
                     localStorage.setItem('bot_automation_interval', automationInterval.toString())
+                    
+                    // Initialize countdown timer (do NOT run immediately)
+                    console.log('🚀 Starting bot automation...', automationInterval, 'minutes')
+                    console.log('📝 Saving interval to localStorage:', automationInterval)
+                    console.log('⏰ Setting countdown timer to wait for first execution')
+                    
+                    // Set countdown to full interval - automation will run AFTER timer expires
+                    const initialCountdown = automationInterval * 60
+                    setNextActionCountdown(initialCountdown)
+                    localStorage.setItem('bot_automation_countdown', initialCountdown.toString())
+                    localStorage.setItem('bot_automation_timestamp', Date.now().toString())
+                    
+                    // The countdown timer will handle automation execution
+                    console.log('✅ Automation started successfully - countdown timer will handle execution')
                   }
                 }}
                 className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${

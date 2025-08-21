@@ -215,8 +215,8 @@ export default function ProfilePage() {
                   <h2 className="text-3xl font-bold text-white mb-2">{user.username}</h2>
                   <p className="text-gray-400 mb-4">{user.email}</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                    <div className="bg-purple-500/20 px-3 py-1 rounded-full text-purple-300 text-sm">
-                      Level {1}
+                    <div className={`px-3 py-1 rounded-full text-sm ${user.current_plan === 'premium' ? 'bg-green-500/20 text-green-300' : 'bg-orange-500/20 text-orange-300'}`}>
+                      {user.current_plan === 'premium' ? '💎 Premium' : '⚡ Trial'}
                     </div>
                     <div className="bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-300 text-sm">
                       {user.current_plan} Member

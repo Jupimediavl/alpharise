@@ -713,6 +713,7 @@ export class SupabaseQuestionManager {
     is_answered?: boolean
     author_id?: string
     limit?: number
+    offset?: number
     sortBy?: 'newest' | 'oldest' | 'popular' | 'urgent'
   } = {}): Promise<DbQuestion[]> {
     try {
@@ -751,7 +752,9 @@ export class SupabaseQuestionManager {
           query = query.order('last_activity', { ascending: false })
       }
 
-      if (filters.limit) {
+      if (filters.limit && filters.offset !== undefined) {
+        query = query.range(filters.offset, filters.offset + filters.limit - 1)
+      } else if (filters.limit) {
         query = query.limit(filters.limit)
       }
 

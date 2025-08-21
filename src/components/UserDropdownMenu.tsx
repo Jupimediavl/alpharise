@@ -132,7 +132,9 @@ export default function UserDropdownMenu({ user, userCoins }: UserDropdownMenuPr
                 <div>
                   <div className="font-semibold text-white">{user?.username || 'User'}</div>
                   <div className="text-sm text-gray-400">{user?.email || 'member@alpharise.app'}</div>
-                  <div className="text-xs text-purple-400 capitalize">{user?.coach || 'Member'} • Level 1</div>
+                  <div className={`text-xs font-semibold ${user?.current_plan === 'premium' ? 'text-green-400' : 'text-orange-400'}`}>
+                    {user?.current_plan === 'premium' ? '💎 Premium Plan' : '⚡ Trial Plan'}
+                  </div>
                 </div>
               </div>
             </div>

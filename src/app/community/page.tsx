@@ -80,6 +80,7 @@ function CommunityContent() {
   const [hasMoreQuestions, setHasMoreQuestions] = useState(true)
   const [totalQuestionsCount, setTotalQuestionsCount] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [consecutiveDuplicateLoads, setConsecutiveDuplicateLoads] = useState(0)
   const QUESTIONS_PER_PAGE = 15
 
   // Answer display management - simplified to show/hide
@@ -150,7 +151,7 @@ function CommunityContent() {
   const allCommunities = [
     { 
       id: 'all', 
-      name: 'All Communities', 
+      name: 'All Questions', 
       icon: '⭐', 
       description: 'Real problems, real solutions from men who\'ve been there',
       color: 'from-purple-500 to-magenta-600'
@@ -451,6 +452,14 @@ function CommunityContent() {
       // Fix offset calculation: use questions.length for load more to avoid duplicates
       const offset = isLoadMore ? questions.length : 0
       const limit = QUESTIONS_PER_PAGE
+      
+      console.log(`🔍 Query params:`, { 
+        isLoadMore, 
+        offset, 
+        limit, 
+        currentQuestionsCount: questions.length,
+        activeTab 
+      })
 
       // Handle personal content filters
       if (activeTab === 'my-questions') {
@@ -545,17 +554,63 @@ function CommunityContent() {
       }
 
       // Handle pagination logic
+      let actualNewQuestionsCount = 0
+      
       if (isLoadMore) {
-        // Append new questions to existing ones
-        setQuestions(prev => [...prev, ...loadedQuestions])
+        // Append new questions to existing ones, but deduplicate by ID
+        setQuestions(prev => {
+          const existingIds = new Set(prev.map(q => q.id))
+          const newQuestions = loadedQuestions.filter(q => !existingIds.has(q.id))
+          
+          // Also ensure unique answer IDs within each question
+          const cleanedQuestions = newQuestions.map(question => ({
+            ...question,
+            answers: question.answers.filter((answer, index, arr) => 
+              arr.findIndex(a => a.id === answer.id) === index
+            )
+          }))
+          
+          actualNewQuestionsCount = cleanedQuestions.length
+          console.log(`📋 Load more: ${prev.length} existing + ${cleanedQuestions.length} new (${loadedQuestions.length - cleanedQuestions.length} duplicates filtered)`)
+          return [...prev, ...cleanedQuestions]
+        })
       } else {
-        // Replace questions (first load or refresh)
-        setQuestions(loadedQuestions)
+        // Replace questions (first load or refresh) - also deduplicate
+        const cleanedQuestions = loadedQuestions.map(question => ({
+          ...question,
+          answers: question.answers.filter((answer, index, arr) => 
+            arr.findIndex(a => a.id === answer.id) === index
+          )
+        }))
+        actualNewQuestionsCount = cleanedQuestions.length
+        setQuestions(cleanedQuestions)
         setTotalQuestionsCount(0) // Will be updated when we add count query
       }
       
+      // Track consecutive duplicate loads to prevent infinite pagination
+      if (isLoadMore) {
+        if (actualNewQuestionsCount === 0) {
+          setConsecutiveDuplicateLoads(prev => prev + 1)
+        } else {
+          setConsecutiveDuplicateLoads(0) // Reset counter when we get new questions
+        }
+      } else {
+        setConsecutiveDuplicateLoads(0) // Reset on fresh load
+      }
+      
       // Check if there are more questions to load
-      setHasMoreQuestions(loadedQuestions.length === QUESTIONS_PER_PAGE)
+      // Stop if we loaded fewer than QUESTIONS_PER_PAGE OR if we've had too many consecutive duplicate loads
+      const hasMore = loadedQuestions.length === QUESTIONS_PER_PAGE && consecutiveDuplicateLoads < 3
+      console.log(`📊 Pagination check:`, {
+        loadedQuestionsLength: loadedQuestions.length,
+        QUESTIONS_PER_PAGE,
+        actualNewQuestionsCount,
+        consecutiveDuplicateLoads: isLoadMore ? (actualNewQuestionsCount === 0 ? consecutiveDuplicateLoads + 1 : 0) : 0,
+        hasMore,
+        isLoadMore,
+        currentOffset: isLoadMore ? questions.length : 0
+      })
+      setHasMoreQuestions(hasMore)
       
     } catch (error) {
       console.error('❌ Error loading questions:', error)
@@ -661,9 +716,15 @@ function CommunityContent() {
         .order('created_at', { ascending: false })
 
       // Filter for answers to user's questions and get question titles
-      let userQuestionAnswers: any[] = []
-      if (newAnswers && newAnswers.length > 0) {
-        const questionIds = [...new Set(newAnswers.map(a => a.question_id))]
+      let userQuestionAnswers: Array<{
+        id: string;
+        question_id: string;
+        author_id: string;
+        created_at: string;
+        questionTitle?: string;
+      }> = []
+      if (newAnswers && Array.isArray(newAnswers) && newAnswers.length > 0) {
+        const questionIds = [...new Set(newAnswers.map((a: any) => a.question_id))]
         const { data: questions } = await supabase
           .from('questions')
           .select('id, title, author_id')
@@ -746,7 +807,12 @@ function CommunityContent() {
 
   // Load more questions (pagination)
   const loadMoreQuestions = async () => {
-    if (loadingMore || !hasMoreQuestions) return
+    console.log('🔄 Load More clicked:', { loadingMore, hasMoreQuestions, currentCount: questions.length })
+    if (loadingMore || !hasMoreQuestions) {
+      console.log('❌ Load More blocked:', { loadingMore, hasMoreQuestions })
+      return
+    }
+    console.log('✅ Load More proceeding...')
     await loadQuestions(true)
   }
 
