@@ -58,7 +58,7 @@ function CommunityContent() {
   const [user, setUser] = useState<DbUser | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'all' | 'my-questions' | 'my-answers'>('all')
+  const [activeTab, setActiveTab] = useState<string>('all')
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [showNewQuestion, setShowNewQuestion] = useState(false)
   const [showAnswerModal, setShowAnswerModal] = useState(false)

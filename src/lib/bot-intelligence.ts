@@ -61,8 +61,8 @@ export class BotIntelligence {
         .limit(100)
 
       const allQuestionsToCheck = [
-        ...(botMemory || []).map(q => q.question_text),
-        ...(recentQuestions || []).map(q => `${q.title} ${q.body}`)
+        ...(botMemory || []).map((q: any) => q.question_text),
+        ...(recentQuestions || []).map((q: any) => `${q.title} ${q.body}`)
       ]
 
       // Check for similarity
@@ -272,7 +272,7 @@ export class BotIntelligence {
         .range(100, 1000) // Get entries beyond the 100 most recent
 
       if (oldEntries && oldEntries.length > 0) {
-        const idsToDelete = oldEntries.map(entry => entry.id)
+        const idsToDelete = oldEntries.map((entry: any) => entry.id)
         await supabase
           .from('bot_memory')
           .delete()
@@ -350,7 +350,7 @@ export class BotIntelligence {
             continue // Try again
           }
         } catch (error) {
-          console.warn(`Bot ${bot.id} - Similarity check failed, proceeding anyway:`, error.message)
+          console.warn(`Bot ${bot.id} - Similarity check failed, proceeding anyway:`, error instanceof Error ? error.message : 'Unknown error')
           // If similarity check fails, continue with question generation
         }
 

@@ -172,7 +172,10 @@ function generateBotConfig(index: number, phase: 'bootstrap' | 'maintenance') {
   Object.keys(traits).forEach(trait => {
     // Add some variation (-1 to +1) to template values
     const variation = Math.floor(Math.random() * 3) - 1
-    traits[trait as keyof typeof traits] = Math.max(1, Math.min(10, traits[trait as keyof typeof traits] + variation))
+    const currentValue = traits[trait as keyof typeof traits]
+    if (currentValue !== undefined) {
+      traits[trait as keyof typeof traits] = Math.max(1, Math.min(10, currentValue + variation))
+    }
   })
   
   // Schedule configuration
