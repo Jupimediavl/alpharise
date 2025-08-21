@@ -339,7 +339,7 @@ export class BotAutomation {
   // Execute answer posting
   private static async executeBotAnswer(bot: Bot, context: any): Promise<BotActionResult> {
     try {
-      // Get recent answerable questions (not by this bot)
+      // Get recent answerable questions with full context
       const questions = await this.getRecentAnswerableQuestions()
       const questionsNotByThisBot = questions.filter(q => q.author_id !== bot.username)
       
@@ -352,8 +352,17 @@ export class BotAutomation {
         }
       }
 
-      // Select a question to answer (randomly, but could be more intelligent)
-      const questionToAnswer = questionsNotByThisBot[Math.floor(Math.random() * questionsNotByThisBot.length)]
+      // Use intelligent question selection based on conversation state
+      const questionToAnswer = this.selectBestQuestionToAnswer(questionsNotByThisBot, bot.username)
+      
+      if (!questionToAnswer) {
+        return {
+          success: false,
+          action: 'answer_question',
+          botId: bot.id,
+          error: 'No suitable questions to continue conversation'
+        }
+      }
 
       // Get bot's specific personality
       let personality
@@ -373,12 +382,32 @@ export class BotAutomation {
         throw new Error('No personality found for bot')
       }
 
-      // Generate answer using AI
+      // Prepare conversation context if question has existing answers
+      let conversationContext = null
+      if (questionToAnswer.answers && questionToAnswer.answers.length > 0) {
+        const lastAnswer = questionToAnswer.answers[0] // Most recent answer
+        conversationContext = {
+          lastAnswer: lastAnswer.content,
+          lastAnswerAuthor: lastAnswer.author_id,
+          answerCount: questionToAnswer.answers.length,
+          isFirstAnswer: false
+        }
+        console.log(`🔄 Bot ${bot.name} continuing conversation (${questionToAnswer.answers.length} existing answers)`)
+      } else {
+        conversationContext = {
+          isFirstAnswer: true,
+          answerCount: 0
+        }
+        console.log(`🆕 Bot ${bot.name} answering fresh question`)
+      }
+
+      // Generate answer using AI with conversation context
       const answerData = await BotIntelligence.generateAnswer(
         bot, 
         personality, 
         questionToAnswer, 
-        context
+        context,
+        conversationContext
       )
       
       if (!answerData) {
@@ -569,7 +598,7 @@ export class BotAutomation {
     }
   }
 
-  // Helper: Get recent answerable questions (including those with existing answers)
+  // Helper: Get recent answerable questions with improved conversation logic
   private static async getRecentAnswerableQuestions(): Promise<any[]> {
     try {
       const { data: questions, error } = await supabase
@@ -580,13 +609,18 @@ export class BotAutomation {
           body, 
           author_id, 
           created_at,
-          answers(id)
+          answers(
+            id,
+            author_id,
+            content,
+            created_at
+          )
         `)
         .eq('is_solved', false)
-        .in('moderation_status', ['approved', 'pending']) // Include both approved and pending questions
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+        .in('moderation_status', ['approved', 'pending'])
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
-        .limit(20)
+        .limit(30)
 
       if (error || !questions) {
         console.error('Error fetching recent questions:', error)
@@ -595,12 +629,52 @@ export class BotAutomation {
 
       // Filter to questions that can still receive more answers (max 4 answers per question)
       const answerableQuestions = questions.filter(q => !q.answers || q.answers.length < 4)
-      console.log(`📋 Found ${answerableQuestions.length} answerable questions out of ${questions.length} total (allowing up to 4 answers per question)`)
+      
+      // Sort answers by creation date for each question
+      answerableQuestions.forEach(q => {
+        if (q.answers && q.answers.length > 0) {
+          q.answers.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        }
+      })
+
+      console.log(`📋 Found ${answerableQuestions.length} answerable questions out of ${questions.length} total`)
       return answerableQuestions
     } catch (error) {
       console.error('Error fetching answerable questions:', error)
       return []
     }
+  }
+
+  // Select best question to answer with prioritization logic
+  private static selectBestQuestionToAnswer(questions: any[], botUsername: string): any | null {
+    if (questions.length === 0) return null
+
+    // Separate unanswered and answered questions
+    const unansweredQuestions = questions.filter(q => !q.answers || q.answers.length === 0)
+    const answeredQuestions = questions.filter(q => q.answers && q.answers.length > 0)
+
+    // Filter answered questions where bot wasn't the last to answer
+    const continuableQuestions = answeredQuestions.filter(q => {
+      const lastAnswer = q.answers[0] // answers are sorted by created_at desc
+      return lastAnswer && lastAnswer.author_id !== botUsername
+    })
+
+    // 70% chance to pick unanswered question if available
+    if (unansweredQuestions.length > 0 && Math.random() < 0.7) {
+      return unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)]
+    }
+
+    // Otherwise pick from continuable questions
+    if (continuableQuestions.length > 0) {
+      return continuableQuestions[Math.floor(Math.random() * continuableQuestions.length)]
+    }
+
+    // Fallback to any unanswered question
+    if (unansweredQuestions.length > 0) {
+      return unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)]
+    }
+
+    return null
   }
 
   // Manual bulk trigger - run all active bots without schedule restrictions

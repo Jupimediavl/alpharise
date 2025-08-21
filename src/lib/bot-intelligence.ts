@@ -1,5 +1,6 @@
 // OpenAI Integration for Bot Intelligence
 import { Bot, BotPersonality } from './bot-system'
+import { supabase } from './supabase'
 
 // OpenAI API configuration
 const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY
@@ -285,7 +286,7 @@ export class BotIntelligence {
 
   // Topic rotation system to ensure diverse content
   static getBotTopicRotation(botId: string): string {
-    const topics = ['confidence-building', 'relationships', 'dating-apps', 'sexual-performance']
+    const topics = ['confidence', 'relationships', 'dating', 'performance']
     const now = new Date()
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
     const botSeed = botId.charCodeAt(0) + botId.charCodeAt(botId.length - 1) // Simple bot-specific seed
@@ -384,14 +385,28 @@ export class BotIntelligence {
     bot: Bot,
     personality: BotPersonality,
     question: { title: string; body: string; author: string },
-    context: CommunityContext
+    context: CommunityContext,
+    conversationContext?: {
+      isFirstAnswer: boolean;
+      answerCount: number;
+      lastAnswer?: string;
+      lastAnswerAuthor?: string;
+    }
   ): Promise<{
     content: string
     tone: 'helpful' | 'supportive' | 'analytical' | 'motivational'
   } | null> {
     try {
+      // Get recent answers to this question to avoid repetition
+      const { data: recentAnswers } = await supabase
+        .from('answers')
+        .select('content, author_id')
+        .eq('question_id', (question as any).id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
       const systemPrompt = this.buildAnswerSystemPrompt(bot, personality, context)
-      const userPrompt = this.buildAnswerUserPrompt(question, context)
+      const userPrompt = this.buildAnswerUserPrompt(question, context, recentAnswers || [], conversationContext)
 
       const response = await this.callOpenAI(systemPrompt, userPrompt, bot.openai_model)
       
@@ -469,14 +484,14 @@ JSON format (ENGLISH ONLY):
   "title": "Short, natural English title (max 50 chars)",
   "body": "Brief English details, 1-2 sentences max, very casual",
   "type": "regular",
-  "category": "confidence-building, relationships, dating-apps, sexual-performance"
+  "category": "confidence, relationships, dating, performance"
 }`
   }
 
   private static buildQuestionUserPrompt(context: CommunityContext, preferredCategory?: string): string {
     // Enhanced topics with problem-statement patterns and traditional questions
     const topicsByCategory: Record<string, { traditional: string[], problemStatement: string[] }> = {
-      'confidence-building': {
+      'confidence': {
         traditional: [
           'how to stop shaking when speaking in public',
           'why am I scared to join a gym',
@@ -496,7 +511,7 @@ JSON format (ENGLISH ONLY):
           'I\'ve wanted to quit my job for years but I\'m too scared. Am I a coward?'
         ]
       },
-      'dating-apps': {
+      'dating': {
         traditional: [
           'why do my matches not respond',
           'how to take good photos for Tinder',
@@ -532,7 +547,7 @@ JSON format (ENGLISH ONLY):
           'She said I never share my feelings but I don\'t know how. Is this fixable?'
         ]
       },
-      'sexual-performance': {
+      'performance': {
         traditional: [
           'how to have confidence in my body',
           'why am I scared to try new things in bed',
@@ -625,7 +640,13 @@ Write as an American male in English only.`
       ? `Your areas of expertise include: ${bot.expertise_areas.join(', ')}.`
       : ''
 
-    return `You are ${bot.name}, a cool American guy who helps other men with confidence and self-improvement. You're speaking to another man who needs advice. ${expertiseContext}
+    const personalityStyle = personality ? `
+PERSONALITY INFLUENCE: You have a ${personality.communication_style || 'supportive'} style with these traits:
+- Tone: ${personality.tone || 'helpful and encouraging'}
+- Style: ${personality.communication_style || 'direct but caring'}
+Let this guide how you communicate, but stay natural and varied.` : ''
+
+    return `You are ${bot.name}, a cool American guy who helps other men with confidence and self-improvement. You're speaking to another man who needs advice. ${expertiseContext}${personalityStyle}
 
 CRITICAL: You are an American male who only speaks English. You've never heard Romanian or any other language in your life.
 
@@ -636,28 +657,94 @@ RESPONSE STYLE:
 - Short and to the point (max 2-3 sentences)
 - No formal language
 - Like you're answering a friend on WhatsApp
-- Use "bro", "dude", "man", "friend" naturally
+- START DIRECTLY with your advice - NO greetings like "Hey man", "Hey bro", "Yo", etc.
+- Jump straight into the helpful content
 - Concrete examples, not generic advice
 - Positive and motivational tone
+- Make each response unique and personal based on YOUR specific personality
 
 IMPORTANT: Your entire response must be in English only.
 
 JSON format (ENGLISH ONLY):
 {
-  "content": "Short, natural, friendly English response (max 2-3 sentences)",
+  "content": "Start directly with advice, no greeting. Keep it short and helpful (max 2-3 sentences).",
   "tone": "helpful"
-}`
+}
+
+GOOD EXAMPLE: "Building confidence starts with small wins. Pick one thing you can improve today and focus on that."
+BAD EXAMPLE: "Hey man, building confidence starts with..."`
   }
 
   private static buildAnswerUserPrompt(
     question: { title: string; body: string; author: string },
-    context: CommunityContext
+    context: CommunityContext,
+    recentAnswers: { content: string; author_id: string }[] = [],
+    conversationContext?: {
+      isFirstAnswer: boolean;
+      answerCount: number;
+      lastAnswer?: string;
+      lastAnswerAuthor?: string;
+    }
   ): string {
+    // Generate variety cues for more diverse responses (NO GREETINGS)
+    const responseVariations = [
+      "Start directly with practical advice",
+      "Begin with a specific example or solution", 
+      "Open with validation of their feelings first",
+      "Start with a direct actionable tip",
+      "Begin with shared experience but no greeting", 
+      "Open with encouragement then concrete steps"
+    ]
+    
+    const randomVariation = responseVariations[Math.floor(Math.random() * responseVariations.length)]
+    
+    // Build conversation context for natural flow
+    let conversationFlow = ''
+    if (conversationContext && !conversationContext.isFirstAnswer) {
+      conversationFlow = `
+CONVERSATION CONTEXT:
+This question already has ${conversationContext.answerCount} answer(s). The most recent answer was by ${conversationContext.lastAnswerAuthor}:
+
+"${conversationContext.lastAnswer?.substring(0, 200)}..."
+
+CONVERSATION INSTRUCTION:
+- Build upon or add to this previous response naturally
+- Don't contradict unless you have a genuinely different perspective
+- Reference the previous answer briefly if it's helpful (e.g., "Building on what ${conversationContext.lastAnswerAuthor} mentioned...")
+- Offer additional insights, alternatives, or deeper analysis
+- Make this feel like a natural discussion between helpful people`
+    } else if (conversationContext?.isFirstAnswer) {
+      conversationFlow = `
+CONVERSATION CONTEXT:
+You are the FIRST person to answer this question. Set a helpful, supportive tone for the discussion.`
+    }
+    
+    // Build context from recent answers to avoid duplication
+    const recentAnswersContext = recentAnswers.length > 0 ? `
+RECENT ANSWERS TO AVOID DUPLICATING:
+${recentAnswers.map((ans, i) => `${i + 1}. ${ans.content.substring(0, 100)}...`).join('\n')}
+
+MAKE SURE YOUR ANSWER IS DIFFERENT from these existing answers. Offer a fresh perspective or different advice.` : ''
+    
     return `Someone asked: "${question.title}"
 
 Details: ${question.body}
 
 CRITICAL: You MUST respond ONLY in ENGLISH. Never use Romanian or any other language.
+
+${conversationFlow}
+
+RESPONSE VARIATION INSTRUCTION: ${randomVariation}
+
+${recentAnswersContext}
+
+CRITICAL FORMATTING RULES:
+- NEVER start with greetings like "Hey man", "Hey bro", "Yo", "Listen", "Look", "Dude", etc.
+- Jump DIRECTLY into your advice or response 
+- Don't repeat advice that's already been given above
+- Vary your conversation style significantly 
+- Each answer should feel unique and personal
+- Examples: "Starting conversations with generic lines kills momentum..." or "Switching jobs takes courage, but here's how..."
 
 Provide a helpful, supportive answer in English based on your personality and expertise. 
 Be genuine and practical. Focus on actionable advice they can use.
@@ -761,7 +848,7 @@ FINAL CHECK: Is every single word in your response English? If not, rewrite in E
           title: parsed.title.slice(0, 100), // Enforce length limit
           body: parsed.body,
           type: parsed.type === 'urgent' ? 'urgent' : 'regular',
-          category: parsed.category || 'confidence-building'
+          category: parsed.category || 'confidence'
         }
       }
     } catch (error) {
@@ -778,7 +865,7 @@ FINAL CHECK: Is every single word in your response English? If not, rewrite in E
         title: titleMatch[1].trim(),
         body: bodyMatch[1].trim(),
         type: 'regular',
-        category: 'confidence-building'
+        category: 'confidence'
       }
     }
 
@@ -794,17 +881,27 @@ FINAL CHECK: Is every single word in your response English? If not, rewrite in E
       const parsed = JSON.parse(response)
       
       if (parsed.content) {
+        // Clean up any greetings that slipped through
+        let cleanContent = parsed.content
+          .replace(/^(Hey man,?\s*|Hey bro,?\s*|Yo,?\s*|Listen,?\s*|Look,?\s*|Dude,?\s*|Nah,?\s*bro,?\s*)/i, '')
+          .trim()
+        
         return {
-          content: parsed.content,
+          content: cleanContent,
           tone: ['helpful', 'supportive', 'analytical', 'motivational'].includes(parsed.tone) 
             ? parsed.tone 
             : 'helpful'
         }
       }
     } catch (error) {
-      // Fallback: use entire response as content
+      // Fallback: use entire response as content and clean it
+      let cleanContent = response
+        .replace(/^(Hey man,?\s*|Hey bro,?\s*|Yo,?\s*|Listen,?\s*|Look,?\s*|Dude,?\s*|Nah,?\s*bro,?\s*)/i, '')
+        .trim()
+        .slice(0, 1000) // Reasonable length limit
+        
       return {
-        content: response.slice(0, 1000), // Reasonable length limit
+        content: cleanContent,
         tone: 'helpful'
       }
     }

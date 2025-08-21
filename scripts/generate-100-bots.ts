@@ -100,26 +100,50 @@ const personalityTemplates = [
   }
 ]
 
+// Track used usernames to avoid duplicates
+const usedUsernames = new Set<string>()
+
 // Generate unique username
 function generateUsername(): string {
-  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
-  const lastName = Math.random() > 0.5 ? lastNames[Math.floor(Math.random() * lastNames.length)] : ''
-  const suffix = nameSuffixes[Math.floor(Math.random() * nameSuffixes.length)]
+  let attempts = 0
+  let username: string
   
-  // Different username patterns
-  const patterns = [
-    `${firstName}${suffix}`, // alex99
-    `${firstName}${lastName}`, // alexsmith
-    `${firstName}_${lastName}${suffix}`, // alex_smith7
-    `${firstName}${lastName}${suffix}`, // alexsmith777
-    `${firstName.charAt(0)}${lastName}${suffix}`, // asmith123
-    `${firstName}${Math.floor(Math.random() * 9999)}`, // alex4821
-    `the${firstName}${suffix}`, // thealex99
-    `real${firstName}`, // realalex
-    `${firstName}${new Date().getFullYear() - Math.floor(Math.random() * 30) - 1970}` // alex24 (age-based)
-  ]
+  do {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
+    const lastName = Math.random() > 0.5 ? lastNames[Math.floor(Math.random() * lastNames.length)] : ''
+    const suffix = nameSuffixes[Math.floor(Math.random() * nameSuffixes.length)]
+    
+    // Different username patterns
+    const patterns = [
+      `${firstName}${suffix}`, // alex99
+      `${firstName}${lastName}`, // alexsmith
+      `${firstName}_${lastName}${suffix}`, // alex_smith7
+      `${firstName}${lastName}${suffix}`, // alexsmith777
+      `${firstName.charAt(0)}${lastName}${suffix}`, // asmith123
+      `${firstName}${Math.floor(Math.random() * 9999)}`, // alex4821
+      `the${firstName}${suffix}`, // thealex99
+      `real${firstName}`, // realalex
+      `${firstName}${new Date().getFullYear() - Math.floor(Math.random() * 30) - 1970}` // alex24 (age-based)
+    ]
+    
+    username = patterns[Math.floor(Math.random() * patterns.length)]
+    attempts++
+    
+    // Add extra randomness if username is taken
+    if (usedUsernames.has(username) && attempts < 10) {
+      const extraNumber = Math.floor(Math.random() * 999)
+      username = `${username}${extraNumber}`
+    }
+    
+  } while (usedUsernames.has(username) && attempts < 20)
   
-  return patterns[Math.floor(Math.random() * patterns.length)]
+  // Fallback: if still not unique, add timestamp
+  if (usedUsernames.has(username)) {
+    username = `${username}_${Date.now().toString().slice(-4)}`
+  }
+  
+  usedUsernames.add(username)
+  return username
 }
 
 // Generate bot configuration
@@ -213,6 +237,9 @@ function generateBotConfig(index: number, phase: 'bootstrap' | 'maintenance') {
 // Main function to generate and insert bots
 async function generateBots() {
   console.log('🤖 Starting bot generation...')
+  
+  // Reset used usernames for this generation session
+  usedUsernames.clear()
   
   const TOTAL_BOTS = 100
   const bots = []

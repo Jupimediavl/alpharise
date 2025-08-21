@@ -5,7 +5,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp, Trash2, Shield, Bell } from 'lucide-react'
+import { Search, Clock, Star, Award, ThumbsUp, MessageCircle, RefreshCw, Coins, ChevronDown, ChevronUp, Trash2, Shield, Bell, X, Menu, Check } from 'lucide-react'
 import { 
   SupabaseQuestionManager, 
   SupabaseAnswerManager, 
@@ -58,7 +58,9 @@ function CommunityContent() {
   const [user, setUser] = useState<DbUser | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('all')
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [showNewQuestion, setShowNewQuestion] = useState(false)
   const [showAnswerModal, setShowAnswerModal] = useState(false)
@@ -72,6 +74,13 @@ function CommunityContent() {
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMoreQuestions, setHasMoreQuestions] = useState(true)
+  const [totalQuestionsCount, setTotalQuestionsCount] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const QUESTIONS_PER_PAGE = 15
 
   // Answer display management - simplified to show/hide
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
@@ -104,6 +113,7 @@ function CommunityContent() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const categoryDropdownRef = useRef<HTMLDivElement>(null)
 
   // Simplified Communities - Consolidated from 8 to 4 core categories
   const communities = [
@@ -282,6 +292,12 @@ function CommunityContent() {
     return { x: clientX, y: clientY }
   }
 
+  // Set client-side flag after hydration to prevent SSR mismatches
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+
   // Load user session and initialize data
   useEffect(() => {
     const loadUserAndData = async () => {
@@ -349,6 +365,29 @@ function CommunityContent() {
     }
   }, [showNotifications])
 
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false)
+      }
+    }
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCategoryDropdown])
+
+  // Handle search query changes with debouncing
+  useEffect(() => {
+    const searchTimeout = setTimeout(() => {
+      loadQuestions() // Trigger search or reload all if empty
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(searchTimeout)
+  }, [searchQuery])
+
   // FIXED: Initialize user in Supabase with proper coin loading
   const initializeUserInDB = async () => {
     if (!user?.username) return
@@ -397,12 +436,21 @@ function CommunityContent() {
     }, 100)
   }
 
-  // Load questions from Supabase with personal content filters
-  const loadQuestions = async () => {
-    setLoading(true)
+  // Load questions from Supabase with personal content filters  
+  const loadQuestions = async (isLoadMore: boolean = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+      setCurrentPage(1)
+      setHasMoreQuestions(true)
+    }
     
     try {
       let loadedQuestions: QuestionWithAnswers[] = []
+      // Fix offset calculation: use questions.length for load more to avoid duplicates
+      const offset = isLoadMore ? questions.length : 0
+      const limit = QUESTIONS_PER_PAGE
 
       // Handle personal content filters
       if (activeTab === 'my-questions') {
@@ -419,7 +467,7 @@ function CommunityContent() {
             `)
             .eq('author_id', user.username)
             .order('created_at', { ascending: false })
-            .limit(20)
+            .range(offset, offset + limit - 1)
 
           if (!error && data) {
             loadedQuestions = data.map(q => ({
@@ -442,7 +490,7 @@ function CommunityContent() {
             `)
             .eq('answers.author_id', user.username)
             .order('created_at', { ascending: false })
-            .limit(20)
+            .range(offset, offset + limit - 1)
 
           if (!error && data) {
             // Get all answers for these questions, not just user's answers
@@ -483,7 +531,8 @@ function CommunityContent() {
         } else {
           const filters: any = {
             category: activeTab === 'all' ? undefined : activeTab,
-            limit: 20,
+            limit: limit,
+            offset: offset,
             sortBy: sortBy === 'unsolved' ? 'newest' : sortBy
           }
 
@@ -495,12 +544,27 @@ function CommunityContent() {
         }
       }
 
-      setQuestions(loadedQuestions)
+      // Handle pagination logic
+      if (isLoadMore) {
+        // Append new questions to existing ones
+        setQuestions(prev => [...prev, ...loadedQuestions])
+      } else {
+        // Replace questions (first load or refresh)
+        setQuestions(loadedQuestions)
+        setTotalQuestionsCount(0) // Will be updated when we add count query
+      }
+      
+      // Check if there are more questions to load
+      setHasMoreQuestions(loadedQuestions.length === QUESTIONS_PER_PAGE)
+      
     } catch (error) {
       console.error('❌ Error loading questions:', error)
-      setQuestions([])
+      if (!isLoadMore) {
+        setQuestions([])
+      }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -591,13 +655,32 @@ function CommunityContent() {
       const { data: newAnswers } = await supabase
         .from('answers')
         .select(`
-          id, content, created_at, question_id,
-          questions(title, author_id)
+          id, content, created_at, question_id, author_id
         `)
-        .eq('questions.author_id', user.username)
-        .neq('author_id', user.username) // Don't notify about own answers
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
         .order('created_at', { ascending: false })
+
+      // Filter for answers to user's questions and get question titles
+      let userQuestionAnswers = []
+      if (newAnswers?.length > 0) {
+        const questionIds = [...new Set(newAnswers.map(a => a.question_id))]
+        const { data: questions } = await supabase
+          .from('questions')
+          .select('id, title, author_id')
+          .in('id', questionIds)
+          .eq('author_id', user.username)
+        
+        if (questions) {
+          const questionMap = new Map(questions.map(q => [q.id, q]))
+          userQuestionAnswers = newAnswers.filter(answer => 
+            answer.author_id !== user.username && // Not user's own answers
+            questionMap.has(answer.question_id)
+          ).map(answer => ({
+            ...answer,
+            questionTitle: questionMap.get(answer.question_id)?.title
+          }))
+        }
+      }
 
       // Get helpful votes on user's answers  
       const { data: helpfulVotes } = await supabase
@@ -613,12 +696,13 @@ function CommunityContent() {
       const notificationsList = []
 
       // Process new answers
-      if (newAnswers) {
-        for (const answer of newAnswers) {
+      if (userQuestionAnswers) {
+        console.log('🔔 Debug userQuestionAnswers:', userQuestionAnswers.length, 'answers found')
+        for (const answer of userQuestionAnswers) {
           notificationsList.push({
             id: `answer-${answer.id}`,
             type: 'new_answer' as const,
-            message: `New answer to your question "${(answer.questions as any)?.title}"`,
+            message: `New answer to your question "${answer.questionTitle || 'Untitled Question'}"`,
             question_id: answer.question_id,
             created_at: answer.created_at,
             read: false
@@ -658,6 +742,12 @@ function CommunityContent() {
     } catch (error) {
       console.error('🔔 Error loading notifications:', error)
     }
+  }
+
+  // Load more questions (pagination)
+  const loadMoreQuestions = async () => {
+    if (loadingMore || !hasMoreQuestions) return
+    await loadQuestions(true)
   }
 
   // Refresh questions
@@ -716,7 +806,7 @@ function CommunityContent() {
         body: newQuestionBody,
         author_id: user.username,
         author_name: user.username,
-        category: activeTab === 'all' ? 'confidence-building' : activeTab,
+        category: activeTab === 'all' ? 'confidence' : activeTab,
         question_type: selectedQuestionType as any,
         coin_cost: questionCost,
         coin_bounty: 0,
@@ -1247,7 +1337,31 @@ Type "DELETE" to confirm:`)
         return
       }
 
-      // Delete the answer
+      // Apply coin penalty FIRST (if applicable)
+      let originalBalance = user.coins || 0
+      if (coinPenalty > 0) {
+        const newBalance = originalBalance - coinPenalty
+        
+        // Deduct coins immediately
+        const { error: coinError } = await supabase
+          .from('users')
+          .update({ coins: newBalance })
+          .eq('username', user.username)
+        
+        if (coinError) {
+          console.error('Error applying coin penalty:', coinError)
+          alert('Failed to process coin penalty. Please try again.')
+          return
+        }
+        
+        // Update local state
+        setUser(prev => prev ? { ...prev, coins: newBalance } : null)
+        originalBalance = newBalance
+        
+        console.log(`💰 Applied coin penalty first: -${coinPenalty}, new balance: ${newBalance}`)
+      }
+
+      // Then delete the answer
       const { error: deleteError } = await supabase
         .from('answers')
         .delete()
@@ -1255,21 +1369,27 @@ Type "DELETE" to confirm:`)
 
       if (deleteError) {
         console.error('Error deleting answer:', deleteError)
-        alert('Failed to delete answer. Please try again.')
+        
+        // ROLLBACK: Restore coins if deletion failed
+        if (coinPenalty > 0) {
+          const restoredBalance = originalBalance + coinPenalty
+          await supabase
+            .from('users')
+            .update({ coins: restoredBalance })
+            .eq('username', user.username)
+          
+          setUser(prev => prev ? { ...prev, coins: restoredBalance } : null)
+          console.log(`💰 Rolled back coin penalty: +${coinPenalty}, restored balance: ${restoredBalance}`)
+        }
+        
+        alert('Failed to delete answer. Your coins have been restored.')
         return
       }
 
-      // Apply coin penalty if applicable
+      // Show coin animation for penalty only after successful deletion
       if (coinPenalty > 0) {
-        const newBalance = (user.coins || 0) - coinPenalty
-        await SupabaseUserManager.updateUserCoins(user.username, newBalance)
-        setUser(prev => prev ? { ...prev, coins: newBalance } : null)
-        
-        // Show coin animation for penalty at center (no click event for delete)
         const position = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
         showCoinChangeAnimation(-coinPenalty, position)
-        
-        console.log(`💰 Applied coin penalty: -${coinPenalty}, new balance: ${newBalance}`)
       }
 
       // Update UI - remove answer from questions
@@ -1593,8 +1713,8 @@ Type "DELETE" to confirm:`)
             </div>
           </div>
 
-          {/* Category Tabs */}
-          <div className="flex overflow-x-auto space-x-2 pb-2">
+          {/* Category Tabs - Desktop */}
+          <div className="hidden md:flex overflow-x-auto space-x-2 pb-2">
             {allCommunities.map((community) => (
               <button
                 key={community.id}
@@ -1611,6 +1731,56 @@ Type "DELETE" to confirm:`)
                 </div>
               </button>
             ))}
+          </div>
+
+          {/* Category Dropdown - Mobile */}
+          <div className="md:hidden relative" ref={categoryDropdownRef}>
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-white/10 rounded-lg text-white hover:bg-purple-500/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{allCommunities.find(c => c.id === activeTab)?.icon}</span>
+                <div className="text-left">
+                  <div className="font-semibold">{allCommunities.find(c => c.id === activeTab)?.name}</div>
+                  <div className="text-xs text-white/60">{allCommunities.find(c => c.id === activeTab)?.description}</div>
+                </div>
+              </div>
+              <ChevronDown className={`h-5 w-5 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            
+            <AnimatePresence>
+              {showCategoryDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-purple-500/30 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto"
+                >
+                  {allCommunities.map((community) => (
+                    <button
+                      key={community.id}
+                      onClick={() => {
+                        setActiveTab(community.id)
+                        setShowCategoryDropdown(false)
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-purple-500/10 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        activeTab === community.id ? 'bg-purple-500/20' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{community.icon}</span>
+                        <div>
+                          <div className="font-semibold text-white">{community.name}</div>
+                          <div className="text-xs text-white/60">{community.description}</div>
+                        </div>
+                      </div>
+                      {activeTab === community.id && <Check className="h-4 w-4 text-purple-400" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -1629,8 +1799,8 @@ Type "DELETE" to confirm:`)
               <div className="text-sm opacity-70">Be the first to ask a question in this category!</div>
             </div>
           ) : (
-            
-            questions.map((question, index) => {
+            <>
+            {questions.map((question, index) => {
               const isExpanded = expandedQuestions.has(question.id)
               const sortedAnswers = sortAnswers(question.answers, 'best-first')
               const visibleCount = visibleAnswersCount[question.id] || INITIAL_ANSWERS_SHOW
@@ -1638,13 +1808,13 @@ Type "DELETE" to confirm:`)
               const hasMoreAnswers = sortedAnswers.length > visibleCount
 
               return (
-                <motion.div
+                <div
                   key={question.id}
                   id={`question-${question.id}`}
-                  className="bg-gradient-to-r from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-lg"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  className={`bg-gradient-to-r from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-lg transition-all duration-300 ${isClient ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                  style={{ 
+                    transitionDelay: isClient ? `${index * 100}ms` : '0ms'
+                  }}
                 >
                   {/* Question Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -1862,9 +2032,11 @@ Type "DELETE" to confirm:`)
                           </div>
                           
                           {/* Answer count indicator */}
-                          <div className="text-xs opacity-50 mt-2">
-                            Showing {visibleCount} of {question.answers.length} answers
-                          </div>
+                          {question.answers.length > 0 && (
+                            <div className="text-xs opacity-50 mt-2">
+                              Showing {visibleCount} of {question.answers.length} answer{question.answers.length !== 1 ? 's' : ''}
+                            </div>
+                          )}
                         </div>
                       )}
                     </motion.div>
@@ -1918,9 +2090,76 @@ Type "DELETE" to confirm:`)
                       )}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )
-            })
+            })}
+            </>
+          )}
+          
+          {/* Pagination Controls */}
+          {questions.length > 0 && (
+            <div className="mt-8 text-center">
+              {/* Question count indicator */}
+              <div className="text-gray-400 text-sm mb-4">
+                Showing {questions.length} question{questions.length !== 1 ? 's' : ''}
+                {totalQuestionsCount > 0 && totalQuestionsCount > questions.length && (
+                  <span> of {totalQuestionsCount} total</span>
+                )}
+              </div>
+              
+              {/* Load More Button */}
+              {hasMoreQuestions && (
+                <div className="space-y-4">
+                  <button
+                    onClick={loadMoreQuestions}
+                    disabled={loadingMore}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-all flex items-center justify-center gap-2 mx-auto"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load Next {QUESTIONS_PER_PAGE}
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                  
+                  {/* Integrated Search Bar */}
+                  <div className="max-w-md mx-auto">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Or search for specific topic..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="mt-2 text-xs text-gray-400 hover:text-gray-300 flex items-center gap-1 mx-auto"
+                      >
+                        <X className="w-3 h-3" />
+                        Clear search
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* No more results message */}
+              {!hasMoreQuestions && questions.length >= QUESTIONS_PER_PAGE && (
+                <div className="text-gray-400 text-sm">
+                  🎉 You've reached the end! No more questions to load.
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

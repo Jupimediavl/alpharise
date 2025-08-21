@@ -33,19 +33,43 @@ const expertiseAreas = [
   'stress management', 'work-life balance', 'personal growth'
 ]
 
+// Track used usernames to avoid duplicates
+const usedUsernames = new Set<string>()
+
 function generateUsername(firstName: string, lastName: string): string {
-  const styles = [
-    `${firstName.toLowerCase()}${lastName.toLowerCase()}`,
-    `${firstName.toLowerCase()}_${lastName.toLowerCase()}`,
-    `${firstName.toLowerCase()}${Math.floor(Math.random() * 999) + 1}`,
-    `${firstName.toLowerCase()}_${Math.floor(Math.random() * 99) + 20}`,
-    `real${firstName.toLowerCase()}`,
-    `the${firstName.toLowerCase()}`,
-    `${firstName.toLowerCase()}_pro`,
-    `${firstName.toLowerCase()}${lastName.toLowerCase().slice(0, 3)}`
-  ]
+  let attempts = 0
+  let username: string
   
-  return styles[Math.floor(Math.random() * styles.length)]
+  do {
+    const styles = [
+      `${firstName.toLowerCase()}${lastName.toLowerCase()}`,
+      `${firstName.toLowerCase()}_${lastName.toLowerCase()}`,
+      `${firstName.toLowerCase()}${Math.floor(Math.random() * 999) + 1}`,
+      `${firstName.toLowerCase()}_${Math.floor(Math.random() * 99) + 20}`,
+      `real${firstName.toLowerCase()}`,
+      `the${firstName.toLowerCase()}`,
+      `${firstName.toLowerCase()}_pro`,
+      `${firstName.toLowerCase()}${lastName.toLowerCase().slice(0, 3)}`
+    ]
+    
+    username = styles[Math.floor(Math.random() * styles.length)]
+    attempts++
+    
+    // Add extra randomness if username is taken
+    if (usedUsernames.has(username) && attempts < 10) {
+      const extraNumber = Math.floor(Math.random() * 999)
+      username = `${username}${extraNumber}`
+    }
+    
+  } while (usedUsernames.has(username) && attempts < 20)
+  
+  // Fallback: if still not unique, add timestamp
+  if (usedUsernames.has(username)) {
+    username = `${username}_${Date.now().toString().slice(-4)}`
+  }
+  
+  usedUsernames.add(username)
+  return username
 }
 
 function generateBotConfig() {
@@ -94,6 +118,9 @@ export async function POST(request: Request) {
   try {
     const { count = 10, type, activityLevel } = await request.json()
     
+    // Reset used usernames for this generation session
+    usedUsernames.clear()
+    
     // Validate count
     const botCount = Math.min(Math.max(1, parseInt(count)), 20) // Max 20 bots per request
     
@@ -123,14 +150,27 @@ export async function POST(request: Request) {
     const existingUsernames = new Set(existingBots?.map(b => b.username) || [])
     
     // Filter out duplicates and regenerate if needed
-    const uniqueBots = bots.filter(bot => {
-      if (existingUsernames.has(bot.username)) {
-        // Try to generate a new unique username
-        const newUsername = `${bot.username}${Math.floor(Math.random() * 999)}`
-        bot.username = newUsername
-        return !existingUsernames.has(newUsername)
+    const uniqueBots = bots.map(bot => {
+      let attempts = 0
+      let newUsername = bot.username
+      
+      // Keep generating until we get a unique username
+      while (existingUsernames.has(newUsername) && attempts < 10) {
+        const randomSuffix = Math.floor(Math.random() * 9999)
+        newUsername = `${bot.username}_${randomSuffix}`
+        attempts++
       }
-      return true
+      
+      // Final fallback with timestamp
+      if (existingUsernames.has(newUsername)) {
+        newUsername = `${bot.username}_${Date.now().toString().slice(-6)}`
+      }
+      
+      // Update the bot with the unique username
+      bot.username = newUsername
+      existingUsernames.add(newUsername) // Track it to avoid duplicates in this batch
+      
+      return bot
     })
     
     if (uniqueBots.length === 0) {
