@@ -1387,7 +1387,7 @@ export const supabaseHelpers = {
       confidence_score: confidenceScore || 25,
       coins: 0, // No coins until plan is selected
       current_plan: undefined, // No default plan
-      subscription_status: null // No default status
+      subscription_status: undefined // No default status
     })
   },
 
@@ -2399,8 +2399,8 @@ export class SupabaseAuthManager {
         age: userData.age,
         confidence_score: userData.confidence_score,
         coins: 0, // No coins until plan is selected
-        current_plan: null, // No plan until user chooses
-        subscription_status: null // No status until plan is selected
+        current_plan: undefined, // No plan until user chooses
+        subscription_status: undefined // No status until plan is selected
       })
 
       if (!userProfile) {
