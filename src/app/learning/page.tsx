@@ -38,7 +38,7 @@ export default function LearningPage() {
 
         // Load problems for user type or specific module
         const module = searchParams.get('module')
-        const userTypeOrModule = module || userData.user_type
+        const userTypeOrModule = module || userData.coach
         const problemsData = await SupabaseLearningManager.getProblemsForUserType(userTypeOrModule)
         setProblems(problemsData)
 

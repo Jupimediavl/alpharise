@@ -43,7 +43,6 @@ export default function AuthCallbackPage() {
               id: authUser.id,
               username: firstName.toLowerCase() + Math.random().toString(36).substr(2, 4), // Generate unique username
               email: authUser.email,
-              user_type: 'overthinker', // Default type
               coach: 'logan', // Default coach
               age: 25, // Default age
               confidence_score: 50, // Default score
@@ -68,7 +67,6 @@ export default function AuthCallbackPage() {
           sessionStorage.setItem('alpharise_user', JSON.stringify({
             username: userProfile.username,
             email: userProfile.email,
-            user_type: userProfile.user_type,
             coach: userProfile.coach,
             age: userProfile.age,
             coins: userProfile.coins,

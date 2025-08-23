@@ -42,7 +42,7 @@ export default function UserDropdownMenu({ user, userCoins }: UserDropdownMenuPr
   const handleSignOut = async () => {
     try {
       await SupabaseAuthManager.signOut()
-      router.push('/signin')
+      router.push('/login')
     } catch (error) {
       console.error('Error signing out:', error)
     }

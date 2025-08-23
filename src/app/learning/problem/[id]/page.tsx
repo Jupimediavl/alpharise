@@ -41,7 +41,7 @@ export default function ProblemPage() {
 
         // Load problem data - check for bonus module
         const module = searchParams.get('module')
-        const userTypeOrModule = module || userData.user_type
+        const userTypeOrModule = module || userData.coach
         const problemsData = await SupabaseLearningManager.getProblemsForUserType(userTypeOrModule)
         const currentProblem = problemsData.find(p => p.id === problemId)
         

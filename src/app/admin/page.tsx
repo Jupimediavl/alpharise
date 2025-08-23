@@ -369,7 +369,7 @@ export default function AdminPage() {
                     {user.username || 'New User'} joined
                   </p>
                   <p className="text-xs text-gray-500">
-                    {user.user_type} • {new Date(user.created_at).toLocaleDateString()}
+                    {user.coach} • {new Date(user.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-xs text-gray-400">
@@ -422,7 +422,7 @@ export default function AdminPage() {
                 </td>
                 <td className="p-4">
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize">
-                    {user.user_type}
+                    {user.coach}
                   </span>
                 </td>
                 <td className="p-4">
@@ -649,7 +649,7 @@ export default function AdminPage() {
                 <div className="text-xs opacity-75">{coach}</div>
                 <div className="text-xs opacity-60">"{title}"</div>
                 <div className="text-xs mt-1 font-medium">
-                  {problems.filter(p => p.user_type === userType).length} problems
+                  {problems.filter(p => p.coach === userType).length} problems
                 </div>
               </div>
             ))}
@@ -665,10 +665,10 @@ export default function AdminPage() {
               </span>
               <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs">
                 {activeTab === 'problems' 
-                  ? problems.filter(p => p.user_type === selectedUserType).length + ' problems'
+                  ? problems.filter(p => p.coach === selectedUserType).length + ' problems'
                   : exercises.filter(e => {
                       const problem = problems.find(p => p.id === e.problem_id);
-                      return problem?.user_type === selectedUserType;
+                      return problem?.coach === selectedUserType;
                     }).length + ' exercises'
                 }
               </span>
@@ -726,7 +726,7 @@ export default function AdminPage() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {problems
-                  .filter(problem => !selectedUserType || problem.user_type === selectedUserType)
+                  .filter(problem => !selectedUserType || problem.coach === selectedUserType)
                   .map((problem) => (
                   <motion.div 
                     key={problem.id} 
@@ -735,8 +735,8 @@ export default function AdminPage() {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUserTypeColor(problem.user_type)}`}>
-                          {problem.user_type}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUserTypeColor(problem.coach)}`}>
+                          {problem.coach}
                         </span>
                         <span className="text-xs text-gray-500">#{problem.order_index}</span>
                       </div>
@@ -788,7 +788,7 @@ export default function AdminPage() {
                     .filter(exercise => {
                       if (!selectedUserType) return true;
                       const problem = problems.find(p => p.id === exercise.problem_id);
-                      return problem?.user_type === selectedUserType;
+                      return problem?.coach === selectedUserType;
                     })
                     .map((exercise) => (
                     <tr key={exercise.id} className="border-b border-gray-50 hover:bg-gray-25">
@@ -806,9 +806,9 @@ export default function AdminPage() {
                             {problems.find(p => p.id === exercise.problem_id)?.title || 'Unknown'}
                           </div>
                           <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            getUserTypeColor(problems.find(p => p.id === exercise.problem_id)?.user_type || '')
+                            getUserTypeColor(problems.find(p => p.id === exercise.problem_id)?.coach || '')
                           }`}>
-                            {problems.find(p => p.id === exercise.problem_id)?.user_type}
+                            {problems.find(p => p.id === exercise.problem_id)?.coach}
                           </div>
                         </div>
                       </td>
@@ -957,7 +957,7 @@ export default function AdminPage() {
                         <option value="">Select a problem...</option>
                         {problems.map(problem => (
                           <option key={problem.id} value={problem.id}>
-                            [{problem.user_type}] {problem.title}
+                            [{problem.coach}] {problem.title}
                           </option>
                         ))}
                       </select>

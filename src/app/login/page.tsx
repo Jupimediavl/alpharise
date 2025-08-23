@@ -15,6 +15,9 @@ export default function LoginPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,6 +88,38 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error('Login error:', error)
       setError(error.message || 'Login failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!resetEmail.trim()) {
+      setResetMessage('Please enter your email address')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(resetEmail)) {
+      setResetMessage('Please enter a valid email address')
+      return
+    }
+
+    setIsLoading(true)
+    setResetMessage('')
+
+    try {
+      // Send password reset - don't check if user exists for security
+      const resetResult = await SupabaseAuthManager.resetPassword(resetEmail.trim())
+      
+      // Always show the same message regardless of whether user exists or not
+      setResetMessage('If an account exists with this email address, you will receive a password reset link shortly.')
+      setResetEmail('')
+    } catch (error) {
+      // Generic error message that doesn't reveal information
+      setResetMessage('If an account exists with this email address, you will receive a password reset link shortly.')
     } finally {
       setIsLoading(false)
     }
@@ -212,39 +247,8 @@ export default function LoginPage() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!formData.identifier.trim()) {
-                      setError('Please enter your email address first')
-                      return
-                    }
-                    
-                    let email = formData.identifier.trim()
-                    
-                    // If identifier is username, look up email
-                    if (!email.includes('@')) {
-                      try {
-                        const user = await SupabaseUserManager.getUserByUsername(email)
-                        if (!user) {
-                          setError('Username not found. Please check your username.')
-                          return
-                        }
-                        email = user.email
-                      } catch (error) {
-                        setError('Error looking up account. Please try again.')
-                        return
-                      }
-                    }
-                    
-                    // Send password reset
-                    const resetResult = await SupabaseAuthManager.resetPassword(email)
-                    if (resetResult.success) {
-                      setError(`Password reset email sent to ${email}`)
-                    } else {
-                      setError(resetResult.error || 'Failed to send password reset email')
-                    }
-                  }}
+                  onClick={() => setShowForgotPassword(true)}
                   className="text-sm text-gray-400 hover:text-purple-400 transition-colors"
-                  disabled={isLoading}
                 >
                   Forgot your password?
                 </button>
@@ -281,10 +285,10 @@ export default function LoginPage() {
               <p className="text-gray-400">
                 New to AlphaRise?{' '}
                 <button
-                  onClick={() => router.push('/assessment')}
+                  onClick={() => router.push('/coach-selection')}
                   className="text-transparent bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text font-semibold hover:from-purple-300 hover:to-magenta-300"
                 >
-                  Take the confidence test
+                  Sign up now
                 </button>
               </p>
             </div>
@@ -292,6 +296,91 @@ export default function LoginPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <motion.div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowForgotPassword(false)
+              setResetEmail('')
+              setResetMessage('')
+            }
+          }}
+        >
+          <motion.div
+            className="bg-gray-900 border border-purple-500/30 rounded-xl p-8 max-w-md w-full"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+          >
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">Reset Your Password</h2>
+            
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-purple-400 mb-2">
+                  Email Address
+                </label>
+                <input 
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={resetEmail}
+                  onChange={(e) => {
+                    setResetEmail(e.target.value)
+                    if (resetMessage) setResetMessage('')
+                  }}
+                  className="w-full p-4 bg-black/60 border border-purple-500/30 rounded-lg text-white placeholder-white/60 focus:border-purple-500 focus:outline-none transition-colors duration-300"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              {resetMessage && (
+                <motion.div 
+                  className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg text-blue-400 text-sm"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                >
+                  {resetMessage}
+                </motion.div>
+              )}
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false)
+                    setResetEmail('')
+                    setResetMessage('')
+                  }}
+                  className="flex-1 py-3 px-4 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-magenta-600 rounded-lg text-white font-semibold hover:from-purple-500 hover:to-magenta-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !resetEmail.trim()}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send Reset Link'
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

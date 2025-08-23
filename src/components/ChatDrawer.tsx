@@ -142,7 +142,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
           content: userMessage.content,
           session_id: sessionId,
           user_age: user.age,
-          user_type: user.userType
+          coach: user.userType
         })
       }
 

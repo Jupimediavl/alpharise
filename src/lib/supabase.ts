@@ -42,7 +42,6 @@ export interface DbUser {
   id: string
   username: string
   email: string
-  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' | 'intimacy_boost' | 'body_confidence'
   coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
   age: number
   confidence_score: number
@@ -203,30 +202,33 @@ export class SupabaseUserManager {
 
       // Create new user if doesn't exist
       const newUserData = {
+        id: userData.id, // Include Supabase auth ID
         username: userData.username,
         email: userData.email,
-        user_type: userData.user_type || 'overthinker',
         coach: userData.coach || 'logan',
         age: userData.age || 25,
         confidence_score: userData.confidence_score || 25,
-        coins: userData.coins || 200,
-        current_plan: userData.current_plan || 'trial',
-        subscription_status: userData.subscription_status || 'trial',
-        trial_started_at: new Date().toISOString(),
+        coins: userData.coins || 0, // Don't give coins until plan is selected
+        current_plan: userData.current_plan || null, // Don't set default plan - let user choose
+        subscription_status: userData.subscription_status || null, // Don't set default status
+        trial_started_at: userData.current_plan ? new Date().toISOString() : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         last_active: new Date().toISOString()
       }
       
       // Validate required fields
-      if (!newUserData.username || !newUserData.email) {
-        console.error('❌ Missing required fields:', { username: newUserData.username, email: newUserData.email })
+      if (!newUserData.id || !newUserData.username || !newUserData.email) {
+        console.error('❌ Missing required fields:', { 
+          id: newUserData.id, 
+          username: newUserData.username, 
+          email: newUserData.email 
+        })
         return null
       }
 
       console.log('📝 Attempting to create user with data:', newUserData)
-      console.log('📊 Confidence test values received:', {
-        user_type: userData.user_type,
+      console.log('📊 Coach selected:', {
         coach: userData.coach
       })
       
@@ -1380,13 +1382,12 @@ export const supabaseHelpers = {
     return await SupabaseUserManager.upsertUser({
       username,
       email,
-      user_type: userType as any,
       coach: coach as any,
       age: age || 25,
       confidence_score: confidenceScore || 25,
-      coins: 200,
-      current_plan: 'trial',
-      subscription_status: 'trial'
+      coins: 0, // No coins until plan is selected
+      current_plan: undefined, // No default plan
+      subscription_status: null // No default status
     })
   },
 
@@ -1467,7 +1468,7 @@ export interface DbChatMessage {
   timestamp: string
   created_at: string
   user_age?: number
-  user_type?: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface'
+  coach?: string
   is_read: boolean
   is_favorite: boolean
   ai_model?: string
@@ -1495,7 +1496,7 @@ export class SupabaseChatManager {
     content: string
     session_id?: string
     user_age?: number
-    user_type?: string
+    coach?: string
     ai_model?: string
     response_time_ms?: number
     token_count?: number
@@ -1651,7 +1652,7 @@ export class SupabaseChatManager {
         content: initialMessage,
         session_id: sessionId,
         user_age: userAge,
-        user_type: userType
+        coach: userType
       })
       
       if (!message) {
@@ -1758,7 +1759,7 @@ export interface DbProblem {
   id: string
   title: string
   description: string
-  user_type: 'overthinker' | 'nervous' | 'rookie' | 'updown' | 'surface' | 'intimacy_boost' | 'body_confidence'
+  coach: 'logan' | 'chase' | 'mason' | 'blake' | 'knox'
   order_index: number
   created_at: string
   updated_at: string
@@ -1819,7 +1820,7 @@ export class SupabaseLearningManager {
       const { data, error } = await supabase
         .from('problems')
         .select('*')
-        .eq('user_type', userType)
+        .eq('coach', userType)
         .order('order_index')
       
       if (error) {
@@ -1883,22 +1884,22 @@ export class SupabaseLearningManager {
   // Get module statistics
   static async getModuleStats(userType: string): Promise<{problems: number, exercises: number}> {
     try {
-      // Count problems for user_type (modules)
+      // Count problems for coach (modules)
       const { count: problemCount, error: problemError } = await supabase
         .from('problems')
         .select('*', { count: 'exact', head: true })
-        .eq('user_type', userType)
+        .eq('coach', userType)
 
       if (problemError) {
         console.error('Error counting problems:', problemError)
         return { problems: 0, exercises: 0 }
       }
 
-      // Get problem IDs for this user_type to count exercises
+      // Get problem IDs for this coach to count exercises
       const { data: problems, error: problemsError } = await supabase
         .from('problems')
         .select('id')
-        .eq('user_type', userType)
+        .eq('coach', userType)
 
       if (problemsError) {
         console.error('Error getting problem IDs:', problemsError)
@@ -1909,7 +1910,7 @@ export class SupabaseLearningManager {
         return { problems: problemCount || 0, exercises: 0 }
       }
 
-      // Count exercises for all problems in this user_type
+      // Count exercises for all problems for this coach
       const problemIds = problems.map(p => p.id)
       const { count: exerciseCount, error: exerciseError } = await supabase
         .from('exercises')
@@ -2087,7 +2088,7 @@ export class SupabaseLearningManager {
       const { data, error } = await supabase
         .from('problems')
         .select('*')
-        .order('user_type', { ascending: true })
+        .order('coach', { ascending: true })
         .order('order_index', { ascending: true })
 
       if (error) {
@@ -2112,7 +2113,7 @@ export class SupabaseLearningManager {
           problems (
             id,
             title,
-            user_type
+            coach
           )
         `)
         .order('problem_id', { ascending: true })
@@ -2134,7 +2135,7 @@ export class SupabaseLearningManager {
   static async createProblem(problemData: {
     title: string
     description: string
-    user_type: string
+    coach: string
     order_index: number
   }): Promise<DbProblem | null> {
     try {
@@ -2304,13 +2305,27 @@ export class SupabaseAuthManager {
     temporaryPassword: string,
     userData: {
       username: string
-      user_type: string
       coach: string
       age: number
       confidence_score: number
+      selected_plan?: string
     }
   ): Promise<{ success: boolean; error?: string; user?: any }> {
     try {
+      console.log('🔄 Starting signup process for:', email)
+      
+      // First check if user already exists in our database
+      const existingUser = await SupabaseUserManager.getUserByEmail(email)
+      if (existingUser) {
+        console.log('⚠️ User already exists in database')
+        return { 
+          success: false, 
+          error: 'An account with this email already exists. Please try logging in instead.' 
+        }
+      }
+      
+      console.log('✅ Email is available, proceeding with auth signup')
+
       // Create auth user with temporary password
       const { data, error } = await supabaseAuth.signUp({
         email,
@@ -2318,20 +2333,44 @@ export class SupabaseAuthManager {
         options: {
           data: {
             username: userData.username,
-            user_type: userData.user_type,
             coach: userData.coach,
             age: userData.age,
             confidence_score: userData.confidence_score,
             display_name: userData.username,  // Add display name for Supabase dashboard
             full_name: userData.username,     // Some systems expect full_name
-            temporary_password: temporaryPassword  // Include temp password in metadata for email template
+            temporary_password: temporaryPassword,  // Include temp password in metadata for email template
+            // Additional data for email template
+            coach_name: this.getCoachDisplayName(userData.coach),
+            user_challenge: this.getUserChallenge(userData.coach)
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
+      
+      console.log('🔐 Auth signup response:', { 
+        user: data?.user?.email, 
+        session: !!data?.session,
+        error: error?.message 
+      })
 
       if (error) {
         console.error('Supabase Auth signup error:', error)
+        
+        // Handle specific error types
+        if (error.message.includes('already registered')) {
+          return { 
+            success: false, 
+            error: 'This email is already registered. Please try logging in instead.' 
+          }
+        }
+        
+        if (error.message.includes('Invalid email')) {
+          return { 
+            success: false, 
+            error: 'Please enter a valid email address.' 
+          }
+        }
+        
         return { success: false, error: error.message }
       }
 
@@ -2340,21 +2379,33 @@ export class SupabaseAuthManager {
       }
 
       // Create user profile in our users table
+      console.log('🔄 Creating user profile with data:', {
+        id: data.user.id,
+        username: userData.username,
+        email: email,
+        coach: userData.coach,
+        age: userData.age,
+        confidence_score: userData.confidence_score
+      })
+      
+      // Don't set plan or coins during signup - let user choose in /plans page
+      console.log('💰 Creating user without plan - will choose in /plans page')
+
       const userProfile = await SupabaseUserManager.upsertUser({
         id: data.user.id, // Use Supabase auth ID
         username: userData.username,
         email: email,
-        user_type: userData.user_type as any,
         coach: userData.coach as any,
         age: userData.age,
         confidence_score: userData.confidence_score,
-        coins: 200,
-        current_plan: 'trial',
-        subscription_status: 'trial'
+        coins: 0, // No coins until plan is selected
+        current_plan: null, // No plan until user chooses
+        subscription_status: null // No status until plan is selected
       })
 
       if (!userProfile) {
-        return { success: false, error: 'Failed to create user profile' }
+        console.error('❌ upsertUser returned null - checking database connectivity')
+        return { success: false, error: 'Failed to create user profile - database error' }
       }
 
       console.log('✅ User created successfully:', data.user.email)
@@ -2372,6 +2423,68 @@ export class SupabaseAuthManager {
     }
   }
 
+  // Debug function to check user state
+  static async debugUserState(email: string): Promise<any> {
+    try {
+      console.log(`🔍 DEBUG: Checking state for email: ${email}`)
+      
+      // Check if user exists in public.users
+      const { data: publicUser, error: publicError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
+      
+      console.log('👤 Public user:', publicUser ? 'EXISTS' : 'NOT FOUND', publicError)
+      
+      // Check current session
+      const { data: session, error: sessionError } = await supabase.auth.getSession()
+      console.log('🔐 Current session:', session?.session ? 'ACTIVE' : 'NONE', sessionError)
+      
+      return {
+        publicUser: publicUser || null,
+        hasActiveSession: !!session?.session,
+        errors: { publicError, sessionError }
+      }
+    } catch (error) {
+      console.error('🚨 Debug error:', error)
+      return { error }
+    }
+  }
+
+  // Clean up user state helper
+  static async cleanupUserState(email: string): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log(`🧹 Cleaning up state for email: ${email}`)
+      
+      // Sign out current user
+      await supabase.auth.signOut()
+      
+      // Try to delete from public.users table if exists
+      const { error: deleteError } = await supabase
+        .from('users')
+        .delete()
+        .eq('email', email)
+      
+      if (deleteError && !deleteError.message.includes('no rows')) {
+        console.warn('⚠️ Warning cleaning public user:', deleteError)
+      }
+      
+      return {
+        success: true,
+        message: 'User state cleaned up successfully'
+      }
+    } catch (error) {
+      console.error('🚨 Cleanup error:', error)
+      return {
+        success: false,
+        message: `Cleanup failed: ${error}`
+      }
+    }
+  }
+
+  // Reset password function (removed duplicate)
+
   // Sign in with email and password
   static async signInUser(email: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
     try {
@@ -2383,11 +2496,25 @@ export class SupabaseAuthManager {
       if (error) {
         console.error('Supabase Auth signin error:', error)
         
-        // Check if error is due to email not confirmed
+        // Handle specific error types
         if (error.message.includes('Email not confirmed')) {
           return { 
             success: false, 
             error: 'Please check your email and click the confirmation link. If you didn\'t receive it, contact support or try signing up again.' 
+          }
+        }
+        
+        if (error.message.includes('Invalid login credentials')) {
+          return { 
+            success: false, 
+            error: 'Invalid email or password. Please check your credentials and try again.' 
+          }
+        }
+        
+        if (error.message.includes('Too many requests')) {
+          return { 
+            success: false, 
+            error: 'Too many login attempts. Please wait a few minutes before trying again.' 
           }
         }
         
@@ -2539,5 +2666,28 @@ export class SupabaseAuthManager {
       result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
     return result
+  }
+
+  // Helper methods for email templates
+  private static getCoachDisplayName(coach: string): string {
+    const coachNames: { [key: string]: string } = {
+      'blake': 'Blake Thompson',
+      'chase': 'Chase Williams', 
+      'logan': 'Logan Martinez',
+      'mason': 'Mason Rodriguez',
+      'knox': 'Knox Anderson'
+    }
+    return coachNames[coach] || 'Logan Martinez'
+  }
+
+  private static getUserChallenge(coach: string): string {
+    const challenges: { [key: string]: string } = {
+      'logan': 'social confidence and charisma',
+      'blake': 'performance anxiety and nervousness',
+      'chase': 'stamina and control mastery',
+      'mason': 'strength and vitality',
+      'knox': 'intimacy and deep connections'
+    }
+    return challenges[coach] || 'building unshakeable confidence'
   }
 }
